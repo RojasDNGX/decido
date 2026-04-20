@@ -1,3 +1,26 @@
+# ⚠️ AGENT ENTRY POINT
+
+Before performing any task, read:
+
+→ /docs/roadmap-current.md
+
+This file contains:
+- execution instructions
+- current phase
+- validation flow
+
+You MUST:
+1. Read the file
+2. Execute only the current phase
+3. Request validation before continuing
+
+Do NOT:
+- explore the project blindly
+- execute tasks outside the roadmap
+- modify unrelated code
+
+---
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started

@@ -1,59 +1,154 @@
-# ⚠️ AGENT ENTRY POINT
+# ⚠️ AGENT OPERATING MANUAL — DECIDO
 
-Before performing any task, read:
+This project is operated primarily by AI agents.
 
-→ /docs/roadmap-current.md
-
-This file contains:
-- execution instructions
-- current phase
-- validation flow
-
-You MUST:
-1. Read the file
-2. Execute only the current phase
-3. Request validation before continuing
-
-Do NOT:
-- explore the project blindly
-- execute tasks outside the roadmap
-- modify unrelated code
+You must follow these instructions strictly.
 
 ---
 
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🚀 PRIMARY ENTRY POINT
 
-## Getting Started
+Before performing ANY task, you MUST read:
 
-First, run the development server:
+→ /docs/roadmap-current.md
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+This file defines:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+* what to execute
+* current phase
+* validation flow
+* execution rules
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# 🧠 CORE EXECUTION MODEL
 
-## Learn More
+You DO NOT explore or improvise.
 
-To learn more about Next.js, take a look at the following resources:
+You MUST:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+1. Read `/docs/roadmap-current.md`
+2. Identify the first incomplete phase: `Status: [ ]`
+3. Execute ONLY that phase
+4. Stop and request human validation
+5. Wait for approval
+6. After approval:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+   * Mark phase as `[x]`
+   * Save file
+   * Suggest next phase
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+# ❌ STRICT PROHIBITIONS
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+You are NOT allowed to:
+
+* Execute multiple phases at once
+* Skip phases
+* Modify AI decision logic
+* Change prompts related to decision-making
+* Refactor unrelated code
+* Add new features outside roadmap
+* Introduce unnecessary dependencies
+* Infer requirements outside the roadmap
+
+---
+
+# ✅ ALLOWED ACTIONS
+
+You MAY:
+
+* Implement only what is defined in the current phase
+* Create minimal supporting code
+* Fix blocking issues related to the current phase
+* Improve clarity ONLY if it does not change behavior
+
+---
+
+# 🧩 PROJECT PURPOSE
+
+Decido is an AI decision assistant that:
+
+* receives tasks in natural language
+* prioritizes them (high, medium, low)
+* explains why
+* recommends what to do now
+
+Your job is NOT to redesign it.
+
+Your job is to **evolve it incrementally**.
+
+---
+
+# 🧠 DEVELOPMENT PRINCIPLES
+
+* Simplicity over complexity
+* Stability over perfection
+* Clarity over cleverness
+* Working solution over ideal architecture
+
+---
+
+# 🧪 VALIDATION RULE
+
+After implementing any phase:
+
+* You MUST explain what was done
+* You MUST request human validation
+* You MUST NOT continue automatically
+
+---
+
+# 📁 ROADMAP STRUCTURE
+
+You must understand the roadmap system:
+
+* `/docs/roadmap-current.md` → ACTIVE execution file
+* `/docs/roadmap-history.md` → past summaries
+* `/docs/roadmaps/week-X.md` → archived snapshots
+
+You ONLY operate using:
+
+→ roadmap-current.md
+
+---
+
+# 🔄 SESSION BEHAVIOR
+
+At the start of EVERY new session:
+
+* Re-read the roadmap
+* Do NOT rely on previous chat memory
+* Do NOT assume progress without checking file state
+
+---
+
+# 🚨 FAILURE HANDLING
+
+If something breaks:
+
+* Stop execution
+* Explain the issue clearly
+* Suggest a minimal fix
+* Wait for approval before applying major changes
+
+---
+
+# 🏁 FINAL OBJECTIVE
+
+Your goal is to:
+
+→ Transform the MVP into a usable product
+→ Without breaking existing functionality
+→ Without expanding scope
+
+---
+
+# ⚠️ FINAL RULE
+
+If something is not explicitly defined in the roadmap:
+
+→ DO NOT DO IT
+
+Always ask instead.

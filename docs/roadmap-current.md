@@ -1,4 +1,4 @@
-# 🚀 Decido — Execution Roadmap (Alpha Week)
+# 🚀 Decido — Execution Roadmap (Week 2 — Productization Layer)
 
 ## AGENT EXECUTION INSTRUCTIONS (READ FIRST)
 
@@ -33,114 +33,99 @@ At the start of EVERY session:
 
 ---
 
-## PHASE 1 — USER IDENTIFICATION
+## PHASE 1 — DECISION DETAILS VIEW
 
 Status: [ ]
 
 ### Tasks:
 
-* Generate a unique user ID
-* Store in localStorage
-* Persist across sessions
+* Allow user to expand a decision
+* Show full explanation from AI
+* Improve readability of reasoning
 
 ### Validation:
 
-User ID remains after reload
+User can clearly understand why a decision was made
 
 ---
 
-## PHASE 2 — DECISION STORAGE
+## PHASE 2 — COPY ACTION BUTTON
 
 Status: [ ]
 
 ### Tasks:
 
-* Save decisions (input, output, timestamp)
-* Store in localStorage
-* Limit to last 5
+* Add a button to copy the recommended action
+* Use clipboard API
+* Provide visual feedback (copied state)
 
 ### Validation:
 
-Decisions persist and rotate correctly
+User can copy the recommendation instantly
 
 ---
 
-## PHASE 3 — HISTORY UI
+## PHASE 3 — LOCAL HISTORY IMPROVEMENT
 
 Status: [ ]
 
 ### Tasks:
 
-* Display list of past decisions
-* Show input + timestamp
-* Allow re-open
+* Improve visualization of stored decisions
+* Show clearer timestamps
+* Improve readability and spacing
 
 ### Validation:
 
-User can view previous decisions
+History feels like a real feature, not raw data
 
 ---
 
-## PHASE 4 — USAGE LIMIT
+## PHASE 4 — RESET / CLEAR DATA
 
 Status: [ ]
 
 ### Tasks:
 
-* Limit to 5 analyses
-* Block after limit
-* Show message
+* Add option to clear all stored data
+* Reset usage limit
+* Reset history
 
 ### Validation:
 
-Limit enforced correctly
+User can restart usage cleanly
 
 ---
 
-## PHASE 5 — ONBOARDING
+## PHASE 5 — BASIC EMPTY STATES
 
 Status: [ ]
 
 ### Tasks:
 
-* Add placeholder
-* Add example
-* Add "Try example"
+* Add UI for empty history
+* Add UI when no input is provided
+* Improve feedback clarity
 
 ### Validation:
 
-User understands usage instantly
+No screen feels broken or incomplete
 
 ---
 
-## PHASE 6 — METRICS
+## PHASE 6 — FINAL POLISH VALIDATION
 
 Status: [ ]
 
 ### Tasks:
 
-* Track usage count
-* Log events
+* Validate full flow again
+* Check consistency across UI
+* Ensure no regressions
 
 ### Validation:
 
-Metrics visible in logs
-
----
-
-## PHASE 7 — FINAL VALIDATION
-
-Status: [ ]
-
-### Tasks:
-
-* Test full flow
-* Validate edge cases
-* Ensure stability
-
-### Validation:
-
-No broken flows
+Product feels stable and consistent
 
 ---
 

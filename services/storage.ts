@@ -25,6 +25,10 @@ export const isLimitReached = (): boolean => {
   return getUsageCount() >= MAX_FREE_ANALYSES;
 };
 
+export const getRemainingUsage = (): number => {
+  return Math.max(MAX_FREE_ANALYSES - getUsageCount(), 0);
+};
+
 export const getUserId = (): string => {
   if (typeof window === 'undefined') return '';
 
@@ -64,4 +68,9 @@ export const getDecisions = (): Decision[] => {
     console.error('Failed to parse decisions history', e);
     return [];
   }
+};
+
+export const clearData = (): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(STORAGE_KEYS.DECISIONS);
 };

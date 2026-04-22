@@ -35,7 +35,7 @@ At the start of EVERY session:
 
 ## PHASE 1 — USER IDENTIFICATION
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -51,7 +51,7 @@ User ID remains after reload
 
 ## PHASE 2 — DECISION STORAGE
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -67,7 +67,7 @@ Decisions persist and rotate correctly
 
 ## PHASE 3 — HISTORY UI
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -83,7 +83,7 @@ User can view previous decisions
 
 ## PHASE 4 — USAGE LIMIT
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -99,7 +99,7 @@ Limit enforced correctly
 
 ## PHASE 5 — ONBOARDING
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -115,7 +115,7 @@ User understands usage instantly
 
 ## PHASE 6 — METRICS
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -130,7 +130,7 @@ Metrics visible in logs
 
 ## PHASE 7 — FINAL VALIDATION
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 

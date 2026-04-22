@@ -46,7 +46,7 @@ Focus areas:
 
 ## PHASE 1 — DECISION EXPLANATION CLARITY IMPROVEMENT
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -63,7 +63,7 @@ User can immediately understand why a decision was recommended without cognitive
 
 ## PHASE 2 — TRUST & CONFIDENCE VISUAL LAYER
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -80,7 +80,7 @@ User perceives recommendations as more transparent and trustworthy
 
 ## PHASE 3 — NEXT BEST ACTION SUGGESTIONS
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -93,11 +93,92 @@ Status: [ ]
 
 User feels guided after receiving a decision, not left at a dead end
 
+# AGENT TASK — PHASE 3 PATCH UPDATE (NEXT BEST ACTIONS)
+
+You are working inside Week 3 — Phase 3 (Next Best Action Suggestions).
+
+---
+
+## CONTEXT
+
+Phase 3 is already defined in the roadmap.
+
+This is NOT a full re-execution of the phase.
+
+This is a controlled UX alignment patch to the existing implementation.
+
+---
+
+## OBJECTIVE
+
+Update the "Next Best Actions" list to align with product strategy and remove execution-oriented bias.
+
+---
+
+## REQUIRED CHANGES
+
+### 1. REMOVE ACTION
+
+- Remove: "Iniciar agora"
+
+Reason:
+This introduces execution intent, which conflicts with Decido’s decision-assistant positioning.
+
+---
+
+### 2. KEEP EXISTING ACTIONS
+
+- "Lembrete"
+- "Compartilhar"
+
+No modifications required.
+
+---
+
+### 3. ADD NEW ACTIONS
+
+Add the following:
+
+- "Explorar alternativas"
+  → Encourages comparison and reduces premature closure of decision
+
+- "Entender melhor essa decisão"
+  → Improves trust and explanation clarity
+
+---
+
+## UX STRATEGY ALIGNMENT
+
+The updated action set must:
+
+- Reinforce decision-making (not task execution)
+- Increase user confidence
+- Encourage reflection before action
+- Avoid “start/execute” framing
+
+---
+
+## CONSTRAINTS
+
+- Do NOT re-execute Phase 3
+- Do NOT modify other phases
+- Do NOT change AI decision logic
+- Only apply this targeted UI/UX patch
+
+---
+
+## VALIDATION
+
+After applying:
+
+- Confirm updated actions reflect decision-assistant positioning
+- Ensure no execution-oriented CTA remains
+
 ---
 
 ## PHASE 4 — FIRST-USE ONBOARDING FLOW
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -114,7 +195,7 @@ New user understands product value within seconds
 
 ## PHASE 5 — MICRO-INTERACTIONS & FEEDBACK POLISH
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 
@@ -131,7 +212,7 @@ User experience feels smooth and modern without performance cost
 
 ## PHASE 6 — FULL FLOW VALIDATION (NO NEW FEATURES)
 
-Status: [ ]
+Status: [x]
 
 ### Tasks:
 

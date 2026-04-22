@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
-import { getUserId, saveDecision, getDecisions, getUsageCount, incrementUsageCount, isLimitReached, getRemainingUsage, clearData, MAX_FREE_ANALYSES } from '@/services/storage';
+import { getUserId, saveDecision, getDecisions, getUsageCount, incrementUsageCount, isLimitReached, getRemainingUsage, clearData, MAX_FREE_ANALYSES, isOnboardingDone, setOnboardingDone } from '@/services/storage';
 import { AnalysisResult, Decision } from '@/types';
 import { logEvent } from '@/services/metrics';
 
@@ -12,6 +12,8 @@ const EXAMPLES = [
   'Responder mensagens pendentes no WhatsApp, organizar a mesa de trabalho e planejar a viagem de férias.',
   'Pagar o condomínio, agendar a manutenção do ar condicionado e finalizar a apresentação para a diretoria amanhã.',
   'Fazer exercícios por 30 minutos, ler 10 páginas de um livro e terminar a funcionalidade nova do app.',
+  'Consertar o vazamento da pia, comprar lâmpadas novas e organizar os documentos do imposto de renda.',
+  'Ligar para o banco para contestar uma cobrança, preparar a mala para a viagem e levar o cachorro ao veterinário.',
 ];
 
 export default function Home() {
@@ -28,7 +30,9 @@ export default function Home() {
   const [exampleIndex, setExampleIndex] = useState(-1);
   const [isViewingHistory, setIsViewingHistory] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [tourStep, setTourStep] = useState<number>(0); // 0 = hidden, 1 = input, 2 = button...
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const analyzeBtnRef = useRef<HTMLButtonElement>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -183,10 +187,21 @@ export default function Home() {
   return (
     <main>
       <div className="container">
-        {mounted && history.length > 0 && (
+        {mounted && (
           <div className="quick-actions">
-            <button 
-              className="quick-action-btn"
+            {!result && !isViewingHistory && (
+              <button 
+                className="quick-action-btn"
+                title="Como funciona"
+                onClick={() => setTourStep(1)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              </button>
+            )}
+            {history.length > 0 && (
+              <>
+                <button 
+                  className="quick-action-btn"
               title={result ? "Voltar ao Histórico" : "Histórico"}
               onClick={() => {
                 if (result) {
@@ -224,8 +239,10 @@ export default function Home() {
             >
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </button>
-          </div>
+          </>
         )}
+      </div>
+    )}
 
         <header className="header">
           <h1>Decido</h1>
@@ -240,18 +257,18 @@ export default function Home() {
             <p className="limit-reached-sub">Faça upgrade para continuar decidindo sem limites.</p>
           </div>
         ) : (
-          <section className="input-section">
+          <section className={`input-section ${(tourStep === 1 || tourStep === 2) ? 'tour-highlight-container' : ''}`}>
             <textarea
               ref={textareaRef}
               id="task-input"
               rows={2}
-              className="auto-resize-textarea"
+              className={`auto-resize-textarea ${tourStep === 1 ? 'tour-highlight' : ''}`}
               placeholder="Informe a situação que deseja decidir (seja específico sobre prazos e consequências se possível)."
               value={input}
               onChange={handleInputChange}
               disabled={loading}
             />
-            {!input && (
+            {(!input || EXAMPLES.includes(input)) && (
               <button
                 id="try-example-btn"
                 className="example-btn"
@@ -280,15 +297,62 @@ export default function Home() {
                 Nova análise
               </button>
             ) : (
-              <button id="analyze-btn" onClick={handleAnalyze} disabled={loading || !input.trim()}>
+              <button 
+                ref={analyzeBtnRef}
+                id="analyze-btn" 
+                className={tourStep === 2 ? 'tour-highlight' : ''}
+                onClick={handleAnalyze} 
+                disabled={loading || !input.trim()}
+              >
                 {loading ? 'Analisando...' : 'Analisar'}
               </button>
             )}
           </section>
         )}
 
+        {mounted && tourStep > 0 && (
+          <div className="tour-overlay">
+            <div className={`tour-popover tour-popover--step-${tourStep}`}>
+              <div className="tour-content">
+                {tourStep === 1 ? (
+                  <>
+                    <h3>Entrada de Dados</h3>
+                    <p>Cole sua lista de tarefas ou descreva uma situação. Seja específico sobre prazos para melhores resultados.</p>
+                  </>
+                ) : tourStep === 2 ? (
+                  <>
+                    <h3>Análise Inteligente</h3>
+                    <p>O Decido organiza tudo por prioridade e sugere a melhor ação imediata.</p>
+                  </>
+                ) : tourStep === 3 ? (
+                  <>
+                    <h3>Histórico Local</h3>
+                    <p>Suas decisões passadas ficam salvas apenas no seu navegador para consulta rápida.</p>
+                  </>
+                ) : (
+                  <>
+                    <h3>Limite e Privacidade</h3>
+                    <p>Acompanhe seu limite de uso e limpe seus dados quando quiser para reiniciar o histórico.</p>
+                  </>
+                )}
+              </div>
+              <div className="tour-footer">
+                <button className="tour-btn-secondary" onClick={() => { setOnboardingDone(); setTourStep(0); }}>Pular</button>
+                <div className="tour-btn-group">
+                  {tourStep < 4 ? (
+                    <button className="tour-btn-primary" onClick={() => setTourStep(tourStep + 1)}>Próximo</button>
+                  ) : (
+                    <button className="tour-btn-primary" onClick={() => { setOnboardingDone(); setTourStep(0); }}>Entendi</button>
+                  )}
+                </div>
+              </div>
+              <div className="tour-arrow"></div>
+            </div>
+          </div>
+        )}
+
         {mounted && history.length > 0 && !result && !loading && (
-          <section className="history-section">
+          <section id="history-container" className={`history-section ${tourStep === 3 ? 'tour-highlight' : ''}`}>
             <div className="history-header">
               <h2 className="history-title">Decisões Recentes</h2>
               <span className="history-count">{history.length} {history.length === 1 ? 'registro' : 'registros'}</span>
@@ -316,7 +380,7 @@ export default function Home() {
         )}
 
         {mounted && history.length === 0 && !result && !loading && !isLimitReached() && (
-          <div className="empty-history-card">
+          <div id="history-container" className={`empty-history-card ${tourStep === 3 ? 'tour-highlight' : ''}`}>
             <span className="empty-history-icon">📝</span>
             <p className="empty-history-title">Nenhuma decisão recente</p>
             <p className="empty-history-sub">As tarefas que você analisar aparecerão aqui para consulta rápida depois.</p>
@@ -335,7 +399,13 @@ export default function Home() {
           <section className="result-section">
             <div className="recommended-card">
               <div className="recommended-card-header">
-                <h2>Ação Recomendada Agora</h2>
+                <div className="recommended-badge-container">
+                  <span className="recommended-badge">Recomendação do Decido</span>
+                  <div className="confidence-indicator" title="Nível de precisão da análise baseada nos seus critérios">
+                    <span className="confidence-dot"></span>
+                    <span className="confidence-level">Confiança Alta</span>
+                  </div>
+                </div>
                 <button
                   id="copy-action-btn"
                   className={`copy-btn ${copied ? 'copy-btn--copied' : ''}`}
@@ -345,50 +415,97 @@ export default function Home() {
                   {copied ? '✓ Copiado!' : '⎘ Copiar'}
                 </button>
               </div>
-              <p>{result.recommended_action}</p>
+              <div className="recommended-content">
+                <p className="recommended-label">Sua melhor próxima ação:</p>
+                <p className="recommended-text">{result.recommended_action}</p>
+                <div className="trust-footer">
+                  <span className="trust-icon">🛡️</span>
+                  <span>Análise processada com alta precisão técnica</span>
+                </div>
+              </div>
             </div>
 
-            <div className="task-list">
-              {[...result.tasks]
-                .sort((a, b) => {
-                  const order = { high: 0, medium: 1, low: 2 };
-                  return order[a.priority] - order[b.priority];
-                })
-                .map((task, index) => {
-                  const isExpanded = expandedTask === index;
+            <div className="task-list-container">
+              <div className="task-list-intro">
+                <h3>Priorização das Tarefas</h3>
+                <p>Análise detalhada baseada em urgência e impacto.</p>
+              </div>
+
+              <div className="task-list">
+                {['high', 'medium', 'low'].map((priority) => {
+                  const tasks = result.tasks.filter(t => t.priority === priority);
+                  if (tasks.length === 0) return null;
+
                   return (
-                    <div key={index} className={`task-card task-card-${task.priority}`}>
-                      <div className="task-header">
-                        <span className="task-name">{task.name}</span>
-                        <div className="task-header-right">
-                          <span className={`priority-badge priority-${task.priority}`}>
-                            {task.priority === 'high' ? 'Alta' : task.priority === 'medium' ? 'Média' : 'Baixa'}
-                          </span>
-                          <button
-                            id={`details-btn-${index}`}
-                            className="details-toggle-btn"
-                            onClick={() => setExpandedTask(isExpanded ? null : index)}
-                            aria-expanded={isExpanded}
-                          >
-                            {isExpanded ? 'Fechar' : 'Ver detalhes'}
-                            <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
-                          </button>
-                        </div>
+                    <div key={priority} className="priority-group">
+                      <div className={`priority-group-header priority-group-header--${priority}`}>
+                        <h4>
+                          {priority === 'high' ? '🔥 Prioridade Máxima' : 
+                           priority === 'medium' ? '⚡ Média Prioridade' : 
+                           '💤 Baixa Prioridade'}
+                        </h4>
+                        <span className="priority-count">{tasks.length} {tasks.length === 1 ? 'item' : 'itens'}</span>
                       </div>
-                      <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
-                        <div className="task-details-inner">
-                          <p className="task-details-label">Por que esta prioridade?</p>
-                          <p className="task-reason">{task.reason}</p>
-                        </div>
-                      </div>
+                      
+                      {tasks.map((task, pIndex) => {
+                        // Using a unique key combining priority and index
+                        const globalIndex = result.tasks.findIndex(t => t === task);
+                        const isExpanded = expandedTask === globalIndex;
+                        
+                        return (
+                          <div key={pIndex} className={`task-card task-card-${task.priority}`}>
+                            <div className="task-header">
+                              <span className="task-name">{task.name}</span>
+                              <div className="task-header-right">
+                                <button
+                                  id={`details-btn-${globalIndex}`}
+                                  className="details-toggle-btn"
+                                  onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
+                                  aria-expanded={isExpanded}
+                                >
+                                  {isExpanded ? 'Ocultar' : 'Por que?'}
+                                  <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
+                                </button>
+                              </div>
+                            </div>
+                            <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
+                              <div className="task-details-inner">
+                                <div className="reason-container">
+                                  <p className="task-details-label">Justificativa da análise</p>
+                                  <p className="task-reason">{task.reason}</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            <div className="next-actions-container">
+              <p className="next-actions-label">Próximos passos sugeridos:</p>
+              <div className="next-actions-grid">
+                <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Lembrete')}>
+                  <span>Lembrete</span>
+                </button>
+                <button className="next-action-pill" onClick={() => handleCopy()}>
+                  <span>Compartilhar</span>
+                </button>
+                <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Alternativas')}>
+                  <span>Explorar alternativas</span>
+                </button>
+                <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Exoneração Técnica')}>
+                  <span>Entender melhor essa decisão</span>
+                </button>
+              </div>
             </div>
           </section>
         )}
 
-        <footer style={{ textAlign: 'center', opacity: 0.5, fontSize: '0.9rem', marginTop: 'auto', padding: '2rem 0', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center' }}>
+        <footer id="app-footer" className={tourStep === 4 ? 'tour-highlight' : ''} style={{ textAlign: 'center', opacity: 0.5, fontSize: '0.9rem', marginTop: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', borderRadius: '1rem' }}>
           {mounted && (
             isLimitReached() ? (
               <span>Faça upgrade para continuar decidindo sem limites. <a href="#" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Ver planos</a></span>

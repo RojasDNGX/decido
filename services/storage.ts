@@ -4,6 +4,7 @@ export const STORAGE_KEYS = {
   USER_ID: 'decido_user_id',
   DECISIONS: 'decido_history',
   USAGE_COUNT: 'decido_usage_count',
+  ONBOARDING_DONE: 'decido_onboarding_done',
 };
 
 export const MAX_FREE_ANALYSES = 5;
@@ -27,6 +28,16 @@ export const isLimitReached = (): boolean => {
 
 export const getRemainingUsage = (): number => {
   return Math.max(MAX_FREE_ANALYSES - getUsageCount(), 0);
+};
+
+export const isOnboardingDone = (): boolean => {
+  if (typeof window === 'undefined') return true;
+  return localStorage.getItem(STORAGE_KEYS.ONBOARDING_DONE) === 'true';
+};
+
+export const setOnboardingDone = (): void => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(STORAGE_KEYS.ONBOARDING_DONE, 'true');
 };
 
 export const getUserId = (): string => {
@@ -73,4 +84,5 @@ export const getDecisions = (): Decision[] => {
 export const clearData = (): void => {
   if (typeof window === 'undefined') return;
   localStorage.removeItem(STORAGE_KEYS.DECISIONS);
+  localStorage.removeItem(STORAGE_KEYS.ONBOARDING_DONE);
 };

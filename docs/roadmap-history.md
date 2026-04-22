@@ -41,3 +41,17 @@ Status: [x] COMPLETED (CLOSED)
 *   Micro-interactions & Polish (Button feedback, staggered animations)
 *   Strategic UX Alignment (Removal of execution bias, randomized examples)
 
+---
+
+## Week 4 — Landing & SEO Foundation
+
+Status: [x] COMPLETED (CLOSED)
+
+*   **Routing Architecture:** Implemented full site structure (/, /decidir, /blog, /sobre, /contato)
+*   **High-Conversion Landing:** Built core marketing message and problem-solution flow
+*   **SEO Infrastructure:** Deployed dynamic sitemap, robots.txt, and metadata optimization
+*   **UX Standardization:**
+    *   Responsive Grid utility for mobile-first consistency
+    *   Official Branding (52px logo) and Aligned App Header (1400px width)
+    *   Onboarding refinement (Absolute positioning, z-index 10001+, fixed overlay)
+    *   Final Navigation polish (Standardized Home icon, Back-to-top fixes)

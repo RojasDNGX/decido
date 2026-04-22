@@ -1,4 +1,4 @@
-# 🚀 DECIDO — EXECUTION ROADMAP (WEEK 3 — PRODUCT LAYER)
+# 🚀 DECIDO — EXECUTION ROADMAP (WEEK 4 — LANDING & SEO FOUNDATION)
 
 ## AGENT EXECUTION INSTRUCTIONS (READ FIRST)
 
@@ -27,209 +27,215 @@ At the start of EVERY session:
 - DO NOT execute multiple phases at once
 - DO NOT expand scope beyond defined tasks
 - KEEP implementations minimal and functional
-- PRIORITIZE stability over complexity
-- UI/UX improvements must not alter core decision engine behavior
+- PRIORITIZE clarity and conversion over visual complexity
 
 ---
 
-## WEEK 3 OBJECTIVE — PRODUCT LAYER
+## WEEK 4 OBJECTIVE — LANDING & SEO FOUNDATION
 
-Enhance user experience, perceived value, and decision clarity without changing core AI logic.
+Create a high-conversion landing page and establish the base structure for SEO content.
 
 Focus areas:
-- clarity of decisions
-- trust in recommendations
-- onboarding experience
-- interaction quality
+- product positioning
+- conversion clarity
+- acquisition foundation (blog structure)
+- zero interference with product flow
 
 ---
 
-## PHASE 1 — DECISION EXPLANATION CLARITY IMPROVEMENT
+## PHASE 1 — ROUTING STRUCTURE (FOUNDATION)
 
 Status: [x]
 
 ### Tasks:
 
-- Improve structure of AI decision explanation output
-- Introduce clearer sections (e.g. reasoning, context, recommendation summary)
-- Enhance readability (spacing, hierarchy, visual grouping if applicable)
-- Ensure explanation remains concise and non-technical for end user
+- Create new routes using App Router:
+
+  /                → Landing page  
+  /decidir         → Existing product entry  
+  /blog            → Blog listing page  
+  /blog/[slug]     → Dynamic blog article  
+  /sobre           → About page  
+  /contato         → Contact page  
+
+- Ensure navigation between landing and product is working
+- Do NOT modify product logic inside /decidir
 
 ### Validation:
 
-User can immediately understand why a decision was recommended without cognitive friction
+- All routes are accessible
+- Product still works exactly as before
+- No broken navigation
 
 ---
 
-## PHASE 2 — TRUST & CONFIDENCE VISUAL LAYER
+## PHASE 2 — LANDING PAGE (CORE STRUCTURE)
 
 Status: [x]
 
 ### Tasks:
 
-- Add a visual or textual confidence indicator for each decision
-- Provide simple trust framing (e.g. High / Medium / Low confidence)
-- Ensure indicator is derived from existing output (NO AI logic changes)
-- Keep it purely presentational
+Build landing page at `/` with the following sections:
+
+1. Hero section:
+   - Headline:
+     "Pare de decidir o que fazer. Deixe o Decido decidir por você."
+   - Subheadline
+   - CTA → "/decidir"
+
+2. Problem section:
+   - Excess tasks
+   - Decision fatigue
+   - Lack of clarity
+
+3. How it works (3 steps)
+
+4. Example block (input → output → justification)
+
+5. Differentiation section:
+   - "Não organiza tarefas. Decide o que fazer agora."
+
+6. Final CTA
+
+### Constraints:
+
+- Keep layout clean and minimal
+- No animations required
+- No external libraries unless necessary
 
 ### Validation:
 
-User perceives recommendations as more transparent and trustworthy
+- Message is clear in <10 seconds
+- CTA is visible and functional
+- Flow feels natural and convincing
 
 ---
 
-## PHASE 3 — NEXT BEST ACTION SUGGESTIONS
+## PHASE 3 — VISUAL HIERARCHY & UX POLISH
 
 Status: [x]
 
 ### Tasks:
 
-- After a decision is shown, suggest 1–3 possible next actions
-- Actions must be contextual to the decision output
-- Keep suggestions simple and non-intrusive
-- Do not trigger automatic execution of actions
+- Apply visual hierarchy:
+  - Strong headline
+  - Section spacing
+  - Clear reading flow
+
+- Improve typography:
+  - Title > subtitle > body
+
+- Ensure responsive layout (mobile-first)
+
+- Keep consistent spacing and alignment
 
 ### Validation:
 
-User feels guided after receiving a decision, not left at a dead end
-
-# AGENT TASK — PHASE 3 PATCH UPDATE (NEXT BEST ACTIONS)
-
-You are working inside Week 3 — Phase 3 (Next Best Action Suggestions).
+- Content is easy to scan
+- No visual clutter
+- Mobile experience is clean
 
 ---
 
-## CONTEXT
-
-Phase 3 is already defined in the roadmap.
-
-This is NOT a full re-execution of the phase.
-
-This is a controlled UX alignment patch to the existing implementation.
-
----
-
-## OBJECTIVE
-
-Update the "Next Best Actions" list to align with product strategy and remove execution-oriented bias.
-
----
-
-## REQUIRED CHANGES
-
-### 1. REMOVE ACTION
-
-- Remove: "Iniciar agora"
-
-Reason:
-This introduces execution intent, which conflicts with Decido’s decision-assistant positioning.
-
----
-
-### 2. KEEP EXISTING ACTIONS
-
-- "Lembrete"
-- "Compartilhar"
-
-No modifications required.
-
----
-
-### 3. ADD NEW ACTIONS
-
-Add the following:
-
-- "Explorar alternativas"
-  → Encourages comparison and reduces premature closure of decision
-
-- "Entender melhor essa decisão"
-  → Improves trust and explanation clarity
-
----
-
-## UX STRATEGY ALIGNMENT
-
-The updated action set must:
-
-- Reinforce decision-making (not task execution)
-- Increase user confidence
-- Encourage reflection before action
-- Avoid “start/execute” framing
-
----
-
-## CONSTRAINTS
-
-- Do NOT re-execute Phase 3
-- Do NOT modify other phases
-- Do NOT change AI decision logic
-- Only apply this targeted UI/UX patch
-
----
-
-## VALIDATION
-
-After applying:
-
-- Confirm updated actions reflect decision-assistant positioning
-- Ensure no execution-oriented CTA remains
-
----
-
-## PHASE 4 — FIRST-USE ONBOARDING FLOW
+## PHASE 4 — BLOG STRUCTURE (SEO FOUNDATION)
 
 Status: [x]
 
 ### Tasks:
 
-- Add lightweight onboarding for first-time users
-- Explain in 1–2 steps how Decido works
-- Avoid blocking modals or heavy flows
-- Ensure skip option exists
+- Create `/blog` page:
+  - Static list of placeholder articles
+
+- Create `/blog/[slug]` dynamic page:
+  - Render article title
+  - Render content structure (mock data allowed)
+
+- Prepare basic article layout:
+  - Title
+  - Sections (H2, H3)
+  - Paragraphs
+
+### Constraints:
+
+- No CMS integration yet
+- No real SEO optimization yet
+- Focus only on structure
 
 ### Validation:
 
-New user understands product value within seconds
+- Blog pages render correctly
+- Dynamic route works
+- Layout supports long-form content
 
 ---
 
-## PHASE 5 — MICRO-INTERACTIONS & FEEDBACK POLISH
+## PHASE 5 — BASIC SEO SETUP
 
-Status: [x]
+Status: [ ]
 
 ### Tasks:
 
-- Improve button feedback states (loading, success, idle)
-- Add subtle transitions for decision rendering
-- Ensure system feels responsive and alive
-- No heavy animation systems allowed
+- Add metadata to all main pages:
+  - title
+  - description
+
+- Ensure semantic HTML:
+  - h1, h2 hierarchy
+  - proper structure
+
+- Prepare for:
+  - sitemap (basic)
+  - robots.txt (optional placeholder)
 
 ### Validation:
 
-User experience feels smooth and modern without performance cost
+- Each page has unique title/description
+- HTML structure is semantic
+- No missing metadata
 
 ---
 
-## PHASE 6 — FULL FLOW VALIDATION (NO NEW FEATURES)
+## PHASE 6 — FINAL VALIDATION (NO NEW FEATURES)
 
-Status: [x]
+Status: [ ]
 
 ### Tasks:
 
-- Validate full decision flow end-to-end
-- Check UI consistency across all states
-- Ensure no regressions from previous weeks
-- Confirm onboarding + decision + history flow works seamlessly
+- Validate full flow:
+
+  Landing → CTA → Product  
+  Blog → Article → CTA → Product  
+
+- Check for:
+  - broken links
+  - layout inconsistencies
+  - responsiveness
+
+- Ensure:
+  - product experience unchanged
+  - landing is clean and persuasive
+  - blog is structurally ready
 
 ### Validation:
 
-Product feels coherent, stable, and production-ready
+- Navigation works end-to-end
+- No regressions in product
+- Landing communicates value clearly
 
 ---
 
 ## FINAL RULE
 
-If something is not explicitly defined in this roadmap:
+If something is not explicitly defined:
 
-→ DO NOT IMPLEMENT IT
-→ ASK FOR CLARIFICATION FIRST
+→ DO NOT IMPLEMENT  
+→ ASK FOR CLARIFICATION
+
+---
+
+## EXECUTION RULE
+
+- Execute ONE phase at a time
+- ALWAYS wait for validation
+- NEVER skip phases
+- NEVER continue automatically

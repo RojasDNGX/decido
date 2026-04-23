@@ -1,4 +1,4 @@
-# 🚀 DECIDO — EXECUTION ROADMAP (WEEK 5 — CONTENT & TRACTION LAYER)
+# 🚀 DECIDO — EXECUTION ROADMAP (WEEK 6 — REAL USAGE VALIDATION / QUALITATIVE)
 
 ## AGENT EXECUTION INSTRUCTIONS (READ FIRST)
 
@@ -12,7 +12,6 @@ At the start of EVERY session:
 4. After finishing:
    - Explain what was implemented
    - Request human validation
-   - All in brazilian portuguese
 5. WAIT for approval before continuing.
 6. After approval:
    - Mark the phase as [x]
@@ -24,326 +23,209 @@ At the start of EVERY session:
 ## GLOBAL RULES (STRICT)
 
 - DO NOT modify AI decision logic or prompts
-- DO NOT refactor unrelated code
 - DO NOT execute multiple phases at once
 - DO NOT expand scope beyond defined tasks
-- KEEP implementations minimal and focused
-- PRIORITIZE real user behavior over assumptions
+- DO NOT focus on scale or growth metrics
+- PRIORITIZE qualitative insight over quantitative volume
+- KEEP all implementations minimal and focused on learning
 
 ---
 
-## WEEK 5 OBJECTIVE — CONTENT & TRACTION
+## WEEK 6 OBJECTIVE — REAL USAGE VALIDATION (QUALITATIVE)
 
-Start generating real traffic and observe real user behavior.
+Validate the product with real users (approx. 10–20) to understand:
+
+- clarity of value
+- usability
+- trust in recommendations
+- friction points
 
 Focus areas:
-- SEO content creation
-- traffic acquisition
-- product entry points
-- behavioral validation
+- observation
+- structured feedback
+- behavioral patterns
+- insight generation
 
 ---
 
-## PHASE 1 — FIRST SEO ARTICLES (FOUNDATION)
+## TESTING CONTEXT
+
+Users will include:
+
+- professionals (high task load)
+- casual users
+- low-tech users (non-expert)
+
+This diversity is intentional and valuable.
+
+---
+
+## PHASE 1 — TEST PLAN DEFINITION
 
 Status: [x]
 
 ### Tasks:
 
-Create 3 real blog articles inside `/blog`:
+Create a simple test plan document including:
 
-1. "Como priorizar tarefas de forma eficiente"
-2. "Como decidir o que fazer primeiro no dia"
-3. "Como parar de procrastinar na prática"
+- Objective of the test
+- Target user groups (3 types)
+- Number of users (approximate)
+- Testing format:
+  - guided (you observing)
+  - unguided (user alone)
 
-Each article MUST:
+Define a standard test flow:
 
-- Have a strong title (H1)
-- Include structured sections (H2, H3)
-- Provide real, useful content (not generic)
-- Be at least medium-length (readable, not shallow)
-- Include natural writing in pt-BR
-
-### Constraints:
-
-- Do NOT generate placeholder content
-- Do NOT use overly generic AI text
-- Content must feel human and practical
+1. User lands on homepage
+2. User clicks CTA
+3. User interacts with product
+4. User receives recommendation
 
 ### Validation:
 
-- Articles are readable and valuable
-- Structure is clear and well-organized
-- Content matches search intent
-
-# AGENT TASK — SEO QUALITY PATCH (BLOG ARTICLES)
-
-You are working on Week 5 — Content & Traction Layer.
+- Plan is clear and simple
+- Can be executed without explanation overhead
 
 ---
 
-## CONTEXT
-
-Phase 1 (SEO Articles) and Phase 2 (CTA Integration) are already completed.
-
-This is NOT a re-execution of those phases.
-
-This is a QUALITY PATCH to ensure SEO and readability standards are correctly applied.
-
----
-
-## OBJECTIVE
-
-Validate and improve all existing blog articles to meet SEO and content quality best practices.
-
----
-
-## TARGET FILES
-
-- /app/blog/posts.ts
-- /app/blog/[slug]/page.tsx
-
----
-
-## REQUIRED CHECKS & FIXES
-
-### 1. SINGLE H1 RULE
-
-- Ensure each article renders ONLY one <h1>
-- Convert any additional H1s into H2 or H3
-
----
-
-### 2. FIRST PARAGRAPH OPTIMIZATION
-
-- Ensure the first 2–3 paragraphs:
-  - clearly answer the article’s main topic
-  - naturally include the primary keyword
-  - are direct and not generic
-
----
-
-### 3. READABILITY IMPROVEMENT
-
-- Ensure:
-  - short paragraphs (2–4 lines max)
-  - proper spacing between sections
-  - use of bullet points or lists where applicable
-
----
-
-### 4. META TAGS VALIDATION
-
-For each article:
-
-- Ensure <title> follows pattern:
-  "[Article Title] | Decido"
-
-- Ensure meta description:
-  - is present
-  - has 120–160 characters
-  - clearly describes the article
-  - matches search intent
-
----
-
-### 5. INTERNAL LINKING (LIGHT)
-
-- Add at least ONE internal link per article:
-  - pointing to another blog post OR
-  - pointing to /decidir
-
-- Ensure link is contextual (inside a sentence, not isolated)
-
----
-
-### 6. HTML SEMANTICS
-
-- Ensure proper hierarchy:
-  - H1 → H2 → H3
-- Avoid skipping levels
-- Use semantic structure correctly
-
----
-
-## CONSTRAINTS
-
-- DO NOT rewrite entire articles
-- DO NOT change article meaning
-- DO NOT modify CTA logic from Phase 2
-- Only apply targeted improvements
-
----
-
-## VALIDATION
-
-After applying changes:
-
-- Articles are more readable
-- SEO structure is correct
-- No structural errors (multiple H1, missing meta, etc.)
-- Content remains natural and human
-
----
-
-## FINAL STEP
-
-After completion:
-
-- Summarize all improvements made
-- Request validation
-
----
-
-## PHASE 2 — CTA INTEGRATION (BLOG → PRODUCT)
+## PHASE 2 — USER TEST SCRIPT
 
 Status: [x]
 
 ### Tasks:
 
-Inside each article:
+Create a short script for guiding users:
 
-- Add 1–2 contextual CTAs
-- Use natural phrasing, for example:
+Include:
 
-  "Quer aplicar isso automaticamente? Use o Decido."
+- 1–2 scenario prompts (e.g. “imagine you have these tasks…”)
+- Instructions:
+  - “use the tool as you normally would”
+- Observation checklist:
 
-- Link CTA to:
-  `/decidir`
-
-- Place CTAs:
-  - mid-content
-  - end of article
+  - What does the user do first?
+  - Do they hesitate?
+  - Do they understand the result?
+  - Do they trust the recommendation?
 
 ### Constraints:
 
-- Do NOT be aggressive
-- Do NOT disrupt reading flow
+- Do NOT lead the user
+- Do NOT explain how the product works beforehand
 
 ### Validation:
 
-- CTAs feel natural and helpful
-- Links correctly redirect to product
-- No UX friction
+- Script is short, clear, and neutral
+- Does not bias user behavior
 
 ---
 
-## PHASE 3 — BASIC ANALYTICS SETUP
+## PHASE 3 — EXECUTE USER TESTS
 
-Status: [x]
+Status: [ ]
 
 ### Tasks:
 
-Implement a lightweight analytics solution:
+Run tests with real users (approx. 10–20):
 
-Options:
-- Vercel Analytics (preferred)
-- or similar minimal tool
+- Observe behavior (live or recorded)
+- Take notes during each session
 
-Track at least:
+For each user, capture:
 
-- Page views
-- Visits to `/decidir`
-- Navigation from blog → product
+- First action taken
+- Moment of confusion (if any)
+- Reaction to recommendation
+- Whether they would use again
 
 ### Constraints:
 
-- Keep setup simple
-- No heavy integrations
+- Do NOT guide during interaction
+- Only observe
 
 ### Validation:
 
-- Analytics is working
-- Basic metrics are visible
-- No performance impact
+- At least 10 real sessions completed
+- Notes collected for each session
 
 ---
 
-## PHASE 4 — LANDING MESSAGE ITERATION (BASED ON LOGIC)
+## PHASE 4 — PATTERN ANALYSIS
 
-Status: [x]
+Status: [ ]
 
 ### Tasks:
 
-Review landing page messaging and improve clarity:
+Analyze collected notes and identify:
 
-- Refine headline if needed
-- Improve subheadline clarity
-- Ensure value is understood in <5 seconds
+- recurring confusion points
+- recurring positive reactions
+- moments where users hesitate
+- moments where users feel clarity
 
-Focus on:
+Group findings into:
 
-- decision relief
-- immediate value
-- simplicity
+- UX issues
+- messaging issues
+- trust issues
+
+### Validation:
+
+- Clear patterns identified (not isolated opinions)
+- Insights are actionable
+
+---
+
+## PHASE 5 — INSIGHT DOCUMENTATION
+
+Status: [ ]
+
+### Tasks:
+
+Create a structured summary document:
+
+Sections:
+
+1. What worked well
+2. What caused friction
+3. What users did not understand
+4. What users valued most
+5. Suggested improvements (based on evidence)
 
 ### Constraints:
 
-- Do NOT redesign layout
-- Only adjust text and clarity
+- Base everything on observed behavior
+- Avoid assumptions
 
 ### Validation:
 
-- Message is clearer and more direct
-- No increase in complexity
-- Maintains original positioning
+- Document is clear and structured
+- Insights are grounded in real usage
 
 ---
 
-## PHASE 5 — USER FLOW OBSERVATION (NO CODE CHANGES)
+## PHASE 6 — FINAL VALIDATION (READINESS CHECK)
 
-Status: [x]
-
-### Tasks:
-
-Analyze expected user flow:
-
-Landing → CTA → Product → Interaction
-
-Evaluate:
-
-- Is entry point clear?
-- Is output understandable?
-- Is next action obvious?
-
-Document observations (no implementation required yet)
-
-### Constraints:
-
-- Do NOT implement new features
-- Focus only on observation and reasoning
-
-### Validation:
-
-- Clear understanding of potential friction points
-- Identified areas for future improvement
-
----
-
-## PHASE 6 — FINAL VALIDATION (TRACTION READY)
-
-Status: [x]
+Status: [ ]
 
 ### Tasks:
 
-Validate full system:
+Confirm:
 
-- Landing → Blog → Product flow
-- All links working
-- Articles accessible
-- CTAs functional
+- Users can understand the product without explanation
+- Users can complete a full interaction
+- Users perceive value after first use
 
 Ensure:
 
-- Product remains stable
-- No regressions
-- Experience is coherent
+- Product is usable by different profiles
+- No critical blocking issues exist
 
 ### Validation:
 
-- User can discover → understand → use Decido
-- No broken flows
-- Ready for real users
+- Product is validated for real usage
+- Ready for next strategic step (Intervention)
 
 ---
 

@@ -68,8 +68,16 @@ export default function LandingClient() {
 
       <main style={{ width: '100%' }}>
         {/* 1. Hero Section */}
-        <section className="landing-section" style={{ textAlign: 'center', paddingTop: '12rem' }}>
-          <div className="landing-container" style={{ maxWidth: '1400px' }}>
+        <section className="landing-section" style={{ textAlign: 'center', paddingTop: '12rem', position: 'relative', overflow: 'hidden' }}>
+          <video
+            src="/videos/checklist.mp4"
+            autoPlay
+            muted
+            loop
+            playsInline
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.08, pointerEvents: 'none', zIndex: 0 }}
+          />
+          <div className="landing-container" style={{ maxWidth: '1400px', position: 'relative', zIndex: 10 }}>
             <h1 className="landing-h1">
               Sua próxima tarefa, decidida{' '}<br/>
               <span style={{ background: 'linear-gradient(to right, #60a5fa, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>em segundos.</span>
@@ -152,6 +160,9 @@ export default function LandingClient() {
         <section className="landing-section" style={{ background: 'var(--glass)', borderTop: '1px solid var(--glass-border)' }}>
           <div className="landing-container" style={{ maxWidth: '1400px' }}>
             <h2 className="landing-h2">Veja na prática</h2>
+            
+
+
             <div className="example-card-container">
               <div style={{ marginBottom: '3rem' }}>
                 <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#525252', marginBottom: '1rem', letterSpacing: '0.1em' }}>SUA ENTRADA:</p>

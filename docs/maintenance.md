@@ -1,75 +1,122 @@
-# AGENT TASK — UPDATE PRIMARY MODEL TO GEMMA4:E4B
+# AGENT TASK — REPLACE IFRAME WITH LOCAL VIDEO (FINAL IMPLEMENTATION)
 
 ---
 
 ## CONTEXT
 
-We are upgrading the primary AI model to a newer version:
+Previous implementation used iframe embed from Pexels, which caused:
 
-gemma4:e4b
+* UI pollution
+* incorrect rendering
+* poor UX
+
+We now have the video stored locally:
+
+/public/videos/checklist.mp4
 
 ---
 
 ## OBJECTIVE
 
-Replace current primary model with gemma4:e4b while preserving system stability.
+Replace ALL iframe-based video usage with local video implementation using the correct HTML5 <video> element.
 
 ---
 
-## TASK 1 — UPDATE MODEL PRIORITY
+# 🧩 TASK 1 — REMOVE IFRAME IMPLEMENTATION
 
-Set model order:
-
-1. gemma4:e4b
-2. gemma3:4b
-3. phi4:14b
-4. Groq (fallback)
+* Locate all iframe usages related to video
+* Remove them completely
 
 ---
 
-## TASK 2 — UPDATE REQUEST CONFIG
+# 🧩 TASK 2 — IMPLEMENT HERO BACKGROUND VIDEO
 
-Ensure all calls use:
+Update hero section:
 
-{
-  "model": "gemma4:e4b",
-  "options": {
-    "temperature": 0.2,
-    "num_predict": 250
-  }
-}
+<div className="relative overflow-hidden">
+
+<video
+ src="/videos/checklist.mp4"
+ autoPlay
+ muted
+ loop
+ playsInline
+ className="absolute inset-0 w-full h-full object-cover opacity-10 pointer-events-none"
+/>
+
+  <div className="absolute inset-0 bg-white/80 dark:bg-black/70"></div>
+
+  <div className="relative z-10">
+    {/* existing hero content */}
+  </div>
+
+</div>
 
 ---
 
-## TASK 3 — KEEP SAFETY LAYERS
+## RULES
 
-Maintain:
-
-- JSON validation
-- language validation (pt-BR)
-- fallback logic
+* Video MUST be subtle (background only)
+* Use opacity between 0.05 and 0.12
+* MUST NOT affect readability
+* MUST NOT capture pointer events
 
 ---
 
-## TASK 4 — LOGGING
+# 🧩 TASK 3 — IMPLEMENT VIDEO IN "VEJA NA PRÁTICA"
 
-Log model usage:
+Insert:
 
-console.log("Model used:", modelName)
+<video
+src="/videos/checklist.mp4"
+autoPlay
+muted
+loop
+playsInline
+className="rounded-xl w-full mt-6 mb-6"
+/>
+
+---
+
+# 🧩 TASK 4 — MOBILE OPTIMIZATION
+
+* Ensure responsive scaling
+* If needed, reduce opacity further on mobile
+* Maintain performance
+
+---
+
+# 🧩 TASK 5 — PERFORMANCE SAFETY
+
+* Do NOT preload aggressively
+* Ensure no layout shift
+* Keep video lightweight
+
+---
+
+# 🧩 TASK 6 — VALIDATION
+
+Confirm:
+
+* Video loads correctly from /public
+* No iframe remains
+* Hero readability is preserved
+* CTA remains dominant
+* Works on desktop and mobile
 
 ---
 
 ## CONSTRAINTS
 
-- DO NOT change UI
-- DO NOT change response structure
-- DO NOT change prompt logic
+* DO NOT add controls
+* DO NOT enable audio
+* DO NOT modify layout structure
+* DO NOT add more videos
 
 ---
 
-## VALIDATION
+## FINAL STEP
 
-- Responses still valid JSON
-- Responses in pt-BR
-- Latency acceptable
-- Fallback works if needed
+* Confirm iframe removed
+* Confirm local video working
+* Request validation

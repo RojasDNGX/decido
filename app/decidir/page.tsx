@@ -78,6 +78,12 @@ export default function Home() {
     }
   };
 
+  useEffect(() => {
+    if (tourStep === 4) {
+      document.getElementById('app-footer')?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [tourStep]);
+
   const handleClearData = () => {
     if (window.confirm('Tem certeza que deseja apagar todo o histórico de decisões?')) {
       clearData();
@@ -201,6 +207,45 @@ export default function Home() {
     }).format(new Date(timestamp));
   };
 
+  const renderTourPopover = (step: number) => (
+    <div className={`tour-popover tour-popover--step-${step}`}>
+      <div className="tour-content">
+        {step === 1 ? (
+          <>
+            <h3>Entrada de Dados</h3>
+            <p>Cole sua lista de tarefas ou descreva uma situação. Seja específico sobre prazos para melhores resultados.</p>
+          </>
+        ) : step === 2 ? (
+          <>
+            <h3>Análise Inteligente</h3>
+            <p>O Decido organiza tudo por prioridade e sugere a melhor ação imediata.</p>
+          </>
+        ) : step === 3 ? (
+          <>
+            <h3>Histórico Local</h3>
+            <p>Suas decisões passadas ficam salvas apenas no seu navegador para consulta rápida.</p>
+          </>
+        ) : (
+          <>
+            <h3>Limite e Privacidade</h3>
+            <p>Acompanhe seu limite de uso e limpe seus dados quando quiser para reiniciar o histórico.</p>
+          </>
+        )}
+      </div>
+      <div className="tour-footer">
+        <button className="tour-btn-secondary" onClick={() => { setOnboardingDone(); setTourStep(0); }}>Pular</button>
+        <div className="tour-btn-group">
+          {step < 4 ? (
+            <button className="tour-btn-primary" onClick={() => setTourStep(step + 1)}>Próximo</button>
+          ) : (
+            <button className="tour-btn-primary" onClick={() => { setOnboardingDone(); setTourStep(0); }}>Entendi</button>
+          )}
+        </div>
+      </div>
+      <div className="tour-arrow"></div>
+    </div>
+  );
+
   return (
     <main>
       <header style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -218,7 +263,7 @@ export default function Home() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               </Link>
               
-              {!result && !isViewingHistory && (
+              {!result && !isViewingHistory && !isLimit && (
                 <button 
                   className="quick-action-btn"
                   title="Como funciona"
@@ -286,7 +331,7 @@ export default function Home() {
             <p className="limit-reached-sub">Faça upgrade para continuar decidindo sem limites.</p>
           </div>
         ) : (
-          <section className={`input-section ${(tourStep === 1 || tourStep === 2) ? 'tour-highlight-container' : ''}`}>
+          <section className={`input-section ${(tourStep === 1 || tourStep === 2) ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
             <textarea
               ref={textareaRef}
               id="task-input"
@@ -297,6 +342,7 @@ export default function Home() {
               onChange={handleInputChange}
               disabled={loading}
             />
+            {tourStep === 1 && renderTourPopover(1)}
             {(!input || EXAMPLES.includes(input)) && (
               <button
                 id="try-example-btn"
@@ -308,7 +354,7 @@ export default function Home() {
               </button>
             )}
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+            <div className={tourStep === 2 ? 'tour-highlight-container' : ''} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', position: 'relative' }}>
               {isRefinementMode && (
                 <span className="refinement-indicator">Refinando análise anterior</span>
               )}
@@ -321,84 +367,52 @@ export default function Home() {
               >
                 {loading ? 'Analisando...' : 'Analisar'}
               </button>
+              {tourStep === 2 && renderTourPopover(2)}
             </div>
           </section>
         )}
 
-        {mounted && tourStep > 0 && (
-          <div className="tour-overlay">
-            <div className={`tour-popover tour-popover--step-${tourStep}`}>
-              <div className="tour-content">
-                {tourStep === 1 ? (
-                  <>
-                    <h3>Entrada de Dados</h3>
-                    <p>Cole sua lista de tarefas ou descreva uma situação. Seja específico sobre prazos para melhores resultados.</p>
-                  </>
-                ) : tourStep === 2 ? (
-                  <>
-                    <h3>Análise Inteligente</h3>
-                    <p>O Decido organiza tudo por prioridade e sugere a melhor ação imediata.</p>
-                  </>
-                ) : tourStep === 3 ? (
-                  <>
-                    <h3>Histórico Local</h3>
-                    <p>Suas decisões passadas ficam salvas apenas no seu navegador para consulta rápida.</p>
-                  </>
-                ) : (
-                  <>
-                    <h3>Limite e Privacidade</h3>
-                    <p>Acompanhe seu limite de uso e limpe seus dados quando quiser para reiniciar o histórico.</p>
-                  </>
-                )}
-              </div>
-              <div className="tour-footer">
-                <button className="tour-btn-secondary" onClick={() => { setOnboardingDone(); setTourStep(0); }}>Pular</button>
-                <div className="tour-btn-group">
-                  {tourStep < 4 ? (
-                    <button className="tour-btn-primary" onClick={() => setTourStep(tourStep + 1)}>Próximo</button>
-                  ) : (
-                    <button className="tour-btn-primary" onClick={() => { setOnboardingDone(); setTourStep(0); }}>Entendi</button>
-                  )}
-                </div>
-              </div>
-              <div className="tour-arrow"></div>
-            </div>
-          </div>
-        )}
+        {mounted && tourStep > 0 && <div className="tour-overlay" />}
 
         {mounted && history.length > 0 && !result && !loading && (
-          <section id="history-container" className={`history-section ${tourStep === 3 ? 'tour-highlight' : ''}`}>
-            <div className="history-header">
-              <h2 className="history-title">Decisões Recentes</h2>
-              <span className="history-count">{history.length} {history.length === 1 ? 'registro' : 'registros'}</span>
-            </div>
-            <div className="history-list">
-              {history.map((item) => (
-                <div key={item.id} className="history-item" onClick={() => handleLoadHistory(item)}>
-                  <div className="history-item-body">
-                    <p className="history-item-recommendation">{item.output.recommended_action}</p>
-                    <p className="history-item-input">{item.input}</p>
-                    <div className="history-item-meta">
-                      <span className="history-item-badge">{item.output.tasks.length} tarefa{item.output.tasks.length !== 1 ? 's' : ''}</span>
-                      <span className="history-item-time">
-                        <span className="history-item-relative">{formatRelativeDate(item.timestamp)}</span>
-                        <span className="history-item-separator">·</span>
-                        <span className="history-item-absolute">{formatAbsoluteDate(item.timestamp)}</span>
-                      </span>
+          <section id="history-container" className={`history-section ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
+            <div className={tourStep === 3 ? 'tour-highlight' : ''}>
+              <div className="history-header">
+                <h2 className="history-title">Decisões Recentes</h2>
+                <span className="history-count">{history.length} {history.length === 1 ? 'registro' : 'registros'}</span>
+              </div>
+              <div className="history-list">
+                {history.map((item) => (
+                  <div key={item.id} className="history-item" onClick={() => handleLoadHistory(item)}>
+                    <div className="history-item-body">
+                      <p className="history-item-recommendation">{item.output.recommended_action}</p>
+                      <p className="history-item-input">{item.input}</p>
+                      <div className="history-item-meta">
+                        <span className="history-item-badge">{item.output.tasks.length} tarefa{item.output.tasks.length !== 1 ? 's' : ''}</span>
+                        <span className="history-item-time">
+                          <span className="history-item-relative">{formatRelativeDate(item.timestamp)}</span>
+                          <span className="history-item-separator">·</span>
+                          <span className="history-item-absolute">{formatAbsoluteDate(item.timestamp)}</span>
+                        </span>
+                      </div>
                     </div>
+                    <span className="history-item-arrow">›</span>
                   </div>
-                  <span className="history-item-arrow">›</span>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
+            {tourStep === 3 && renderTourPopover(3)}
           </section>
         )}
 
         {mounted && history.length === 0 && !result && !loading && !isLimitReached() && (
-          <div id="history-container" className={`empty-history-card ${tourStep === 3 ? 'tour-highlight' : ''}`}>
-            <span className="empty-history-icon">📝</span>
-            <p className="empty-history-title">Nenhuma decisão recente</p>
-            <p className="empty-history-sub">As tarefas que você analisar aparecerão aqui para consulta rápida depois.</p>
+          <div id="history-container" className={`empty-history-card ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
+            <div className={tourStep === 3 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+              <span className="empty-history-icon">📝</span>
+              <p className="empty-history-title">Nenhuma decisão recente</p>
+              <p className="empty-history-sub">As tarefas que você analisar aparecerão aqui para consulta rápida depois.</p>
+            </div>
+            {tourStep === 3 && renderTourPopover(3)}
           </div>
         )}
 
@@ -528,22 +542,25 @@ export default function Home() {
           </section>
         )}
 
-        <footer id="app-footer" className={tourStep === 4 ? 'tour-highlight' : ''} style={{ textAlign: 'center', opacity: 0.5, fontSize: '0.9rem', marginTop: 'auto', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', borderRadius: '1rem' }}>
-          {mounted && (
-            isLimitReached() ? (
-              <span>Faça upgrade para continuar decidindo sem limites. <a href="#" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Ver planos</a></span>
-            ) : (
-              <span>Plano Gratuito: {getRemainingUsage()} {getRemainingUsage() === 1 ? 'análise restante' : 'análises restantes'}</span>
-            )
-          )}
-          {mounted && history.length > 0 && (
-            <button 
-              onClick={handleClearData}
-              className="clear-data-btn"
-            >
-              Limpar dados do histórico
-            </button>
-          )}
+        <footer id="app-footer" className={(tourStep === 4) ? 'tour-highlight-container' : ''} style={{ textAlign: 'center', opacity: (tourStep === 4) ? 1 : 0.5, fontSize: '0.9rem', marginTop: 'auto', marginBottom: '20px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', borderRadius: '1rem', position: 'relative' }}>
+          <div className={tourStep === 4 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+            {mounted && (
+              isLimitReached() ? (
+                <span>Faça upgrade para continuar decidindo sem limites. <a href="#" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Ver planos</a></span>
+              ) : (
+                <span>Plano Gratuito: {getRemainingUsage()} {getRemainingUsage() === 1 ? 'análise restante' : 'análises restantes'}</span>
+              )
+            )}
+            {mounted && history.length > 0 && (
+              <button 
+                onClick={handleClearData}
+                className="clear-data-btn"
+              >
+                Limpar dados do histórico
+              </button>
+            )}
+          </div>
+          {tourStep === 4 && renderTourPopover(4)}
         </footer>
 
       </div>

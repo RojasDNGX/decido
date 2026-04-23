@@ -24,7 +24,7 @@ export default function RootLayout({
       <body className={outfit.className} suppressHydrationWarning>
         {children}
         <BackToTop />
-        <Analytics />
+        {/* Analytics desativado para ambiente LAN local */}
       </body>
     </html>
   );

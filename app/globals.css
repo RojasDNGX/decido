@@ -22,7 +22,8 @@ body {
   max-width: 100vw;
   overflow-x: hidden;
   font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  background: var(--background);
+  background: radial-gradient(circle at 50% 0%, #1a365d 0%, #0a0a0a 100%);
+  background-attachment: fixed;
   color: var(--foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -35,7 +36,6 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
-  background: radial-gradient(circle at 50% 0%, #1a365d 0%, #0a0a0a 100%);
 }
 
 .container {
@@ -330,6 +330,7 @@ button:disabled {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 1.5rem;
 }
 
 .history-count {
@@ -1019,18 +1020,17 @@ button:disabled {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.15);
-  backdrop-filter: blur(2px);
-  z-index: 9999; /* Extremely high z-index */
-  display: flex;
-  justify-content: center;
-  align-items: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 10000;
   pointer-events: auto;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .tour-popover {
   position: relative;
-  z-index: 10000; /* Higher than overlay */
+  z-index: 20010;
   width: 360px;
   background: #1a1a1a;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -1041,8 +1041,8 @@ button:disabled {
 }
 
 @keyframes popIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
 }
 
 .tour-content h3 {
@@ -1098,7 +1098,7 @@ button:disabled {
 
 .tour-highlight {
   position: relative;
-  z-index: 10001 !important;
+  z-index: 20001 !important;
   animation: pulseHighlight 2s infinite;
   pointer-events: none;
   border-radius: 1rem;
@@ -1110,42 +1110,98 @@ button:disabled {
   100% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.3), 0 0 20px rgba(59, 130, 246, 0.2); }
 }
 
-
 .tour-highlight-container {
   position: relative;
-  z-index: 10001 !important;
+  z-index: 40000 !important;
+  backdrop-filter: none !important;
+  filter: none !important;
+}
+
+/* Anchored Popover logic */
+.tour-highlight-container .tour-popover {
+  position: absolute;
+  z-index: 40010;
+  width: 320px;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+}
+
+/* Position for Steps 1 & 2 (Top areas) */
+.input-section .tour-popover--step-1 {
+  top: -90%;
+  margin-top: 40px;
+}
+
+.input-section .tour-popover--step-2 {
+  top: 80%;
+  margin-top: 40px;
+}
+
+/* Position for Step 3 (Middle/Bottom area) */
+.history-section .tour-popover--step-3, 
+.empty-history-card .tour-popover--step-3 {
+  top: -90%;
+  margin-top: 40px;
+}
+
+/* Position for Step 4 (Bottom area) - Popover ABOVE highlight */
+#app-footer .tour-popover--step-4 {
+  bottom: 100%;
+  margin-bottom: 0;
 }
 
 
-/* Positioning steps to avoid overlap */
-.tour-popover--step-1 {
-  transform: translateY(210px);
+
+
+
+
+
+.limit-reached-card {
+  background: rgba(239, 68, 68, 0.08); /* Tom vermelho opaco discreto */
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(239, 68, 68, 0.3); /* Borda vermelha sutil */
+  padding: 4rem 2rem;
+  border-radius: 1.5rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  animation: fadeIn 0.5s ease-out;
 }
 
-.tour-popover--step-2 {
-  transform: translateY(210px);
+.limit-reached-icon {
+  font-size: 3.5rem;
+  margin-bottom: 0.5rem;
+  display: block;
 }
 
-.tour-popover--step-3 {
-  transform: translateY(-160px);
+.limit-reached-card h2 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 0;
 }
 
-.tour-popover--step-4 {
-  transform: translateY(-160px);
+.limit-reached-card p {
+  color: #e5e5e5;
+  font-size: 1.1rem;
+  max-width: 400px;
+  margin: 0;
 }
 
-
-
-
-
-
+.limit-reached-sub {
+  color: #737373 !important;
+  font-size: 0.95rem !important;
+}
 
 /* ── Phase 3 Week 4: Landing Page Visual Hierarchy ── */
 
 .landing-wrapper {
-  background: var(--background);
   color: var(--foreground);
   min-height: 100vh;
+  background: transparent;
 }
 
 .landing-nav {

@@ -135,6 +135,18 @@ If something breaks:
 
 ---
 
+---
+
+# 🚀 RUN MODES
+
+Use the correct command for your current goal:
+
+* `npm run dev` → **Local Development**: Standard mode for coding (localhost).
+* `npm run dev:lan` → **Network Testing**: Exposes the server to the LAN (use when accessing via IP).
+* `npm run build` && `npm run start` → **Production Mode**: Best for real user testing and stability (no HMR overhead).
+
+---
+
 # 🏁 FINAL OBJECTIVE
 
 Your goal is to:

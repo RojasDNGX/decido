@@ -32,6 +32,7 @@ export default function Home() {
   const [isViewingHistory, setIsViewingHistory] = useState(false);
   const [tourStep, setTourStep] = useState<number>(0); // 0 = hidden, 1 = input, 2 = button...
   const [isRefinementMode, setIsRefinementMode] = useState(false);
+  const [isLimit, setIsLimit] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -91,6 +92,7 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
+    setIsLimit(isLimitReached());
     // Log page view once on mount; userId was already initialized via lazy state
     logEvent('page_view', userId, { usage: usageCount });
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -202,13 +204,13 @@ export default function Home() {
   return (
     <main>
       <header style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <Link href="/" className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'opacity 0.2s' }}>
             <img 
               src="/images/app-icon.png" 
               alt="Decido Logo" 
               style={{ width: '52px', height: '52px', borderRadius: '12px', objectFit: 'cover' }} 
             />
-          </div>
+          </Link>
           
           {mounted && (
             <div className="quick-actions" style={{ display: 'flex', gap: '0.75rem' }}>
@@ -269,14 +271,14 @@ export default function Home() {
         </div>
       )}
     </header>
-    <div className="container">
+    <div className="container" key={mounted ? 'client' : 'server'}>
 
         <header className="header">
           <h1>Decido</h1>
           <p>Seu assistente inteligente de decisões</p>
         </header>
 
-        {isLimitReached() ? (
+        {isLimit ? (
           <div className="limit-reached-card">
             <span className="limit-reached-icon">🔒</span>
             <h2>Limite atingido</h2>
@@ -315,7 +317,7 @@ export default function Home() {
                 id="analyze-btn" 
                 className={tourStep === 2 ? 'tour-highlight' : ''}
                 onClick={handleAnalyze} 
-                disabled={loading || !input.trim()}
+                disabled={loading || !input || input.trim().length === 0}
               >
                 {loading ? 'Analisando...' : 'Analisar'}
               </button>

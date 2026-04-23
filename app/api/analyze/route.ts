@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { analyzeTasks } from '@/services/ai';
+
+import { aiOrchestrator } from '@/services/aiOrchestrator';
 
 export async function POST(req: NextRequest) {
   try {
@@ -12,12 +13,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const result = await analyzeTasks(input);
+    const result = await aiOrchestrator(input);
     return NextResponse.json(result);
   } catch (error: any) {
     console.error('API Route Error:', error);
     return NextResponse.json(
-      { error: error.message || 'An error occurred during analysis.' },
+      { error: error.message || 'Não foi possível processar a análise no momento.' },
       { status: 500 }
     );
   }

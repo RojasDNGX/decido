@@ -11,78 +11,121 @@ export const MAX_FREE_ANALYSES = 5;
 
 export const getUsageCount = (): number => {
   if (typeof window === 'undefined') return 0;
-  const stored = localStorage.getItem(STORAGE_KEYS.USAGE_COUNT);
-  return stored ? parseInt(stored, 10) : 0;
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.USAGE_COUNT);
+    return stored ? parseInt(stored, 10) : 0;
+  } catch (e) {
+    console.warn('LocalStorage usage count inaccessible', e);
+    return 0;
+  }
 };
 
 export const incrementUsageCount = (): number => {
   if (typeof window === 'undefined') return 0;
-  const count = getUsageCount() + 1;
-  localStorage.setItem(STORAGE_KEYS.USAGE_COUNT, String(count));
-  return count;
+  try {
+    const count = getUsageCount() + 1;
+    localStorage.setItem(STORAGE_KEYS.USAGE_COUNT, String(count));
+    return count;
+  } catch (e) {
+    console.warn('Failed to increment usage count', e);
+    return 0;
+  }
 };
 
 export const isLimitReached = (): boolean => {
-  return getUsageCount() >= MAX_FREE_ANALYSES;
+  try {
+    return getUsageCount() >= MAX_FREE_ANALYSES;
+  } catch (e) {
+    return false;
+  }
 };
 
 export const getRemainingUsage = (): number => {
-  return Math.max(MAX_FREE_ANALYSES - getUsageCount(), 0);
+  try {
+    return Math.max(MAX_FREE_ANALYSES - getUsageCount(), 0);
+  } catch (e) {
+    return MAX_FREE_ANALYSES;
+  }
 };
 
 export const isOnboardingDone = (): boolean => {
   if (typeof window === 'undefined') return true;
-  return localStorage.getItem(STORAGE_KEYS.ONBOARDING_DONE) === 'true';
+  try {
+    return localStorage.getItem(STORAGE_KEYS.ONBOARDING_DONE) === 'true';
+  } catch (e) {
+    return true; // Default to true to not block user
+  }
 };
 
 export const setOnboardingDone = (): void => {
   if (typeof window === 'undefined') return;
-  localStorage.setItem(STORAGE_KEYS.ONBOARDING_DONE, 'true');
+  try {
+    localStorage.setItem(STORAGE_KEYS.ONBOARDING_DONE, 'true');
+  } catch (e) {
+    console.warn('Failed to save onboarding state', e);
+  }
 };
 
 export const getUserId = (): string => {
   if (typeof window === 'undefined') return '';
 
-  let userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
+  try {
+    let userId = localStorage.getItem(STORAGE_KEYS.USER_ID);
 
-  if (!userId) {
-    userId = crypto.randomUUID();
-    localStorage.setItem(STORAGE_KEYS.USER_ID, userId);
+    if (!userId) {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        userId = crypto.randomUUID();
+      } else {
+        // Fallback for non-secure contexts (HTTP)
+        userId = 'user_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+      }
+      localStorage.setItem(STORAGE_KEYS.USER_ID, userId);
+    }
+
+    return userId;
+  } catch (e) {
+    console.warn('LocalStorage userId inaccessible, using memory fallback', e);
+    return 'temp_' + Date.now();
   }
-
-  return userId;
 };
 
 export const saveDecision = (decision: Omit<Decision, 'id' | 'timestamp'>): void => {
   if (typeof window === 'undefined') return;
 
-  const history = getDecisions();
-  const newDecision: Decision = {
-    ...decision,
-    id: crypto.randomUUID(),
-    timestamp: Date.now(),
-  };
+  try {
+    const history = getDecisions();
+    const newDecision: Decision = {
+      ...decision,
+      id: (typeof crypto !== 'undefined' && crypto.randomUUID) ? crypto.randomUUID() : 'id_' + Date.now(),
+      timestamp: Date.now(),
+    };
 
-  const updatedHistory = [newDecision, ...history].slice(0, 5);
-  localStorage.setItem(STORAGE_KEYS.DECISIONS, JSON.stringify(updatedHistory));
+    const updatedHistory = [newDecision, ...history].slice(0, 5);
+    localStorage.setItem(STORAGE_KEYS.DECISIONS, JSON.stringify(updatedHistory));
+  } catch (e) {
+    console.warn('Failed to save decision to history', e);
+  }
 };
 
 export const getDecisions = (): Decision[] => {
   if (typeof window === 'undefined') return [];
 
-  const stored = localStorage.getItem(STORAGE_KEYS.DECISIONS);
-  if (!stored) return [];
-
   try {
+    const stored = localStorage.getItem(STORAGE_KEYS.DECISIONS);
+    if (!stored) return [];
     return JSON.parse(stored);
   } catch (e) {
-    console.error('Failed to parse decisions history', e);
+    console.warn('Failed to get decisions from history', e);
     return [];
   }
 };
 
 export const clearData = (): void => {
   if (typeof window === 'undefined') return;
-  localStorage.removeItem(STORAGE_KEYS.DECISIONS);
-  localStorage.removeItem(STORAGE_KEYS.ONBOARDING_DONE);
+  try {
+    localStorage.removeItem(STORAGE_KEYS.DECISIONS);
+    localStorage.removeItem(STORAGE_KEYS.ONBOARDING_DONE);
+  } catch (e) {
+    console.warn('Failed to clear localStorage data', e);
+  }
 };

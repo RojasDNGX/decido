@@ -82,6 +82,7 @@ main {
   letter-spacing: -2px;
   background: linear-gradient(to right, #60a5fa, #a855f7);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   margin-bottom: 0.5rem;
 }
@@ -897,47 +898,59 @@ button:disabled {
   margin-bottom: 0.5rem;
 }
 
-.confidence-indicator {
+.context-disclaimer {
+  margin-top: 0.4rem;
   display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.2rem 0.5rem;
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.2);
-  border-radius: 2rem;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 
-.confidence-dot {
-  width: 6px;
-  height: 6px;
-  background: #10b981;
-  border-radius: 50%;
-  box-shadow: 0 0 8px #10b981;
-  animation: pulse 2s infinite;
+.context-disclaimer p {
+  font-size: 0.8rem;
+  color: #a3a3a3;
+  margin: 0;
+  line-height: 1.5;
 }
 
-.confidence-level {
-  font-size: 0.65rem;
+.context-emphasis {
   font-weight: 600;
-  color: #10b981;
+  color: #d1d5db;
+}
+
+.refine-link {
+  background: none !important;
+  border: none;
+  color: #60a5fa; /* Lighter blue for better contrast on dark/purple background */
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 8px; 
+  margin: -4px -8px 0 0.2rem; 
+  cursor: pointer;
+  text-decoration: none; 
+  opacity: 1; /* Full opacity for better readability */
+  transition: all 0.2s ease;
+  display: inline-block; 
+  vertical-align: baseline;
+  border-radius: 4px;
+}
+
+.refine-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  background: rgba(59, 130, 246, 0.05) !important; /* Extremely subtle hover hint */
+}
+
+.refinement-indicator {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--primary);
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.trust-footer {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  margin-top: 1.25rem;
-  padding-top: 1rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
-  font-size: 0.75rem;
-  color: #737373;
-}
-
-.trust-icon {
-  font-size: 0.9rem;
-  opacity: 0.6;
+  letter-spacing: 1px;
+  text-align: center;
+  margin-bottom: -0.25rem;
+  opacity: 0.8;
+  animation: fadeIn 0.3s ease-out;
 }
 
 @keyframes pulse {

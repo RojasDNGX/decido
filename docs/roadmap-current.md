@@ -205,6 +205,106 @@ Sections:
 
 ---
 
+# AGENT TASK — INPUT REFINEMENT PATCH (WEEK 6)
+
+You are working on Week 6 — Real Usage Validation.
+
+---
+
+## CONTEXT
+
+A UX improvement was identified during pre-testing:
+
+Users may provide incomplete input (missing urgency or deadlines), which affects decision quality.
+
+Instead of adding new features, we will guide users subtly to refine their input.
+
+---
+
+## OBJECTIVE
+
+Improve input quality WITHOUT adding complexity.
+
+Use passive guidance + quick correction flow.
+
+---
+
+## TASK 1 — UPDATE CONTEXT MESSAGE
+
+Replace the current disclaimer text with:
+
+"Baseado nas informações fornecidas. A prioridade pode variar se houver prazo ou urgência específica."
+
+---
+
+## TASK 2 — ADD SUBTLE EMPHASIS
+
+Apply a subtle visual emphasis ONLY to:
+
+"prazo ou urgência específica"
+
+Rules:
+
+- Use slightly stronger color OR semi-bold
+- DO NOT use multiple colors
+- DO NOT use red/orange/green system
+- Keep visual hierarchy clean
+
+---
+
+## TASK 3 — ADD REFINEMENT LINK
+
+Add a small inline link below the message:
+
+"Refinar informações"
+
+---
+
+## TASK 4 — LINK BEHAVIOR
+
+When user clicks "Refinar informações":
+
+- Smooth scroll to top of the page
+- Focus the main input field
+- Activate cursor automatically
+
+---
+
+## CONSTRAINTS
+
+- DO NOT modify AI logic
+- DO NOT add new inputs or fields
+- DO NOT create new flows
+- DO NOT introduce state complexity
+- DO NOT change layout structure significantly
+
+---
+
+## UX PRINCIPLES
+
+- Keep everything minimal
+- Guide, do not interrupt
+- No aggressive visuals
+- Maintain trust and clarity
+
+---
+
+## VALIDATION
+
+After implementation:
+
+- Users understand they can improve input
+- Input correction feels natural
+- No UI clutter introduced
+- Flow remains smooth
+
+---
+
+## FINAL STEP
+
+- Summarize what was implemented
+- Request validation
+
 ## PHASE 6 — FINAL VALIDATION (READINESS CHECK)
 
 Status: [ ]

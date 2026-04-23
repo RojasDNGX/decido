@@ -31,6 +31,7 @@ export default function Home() {
   const [exampleIndex, setExampleIndex] = useState(-1);
   const [isViewingHistory, setIsViewingHistory] = useState(false);
   const [tourStep, setTourStep] = useState<number>(0); // 0 = hidden, 1 = input, 2 = button...
+  const [isRefinementMode, setIsRefinementMode] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
 
@@ -107,10 +108,12 @@ export default function Home() {
       return;
     }
 
+    if (!isRefinementMode) {
+      setResult(null);
+    }
     setLoading(true);
     setError(null);
-    setResult(null);
-    logEvent('analyze_started', userId, { inputLength: input.length });
+    logEvent('analyze_started', userId, { inputLength: input.length, isRefinement: isRefinementMode });
 
     try {
       const response = await fetch('/api/analyze', {
@@ -128,10 +131,28 @@ export default function Home() {
       setResult(data);
       saveDecision({ input, output: data });
       setHistory(getDecisions());
-      const newCount = incrementUsageCount();
-      setUsageCount(newCount);
+      
+      // Only increment usage if not in refinement mode
+      if (!isRefinementMode) {
+        const newCount = incrementUsageCount();
+        setUsageCount(newCount);
+        logEvent('analyze_success', userId, { usageCount: newCount, taskCount: data.tasks?.length });
+      } else {
+        logEvent('analyze_success', userId, { refinement: true, taskCount: data.tasks?.length });
+      }
+
       setIsViewingHistory(true);
-      logEvent('analyze_success', userId, { usageCount: newCount, taskCount: data.tasks?.length });
+      setIsRefinementMode(false); // Reset refinement mode after success
+
+      // Auto scroll to result section with offset for better breathing room
+      setTimeout(() => {
+        const resultSection = document.querySelector('.result-section') as HTMLElement;
+        if (resultSection) {
+          const yOffset = -60; // 60px breathing room
+          const y = resultSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
+          window.scrollTo({ top: y, behavior: 'smooth' });
+        }
+      }, 100);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ocorreu um erro inesperado.';
       logEvent('analyze_error', userId, { message });
@@ -269,7 +290,7 @@ export default function Home() {
               id="task-input"
               rows={2}
               className={`auto-resize-textarea ${tourStep === 1 ? 'tour-highlight' : ''}`}
-              placeholder="Informe a situação que deseja decidir (seja específico sobre prazos e consequências se possível)."
+              placeholder="Descreva suas tarefas (inclua prazos ou urgência se houver)"
               value={input}
               onChange={handleInputChange}
               disabled={loading}
@@ -285,24 +306,10 @@ export default function Home() {
               </button>
             )}
             
-            {isViewingHistory ? (
-              <button 
-                id="analyze-btn" 
-                onClick={() => {
-                  setResult(null);
-                  setInput('');
-                  setIsViewingHistory(false);
-                  setExampleIndex(-1);
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = 'auto';
-                  }
-                }}
-                disabled={loading}
-                style={{ background: 'transparent', border: '1px solid var(--glass-border)' }}
-              >
-                Nova análise
-              </button>
-            ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+              {isRefinementMode && (
+                <span className="refinement-indicator">Refinando análise anterior</span>
+              )}
               <button 
                 ref={analyzeBtnRef}
                 id="analyze-btn" 
@@ -312,7 +319,7 @@ export default function Home() {
               >
                 {loading ? 'Analisando...' : 'Analisar'}
               </button>
-            )}
+            </div>
           </section>
         )}
 
@@ -407,10 +414,6 @@ export default function Home() {
               <div className="recommended-card-header">
                 <div className="recommended-badge-container">
                   <span className="recommended-badge">Recomendação do Decido</span>
-                  <div className="confidence-indicator" title="Nível de precisão da análise baseada nos seus critérios">
-                    <span className="confidence-dot"></span>
-                    <span className="confidence-level">Confiança Alta</span>
-                  </div>
                 </div>
                 <button
                   id="copy-action-btn"
@@ -424,9 +427,21 @@ export default function Home() {
               <div className="recommended-content">
                 <p className="recommended-label">Sua melhor próxima ação:</p>
                 <p className="recommended-text">{result.recommended_action}</p>
-                <div className="trust-footer">
-                  <span className="trust-icon">🛡️</span>
-                  <span>Análise processada com alta precisão técnica</span>
+                <div className="context-disclaimer">
+                  <p>
+                    Baseado nas informações fornecidas. A prioridade pode variar se houver <span className="context-emphasis">prazo ou urgência específica</span>.
+                    {' '}
+                    <button 
+                      className="refine-link"
+                      onClick={() => {
+                        setIsRefinementMode(true);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        textareaRef.current?.focus();
+                      }}
+                    >
+                      Refinar informações
+                    </button>
+                  </p>
                 </div>
               </div>
             </div>

@@ -5,7 +5,9 @@ export type EventName =
   | 'analyze_error'
   | 'limit_reached'
   | 'example_used'
-  | 'history_opened';
+  | 'history_opened'
+  | 'copy_action'
+  | 'clear_data';
 
 export interface MetricEvent {
   event: EventName;

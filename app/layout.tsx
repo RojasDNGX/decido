@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import BackToTop from './components/BackToTop';
 import './globals.css';
 
 const outfit = Outfit({
@@ -19,7 +21,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-BR">
-      <body className={outfit.className} suppressHydrationWarning>{children}</body>
+      <body className={outfit.className} suppressHydrationWarning>
+        {children}
+        <BackToTop />
+        <Analytics />
+      </body>
     </html>
   );
 }

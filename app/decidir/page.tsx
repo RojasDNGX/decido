@@ -30,7 +30,6 @@ export default function Home() {
   const [mounted, setMounted] = useState(false);
   const [exampleIndex, setExampleIndex] = useState(-1);
   const [isViewingHistory, setIsViewingHistory] = useState(false);
-  const [showBackToTop, setShowBackToTop] = useState(false);
   const [tourStep, setTourStep] = useState<number>(0); // 0 = hidden, 1 = input, 2 = button...
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
@@ -93,12 +92,6 @@ export default function Home() {
     setMounted(true);
     // Log page view once on mount; userId was already initialized via lazy state
     logEvent('page_view', userId, { usage: usageCount });
-    
-    const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 300);
-    };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -536,15 +529,6 @@ export default function Home() {
           )}
         </footer>
 
-        {showBackToTop && (
-          <button 
-            className="back-to-top-btn"
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            aria-label="Voltar ao topo"
-          >
-            ↑
-          </button>
-        )}
       </div>
     </main>
   );

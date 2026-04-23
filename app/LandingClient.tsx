@@ -71,11 +71,11 @@ export default function LandingClient() {
         <section className="landing-section" style={{ textAlign: 'center', paddingTop: '12rem' }}>
           <div className="landing-container" style={{ maxWidth: '1400px' }}>
             <h1 className="landing-h1">
-              Pare de decidir o que fazer. <br/>
-              <span style={{ background: 'linear-gradient(to right, #60a5fa, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>Deixe o Decido decidir por você.</span>
+              Sua próxima tarefa, decidida{' '}<br/>
+              <span style={{ background: 'linear-gradient(to right, #60a5fa, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>em segundos.</span>
             </h1>
             <p className="hero-sub" style={{ margin: '0 auto 3.5rem' }}>
-              Transforme sua lista de tarefas caótica em um plano de ação imediato guiado por inteligência artificial. Recupere sua energia mental hoje.
+              Você descreve o que tem para fazer. O Decido te diz o que fazer agora — sem esforço, sem paralisia.
             </p>
             <Link href="/decidir" style={{ display: 'inline-block', padding: '1.2rem 2.5rem', background: 'var(--primary)', color: 'white', borderRadius: '1rem', textDecoration: 'none', fontWeight: '700', fontSize: '1.2rem', boxShadow: '0 10px 25px rgba(59, 130, 246, 0.4)' }}>
               Começar Grátis
@@ -152,21 +152,84 @@ export default function LandingClient() {
         <section className="landing-section" style={{ background: 'var(--glass)', borderTop: '1px solid var(--glass-border)' }}>
           <div className="landing-container" style={{ maxWidth: '1400px' }}>
             <h2 className="landing-h2">Veja na prática</h2>
-            <div style={{ background: 'var(--background)', padding: '2rem', borderRadius: '2.5rem', border: '1px solid var(--glass-border)', textAlign: 'left', boxShadow: '0 30px 60px rgba(0,0,0,0.6)', maxWidth: '1000px', margin: '0 auto' }}>
-              <div style={{ marginBottom: '2.5rem' }}>
+            <div className="example-card-container">
+              <div style={{ marginBottom: '3rem' }}>
                 <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#525252', marginBottom: '1rem', letterSpacing: '0.1em' }}>SUA ENTRADA:</p>
                 <div style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1rem', fontStyle: 'italic', color: '#d4d4d4', border: '1px dashed rgba(255,255,255,0.1)', fontSize: '1rem' }}>
                   "Responder e-mail do chefe, comprar pão, consertar vazamento da pia."
                 </div>
               </div>
+              
               <div>
-                <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#525252', marginBottom: '1rem', letterSpacing: '0.1em' }}>ANÁLISE DO DECIDO:</p>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  <div style={{ padding: '1.2rem', background: 'rgba(239, 68, 68, 0.08)', borderLeft: '4px solid #ef4444', borderRadius: '0.75rem' }}>
-                    <div style={{ fontWeight: '700', fontSize: '1.1rem' }}>Consertar vazamento da pia</div>
+                <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#525252', marginBottom: '1.5rem', letterSpacing: '0.1em' }}>ANÁLISE DO DECIDO:</p>
+                
+                <div className="task-list">
+                  {/* Prioridade Máxima */}
+                  <div className="priority-group">
+                    <div className="priority-group-header priority-group-header--high">
+                      <h4>🔥 Prioridade Máxima</h4>
+                      <span className="priority-count">2 itens</span>
+                    </div>
+
+                    {/* Task 1: Expanded */}
+                    <div className="task-card task-card-high">
+                      <div className="task-header">
+                        <span className="task-name" style={{ fontSize: '1.1rem' }}>Responder e-mail do chefe</span>
+                        <div className="task-header-right">
+                          <button className="details-toggle-btn" aria-expanded="true" style={{ background: 'rgba(59, 130, 246, 0.08)', borderColor: 'var(--primary)', color: 'var(--primary)' }}>
+                            Ocultar
+                            <span className="details-chevron details-chevron--open">›</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="task-details task-details--open">
+                        <div className="task-details-inner">
+                          <div className="reason-container">
+                            <p className="task-details-label">Justificativa da análise</p>
+                            <p className="task-reason">Pode haver consequências negativas no trabalho se não responder</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Task 2: Collapsed */}
+                    <div className="task-card task-card-high">
+                      <div className="task-header">
+                        <span className="task-name" style={{ fontSize: '1.1rem' }}>Consertar vazamento da pia</span>
+                        <div className="task-header-right">
+                          <button className="details-toggle-btn">
+                            Por que?
+                            <span className="details-chevron">›</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="task-details">
+                        <div className="task-details-inner"></div>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ padding: '1.2rem', background: 'rgba(245, 158, 11, 0.08)', borderLeft: '4px solid #f59e0b', borderRadius: '0.75rem' }}>
-                    <div style={{ fontWeight: '700', fontSize: '1.1rem' }}>Responder e-mail do chefe</div>
+
+                  {/* Baixa Prioridade */}
+                  <div className="priority-group" style={{ marginBottom: 0 }}>
+                    <div className="priority-group-header priority-group-header--low">
+                      <h4>💤 Baixa Prioridade</h4>
+                      <span className="priority-count">1 item</span>
+                    </div>
+
+                    <div className="task-card task-card-low">
+                      <div className="task-header">
+                        <span className="task-name" style={{ fontSize: '1.1rem' }}>Comprar pão</span>
+                        <div className="task-header-right">
+                          <button className="details-toggle-btn">
+                            Por que?
+                            <span className="details-chevron">›</span>
+                          </button>
+                        </div>
+                      </div>
+                      <div className="task-details">
+                        <div className="task-details-inner"></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -188,7 +251,7 @@ export default function LandingClient() {
         {/* 6. Final CTA */}
         <section className="landing-section" style={{ paddingBottom: '8rem' }}>
           <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', padding: '4rem 2rem', borderRadius: '3rem', maxWidth: '1000px', width: '100%', textAlign: 'center', boxShadow: '0 30px 60px rgba(37, 99, 235, 0.2)' }}>
-            <h2 className="landing-h2" style={{ color: 'white', marginBottom: '2rem' }}>Pronto para focar?</h2>
+            <h2 className="landing-h2" style={{ color: 'white', marginBottom: '2rem' }}>Chega de perder tempo decidindo.<br/>Comece a fazer.</h2>
             <Link href="/decidir" style={{ display: 'inline-block', padding: '1.2rem 3rem', background: 'white', color: '#1e3a8a', borderRadius: '1.2rem', textDecoration: 'none', fontWeight: '800', fontSize: '1.2rem' }}>
               Começar agora
             </Link>

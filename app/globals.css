@@ -60,9 +60,16 @@ main {
 }
 
 .grid-responsive {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 2.5rem;
+}
+
+.grid-responsive > * {
+  flex: 1;
+  min-width: 380px;
+  max-width: 440px;
 }
 
 .header {
@@ -1159,10 +1166,10 @@ button:disabled {
 
 .landing-h1 {
   font-size: clamp(2.5rem, 8vw, 4.5rem);
-  font-weight: 900;
+  font-weight: 700;
   line-height: 1.05;
   margin-bottom: 1.5rem;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.03em;
 }
 
 .landing-h2 {
@@ -1230,8 +1237,14 @@ button:disabled {
   }
 
   .grid-responsive {
-    grid-template-columns: 1fr !important;
+    flex-direction: column !important;
+    align-items: center !important;
     gap: 1.5rem !important;
+  }
+
+  .grid-responsive > * {
+    min-width: 100% !important;
+    max-width: 100% !important;
   }
 
   .mobile-hide {
@@ -1265,6 +1278,15 @@ button:disabled {
 
   .feature-card {
     padding: 2rem !important;
+  }
+
+  .example-card-container {
+    padding: 1.25rem !important;
+    border-radius: 1.5rem !important;
+  }
+
+  .task-card {
+    padding: 1rem !important;
   }
 
   /* Specific fix for the nav links to prevent overflow */

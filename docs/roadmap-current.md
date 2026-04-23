@@ -1,4 +1,4 @@
-# 🚀 DECIDO — EXECUTION ROADMAP (WEEK 4 — LANDING & SEO FOUNDATION)
+# 🚀 DECIDO — EXECUTION ROADMAP (WEEK 5 — CONTENT & TRACTION LAYER)
 
 ## AGENT EXECUTION INSTRUCTIONS (READ FIRST)
 
@@ -12,6 +12,7 @@ At the start of EVERY session:
 4. After finishing:
    - Explain what was implemented
    - Request human validation
+   - All in brazilian portuguese
 5. WAIT for approval before continuing.
 6. After approval:
    - Mark the phase as [x]
@@ -26,201 +27,323 @@ At the start of EVERY session:
 - DO NOT refactor unrelated code
 - DO NOT execute multiple phases at once
 - DO NOT expand scope beyond defined tasks
-- KEEP implementations minimal and functional
-- PRIORITIZE clarity and conversion over visual complexity
+- KEEP implementations minimal and focused
+- PRIORITIZE real user behavior over assumptions
 
 ---
 
-## WEEK 4 OBJECTIVE — LANDING & SEO FOUNDATION
+## WEEK 5 OBJECTIVE — CONTENT & TRACTION
 
-Create a high-conversion landing page and establish the base structure for SEO content.
+Start generating real traffic and observe real user behavior.
 
 Focus areas:
-- product positioning
-- conversion clarity
-- acquisition foundation (blog structure)
-- zero interference with product flow
+- SEO content creation
+- traffic acquisition
+- product entry points
+- behavioral validation
 
 ---
 
-## PHASE 1 — ROUTING STRUCTURE (FOUNDATION)
+## PHASE 1 — FIRST SEO ARTICLES (FOUNDATION)
 
 Status: [x]
 
 ### Tasks:
 
-- Create new routes using App Router:
+Create 3 real blog articles inside `/blog`:
 
-  /                → Landing page  
-  /decidir         → Existing product entry  
-  /blog            → Blog listing page  
-  /blog/[slug]     → Dynamic blog article  
-  /sobre           → About page  
-  /contato         → Contact page  
+1. "Como priorizar tarefas de forma eficiente"
+2. "Como decidir o que fazer primeiro no dia"
+3. "Como parar de procrastinar na prática"
 
-- Ensure navigation between landing and product is working
-- Do NOT modify product logic inside /decidir
+Each article MUST:
 
-### Validation:
-
-- All routes are accessible
-- Product still works exactly as before
-- No broken navigation
-
----
-
-## PHASE 2 — LANDING PAGE (CORE STRUCTURE)
-
-Status: [x]
-
-### Tasks:
-
-Build landing page at `/` with the following sections:
-
-1. Hero section:
-   - Headline:
-     "Pare de decidir o que fazer. Deixe o Decido decidir por você."
-   - Subheadline
-   - CTA → "/decidir"
-
-2. Problem section:
-   - Excess tasks
-   - Decision fatigue
-   - Lack of clarity
-
-3. How it works (3 steps)
-
-4. Example block (input → output → justification)
-
-5. Differentiation section:
-   - "Não organiza tarefas. Decide o que fazer agora."
-
-6. Final CTA
+- Have a strong title (H1)
+- Include structured sections (H2, H3)
+- Provide real, useful content (not generic)
+- Be at least medium-length (readable, not shallow)
+- Include natural writing in pt-BR
 
 ### Constraints:
 
-- Keep layout clean and minimal
-- No animations required
-- No external libraries unless necessary
+- Do NOT generate placeholder content
+- Do NOT use overly generic AI text
+- Content must feel human and practical
 
 ### Validation:
 
-- Message is clear in <10 seconds
-- CTA is visible and functional
-- Flow feels natural and convincing
+- Articles are readable and valuable
+- Structure is clear and well-organized
+- Content matches search intent
+
+# AGENT TASK — SEO QUALITY PATCH (BLOG ARTICLES)
+
+You are working on Week 5 — Content & Traction Layer.
 
 ---
 
-## PHASE 3 — VISUAL HIERARCHY & UX POLISH
+## CONTEXT
 
-Status: [x]
+Phase 1 (SEO Articles) and Phase 2 (CTA Integration) are already completed.
 
-### Tasks:
+This is NOT a re-execution of those phases.
 
-- Apply visual hierarchy:
-  - Strong headline
-  - Section spacing
-  - Clear reading flow
-
-- Improve typography:
-  - Title > subtitle > body
-
-- Ensure responsive layout (mobile-first)
-
-- Keep consistent spacing and alignment
-
-### Validation:
-
-- Content is easy to scan
-- No visual clutter
-- Mobile experience is clean
+This is a QUALITY PATCH to ensure SEO and readability standards are correctly applied.
 
 ---
 
-## PHASE 4 — BLOG STRUCTURE (SEO FOUNDATION)
+## OBJECTIVE
 
-Status: [x]
-
-### Tasks:
-
-- Create `/blog` page:
-  - Static list of placeholder articles
-
-- Create `/blog/[slug]` dynamic page:
-  - Render article title
-  - Render content structure (mock data allowed)
-
-- Prepare basic article layout:
-  - Title
-  - Sections (H2, H3)
-  - Paragraphs
-
-### Constraints:
-
-- No CMS integration yet
-- No real SEO optimization yet
-- Focus only on structure
-
-### Validation:
-
-- Blog pages render correctly
-- Dynamic route works
-- Layout supports long-form content
+Validate and improve all existing blog articles to meet SEO and content quality best practices.
 
 ---
 
-## PHASE 5 — BASIC SEO SETUP
+## TARGET FILES
 
-Status: [x]
-
-### Tasks:
-
-- Add metadata to all main pages:
-  - title
-  - description
-
-- Ensure semantic HTML:
-  - h1, h2 hierarchy
-  - proper structure
-
-- Prepare for:
-  - sitemap (basic)
-  - robots.txt (optional placeholder)
-
-### Validation:
-
-- Each page has unique title/description
-- HTML structure is semantic
-- No missing metadata
+- /app/blog/posts.ts
+- /app/blog/[slug]/page.tsx
 
 ---
 
-## PHASE 6 — FINAL VALIDATION (NO NEW FEATURES)
+## REQUIRED CHECKS & FIXES
 
-Status: [x]
+### 1. SINGLE H1 RULE
 
-### Tasks:
+- Ensure each article renders ONLY one <h1>
+- Convert any additional H1s into H2 or H3
 
-- Validate full flow:
+---
 
-  Landing → CTA → Product  
-  Blog → Article → CTA → Product  
+### 2. FIRST PARAGRAPH OPTIMIZATION
 
-- Check for:
-  - broken links
-  - layout inconsistencies
-  - responsiveness
+- Ensure the first 2–3 paragraphs:
+  - clearly answer the article’s main topic
+  - naturally include the primary keyword
+  - are direct and not generic
+
+---
+
+### 3. READABILITY IMPROVEMENT
 
 - Ensure:
-  - product experience unchanged
-  - landing is clean and persuasive
-  - blog is structurally ready
+  - short paragraphs (2–4 lines max)
+  - proper spacing between sections
+  - use of bullet points or lists where applicable
+
+---
+
+### 4. META TAGS VALIDATION
+
+For each article:
+
+- Ensure <title> follows pattern:
+  "[Article Title] | Decido"
+
+- Ensure meta description:
+  - is present
+  - has 120–160 characters
+  - clearly describes the article
+  - matches search intent
+
+---
+
+### 5. INTERNAL LINKING (LIGHT)
+
+- Add at least ONE internal link per article:
+  - pointing to another blog post OR
+  - pointing to /decidir
+
+- Ensure link is contextual (inside a sentence, not isolated)
+
+---
+
+### 6. HTML SEMANTICS
+
+- Ensure proper hierarchy:
+  - H1 → H2 → H3
+- Avoid skipping levels
+- Use semantic structure correctly
+
+---
+
+## CONSTRAINTS
+
+- DO NOT rewrite entire articles
+- DO NOT change article meaning
+- DO NOT modify CTA logic from Phase 2
+- Only apply targeted improvements
+
+---
+
+## VALIDATION
+
+After applying changes:
+
+- Articles are more readable
+- SEO structure is correct
+- No structural errors (multiple H1, missing meta, etc.)
+- Content remains natural and human
+
+---
+
+## FINAL STEP
+
+After completion:
+
+- Summarize all improvements made
+- Request validation
+
+---
+
+## PHASE 2 — CTA INTEGRATION (BLOG → PRODUCT)
+
+Status: [x]
+
+### Tasks:
+
+Inside each article:
+
+- Add 1–2 contextual CTAs
+- Use natural phrasing, for example:
+
+  "Quer aplicar isso automaticamente? Use o Decido."
+
+- Link CTA to:
+  `/decidir`
+
+- Place CTAs:
+  - mid-content
+  - end of article
+
+### Constraints:
+
+- Do NOT be aggressive
+- Do NOT disrupt reading flow
 
 ### Validation:
 
-- Navigation works end-to-end
-- No regressions in product
-- Landing communicates value clearly
+- CTAs feel natural and helpful
+- Links correctly redirect to product
+- No UX friction
+
+---
+
+## PHASE 3 — BASIC ANALYTICS SETUP
+
+Status: [x]
+
+### Tasks:
+
+Implement a lightweight analytics solution:
+
+Options:
+- Vercel Analytics (preferred)
+- or similar minimal tool
+
+Track at least:
+
+- Page views
+- Visits to `/decidir`
+- Navigation from blog → product
+
+### Constraints:
+
+- Keep setup simple
+- No heavy integrations
+
+### Validation:
+
+- Analytics is working
+- Basic metrics are visible
+- No performance impact
+
+---
+
+## PHASE 4 — LANDING MESSAGE ITERATION (BASED ON LOGIC)
+
+Status: [x]
+
+### Tasks:
+
+Review landing page messaging and improve clarity:
+
+- Refine headline if needed
+- Improve subheadline clarity
+- Ensure value is understood in <5 seconds
+
+Focus on:
+
+- decision relief
+- immediate value
+- simplicity
+
+### Constraints:
+
+- Do NOT redesign layout
+- Only adjust text and clarity
+
+### Validation:
+
+- Message is clearer and more direct
+- No increase in complexity
+- Maintains original positioning
+
+---
+
+## PHASE 5 — USER FLOW OBSERVATION (NO CODE CHANGES)
+
+Status: [x]
+
+### Tasks:
+
+Analyze expected user flow:
+
+Landing → CTA → Product → Interaction
+
+Evaluate:
+
+- Is entry point clear?
+- Is output understandable?
+- Is next action obvious?
+
+Document observations (no implementation required yet)
+
+### Constraints:
+
+- Do NOT implement new features
+- Focus only on observation and reasoning
+
+### Validation:
+
+- Clear understanding of potential friction points
+- Identified areas for future improvement
+
+---
+
+## PHASE 6 — FINAL VALIDATION (TRACTION READY)
+
+Status: [x]
+
+### Tasks:
+
+Validate full system:
+
+- Landing → Blog → Product flow
+- All links working
+- Articles accessible
+- CTAs functional
+
+Ensure:
+
+- Product remains stable
+- No regressions
+- Experience is coherent
+
+### Validation:
+
+- User can discover → understand → use Decido
+- No broken flows
+- Ready for real users
 
 ---
 

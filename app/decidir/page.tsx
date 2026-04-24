@@ -2,9 +2,10 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { getUserId, saveDecision, getDecisions, getUsageCount, incrementUsageCount, isLimitReached, getRemainingUsage, clearData, MAX_FREE_ANALYSES, isOnboardingDone, setOnboardingDone } from '@/services/storage';
-import { AnalysisResult, Decision } from '@/types';
-import { logEvent } from '@/services/metrics';
+import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, MAX_FREE_ANALYSES, setOnboardingDone } from '@/services/storage/storage';
+import { Decision } from '@/types';
+import { logEvent } from '@/services/analytics/metrics';
+import { useDecision } from '@/features/decision/useDecision';
 
 const EXAMPLES = [
   'Preciso pagar a fatura do cartão que vence hoje, estudar para a prova de amanhã e responder os e-mails do trabalho.',
@@ -20,9 +21,7 @@ const EXAMPLES = [
 export default function Home() {
   const [userId] = useState<string>(() => typeof window !== 'undefined' ? getUserId() : '');
   const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { analyze, loading, result, setResult, error } = useDecision(userId);
   const [usageCount, setUsageCount] = useState<number>(() => typeof window !== 'undefined' ? getUsageCount() : 0);
   const [history, setHistory] = useState<Decision[]>(() => typeof window !== 'undefined' ? getDecisions() : []);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
@@ -35,6 +34,7 @@ export default function Home() {
   const [isLimit, setIsLimit] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
+  const isDecisionFocus = !!result && !isViewingHistory;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -104,70 +104,21 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleAnalyze = async () => {
-    if (!input.trim()) {
-      setError('Por favor, descreva suas tarefas para que eu possa decidi-las.');
-      return;
-    }
-
-    if (isLimitReached()) {
-      logEvent('limit_reached', userId);
-      setError('Limite de uso do plano gratuito atingido. Faça upgrade para continuar decidindo.');
-      return;
-    }
-
-    if (!isRefinementMode) {
-      setResult(null);
-    }
-    setLoading(true);
-    setError(null);
-    logEvent('analyze_started', userId, { inputLength: input.length, isRefinement: isRefinementMode });
-
-    try {
-      const response = await fetch('/api/analyze', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Falha na análise das tarefas.');
-      }
-
-      const data = await response.json();
-      setResult(data);
-      saveDecision({ input, output: data });
+  const handleAnalyze = () => {
+    analyze(input, isRefinementMode, () => {
       setHistory(getDecisions());
-      
-      // Only increment usage if not in refinement mode
-      if (!isRefinementMode) {
-        const newCount = incrementUsageCount();
-        setUsageCount(newCount);
-        logEvent('analyze_success', userId, { usageCount: newCount, taskCount: data.tasks?.length });
-      } else {
-        logEvent('analyze_success', userId, { refinement: true, taskCount: data.tasks?.length });
-      }
-
+      setUsageCount(getUsageCount());
       setIsViewingHistory(true);
-      setIsRefinementMode(false); // Reset refinement mode after success
-
-      // Auto scroll to result section with offset for better breathing room
+      setIsRefinementMode(false);
       setTimeout(() => {
         const resultSection = document.querySelector('.result-section') as HTMLElement;
         if (resultSection) {
-          const yOffset = -60; // 60px breathing room
+          const yOffset = -60;
           const y = resultSection.getBoundingClientRect().top + window.pageYOffset + yOffset;
           window.scrollTo({ top: y, behavior: 'smooth' });
         }
       }, 100);
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Ocorreu um erro inesperado.';
-      logEvent('analyze_error', userId, { message });
-      setError(message);
-    } finally {
-      setLoading(false);
-    }
+    });
   };
 
   const handleLoadHistory = (decision: Decision) => {
@@ -316,7 +267,7 @@ export default function Home() {
         </div>
       )}
     </header>
-    <div className="container" key={mounted ? 'client' : 'server'}>
+    <div className={`container ${isDecisionFocus ? 'decision-focus-dim' : ''}`} key={mounted ? 'client' : 'server'}>
 
         <header className="header">
           <h1>Decido</h1>
@@ -378,7 +329,7 @@ export default function Home() {
           <section id="history-container" className={`history-section ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
             <div className={tourStep === 3 ? 'tour-highlight' : ''}>
               <div className="history-header">
-                <h2 className="history-title">Decisões Recentes</h2>
+                <h2 className="history-title">Decisões anteriores</h2>
                 <span className="history-count">{history.length} {history.length === 1 ? 'registro' : 'registros'}</span>
               </div>
               <div className="history-list">
@@ -431,11 +382,11 @@ export default function Home() {
         )}
 
         {result && (
-          <section className="result-section">
-            <div className="recommended-card">
+          <section className={`result-section ${isDecisionFocus ? 'decision-focus-active' : ''}`}>
+            <div className={`recommended-card ${isDecisionFocus ? 'decision-focus-card' : ''}`}>
               <div className="recommended-card-header">
                 <div className="recommended-badge-container">
-                  <span className="recommended-badge">Recomendação do Decido</span>
+                  <span className="recommended-badge">O que fazer agora</span>
                 </div>
                 <button
                   id="copy-action-btn"
@@ -447,11 +398,13 @@ export default function Home() {
                 </button>
               </div>
               <div className="recommended-content">
-                <p className="recommended-label">Sua melhor próxima ação:</p>
-                <p className="recommended-text">{result.primary_action || result.recommended_action}</p>
+                <p className="recommended-action-line">
+                  <span className="recommended-label">Próxima ação:</span>
+                  <span className="recommended-text">{result.primary_action || result.recommended_action}</span>
+                </p>
                 <div className="context-disclaimer">
                   <p>
-                    Baseado nas informações fornecidas. A prioridade pode variar se houver <span className="context-emphasis">prazo ou urgência específica</span>.
+                    Baseado no seu contexto, esta é a melhor próxima ação. A prioridade pode variar se houver <span className="context-emphasis">prazo ou urgência específica</span>.
                     {' '}
                     <button 
                       className="refine-link"

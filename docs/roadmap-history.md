@@ -1,73 +1,69 @@
-# 🏛️ Decido — Roadmap History
+# 🏛️ Decido — Evolution Summary
 
-## Week 1 — Alpha Foundation
+This document captures the key stages of Decido’s evolution.
 
-Status: [x] COMPLETED
-
-* User identification
-* Decision storage
-* History UI
-* Usage limit
-* Onboarding
-* Metrics
-* Final validation
+It is not used for execution.
 
 ---
 
-## Week 2 — Productization Layer
+## Phase 1 — MVP Foundation
 
-Status: [x] COMPLETED (CLOSED)
-
-* Improving usability (Expandable details)
-* Preparing for real users (Copy action, visual polish)
-* Enhancing persistence and interaction (Reset data, empty states)
-* Phase 6 Refinements:
-  * Auto-resize textarea
-  * Dynamic example generator
-  * Context-aware buttons
-  * Quick-access floating navigation
-  * Priority-based visual feedback
+* Core decision engine
+* Task input and prioritization
+* Single primary action output
+* Basic history and storage
+* Usage limits and onboarding
 
 ---
 
-## Week 3 — Premium Experience & Strategic UX
+## Phase 2 — Usability & Product Readiness
 
-Status: [x] COMPLETED (CLOSED)
-
-*   Refined Decision Hierarchy (High/Medium/Low priority groupings)
-*   Trust & Confidence Indicators (Technical validation markers)
-*   Next Best Action Suggestions (Exploratory guidance post-analysis)
-*   Minimalist Interactive Tour (On-demand help with pulse/blur effects)
-*   Micro-interactions & Polish (Button feedback, staggered animations)
-*   Strategic UX Alignment (Removal of execution bias, randomized examples)
+* Improved interaction and clarity
+* Better input experience (auto-resize, examples)
+* UI refinements and feedback
+* Data handling improvements
 
 ---
 
-## Week 4 — Landing & SEO Foundation
+## Phase 3 — UX & Trust Layer
 
-Status: [x] COMPLETED (CLOSED)
-
-*   **Routing Architecture:** Implemented full site structure (/, /decidir, /blog, /sobre, /contato)
-*   **High-Conversion Landing:** Built core marketing message and problem-solution flow
-*   **SEO Infrastructure:** Deployed dynamic sitemap, robots.txt, and metadata optimization
-*   **UX Standardization:**
-    *   Responsive Grid utility for mobile-first consistency
-    *   Official Branding (52px logo) and Aligned App Header (1400px width)
-    *   Onboarding refinement (Absolute positioning, z-index 10001+, fixed overlay)
-    *   Final Navigation polish (Standardized Home icon, Back-to-top fixes)
+* Decision clarity improvements
+* Removal of unnecessary complexity
+* Focus on confidence and usability
+* Simplification of user flow
 
 ---
 
-## Week 5 — Content & Traction Layer
+## Phase 4 — Platform & Presence
 
-Status: [x] COMPLETED
+* Landing page and routing structure
+* SEO foundation (sitemap, metadata)
+* Brand consistency and layout standardization
 
-*   **Blog Implementation:** Full dynamic blog engine with SEO-optimized articles (3 real articles).
-*   **Analytics Integration:** Deployed @vercel/analytics for tracking user behavior and conversion.
-*   **Literary Excellence Patch:** Premium messaging overhaul for Landing, About, and Contact pages.
-*   **UX Alignment:** Upgraded "See in Practice" section with real product UI components.
-*   **Global Standardizations:**
-    *   Responsive Grid centering for odd items.
-    *   Global "Back to Top" button for improved navigation.
-    *   Sitewide metadata and SEO tag calibration.
-*   **Technical Stability:** Fixed React key prop warnings and refined mobile-first layouts.
+---
+
+## Phase 5 — Content & Traction
+
+* Blog system and initial content
+* Analytics integration
+* Messaging refinement across pages
+
+---
+
+## Current State
+
+MVP completed and under real user validation.
+
+Focus is now on:
+
+* usability insights
+* clarity of value
+* behavioral validation
+
+---
+
+## Principle
+
+Decido evolves through small, validated steps.
+
+Not through large redesigns.

@@ -5,9 +5,19 @@ export interface Task {
   reason: string;
 }
 
+export interface Priority {
+  task: string;
+  level: 'alta' | 'média' | 'baixa';
+  reason: string;
+}
+
 export interface AnalysisResult {
-  tasks: Task[];
-  recommended_action: string;
+  primary_action: string;
+  reason: string;
+  priorities: Priority[];
+  // Compatibilidade com versões anteriores
+  tasks?: Task[];
+  recommended_action?: string;
 }
 
 export interface Decision {

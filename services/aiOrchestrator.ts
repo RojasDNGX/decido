@@ -53,7 +53,7 @@ async function tryOllama(model: string, prompt: string): Promise<AnalysisResult>
     }
 
     const parsed = JSON.parse(sanitized) as AnalysisResult;
-    if (!parsed.tasks || !parsed.recommended_action) throw new Error('Invalid JSON structure');
+    if (!parsed.primary_action || !parsed.priorities) throw new Error('Invalid JSON structure');
 
     return parsed;
   } catch (error) {
@@ -124,29 +124,63 @@ function validateLanguage(text: string): boolean {
   return true;
 }
 
-export async function aiOrchestrator(input: string): Promise<AnalysisResult> {
-  // Optimized Prompt (Reduced Size) with Language Enforcement
-  const prompt = `Responda exclusivamente em português do Brasil (pt-BR). É proibido utilizar qualquer palavra em inglês.
-  
-You are a decisive assistant. Analyze these tasks and decide what to do first.
+function validatePrimaryAction(action: string): boolean {
+  if (!action) return false;
 
-MANDATORY RULES:
-1. Urgent/High Risk → "high".
-2. High Impact/No Urgency → "medium".
-3. Flexible/Optional → "low".
-4. Differentiate priorities clearly.
-5. Direct, confident language. No "it depends".
+  const words = action.trim().split(/\s+/);
+  if (words.length < 4) return false; // Too short — no contextual reasoning possible
 
-RECOMMENDED ACTION:
-One single, clear, decisive sentence starting with a verb.
+  const lowerAction = action.toLowerCase();
 
-OUTPUT FORMAT (STRICT JSON):
-{
-"tasks": [{"name": "string", "priority": "high|medium|low", "reason": "short explanation"}],
-"recommended_action": "decisive sentence"
+  // Reject multiple-action sequences
+  const forbiddenSequences = [',', 'depois', 'then', 'and then', 'em seguida', 'por fim', 'após'];
+  for (const seq of forbiddenSequences) {
+    if (lowerAction.includes(seq)) return false;
+  }
+
+  // Must contain embedded contextual reasoning (TASK 2 / TASK 5)
+  const contextualWords = [
+    'para', 'porque', 'pois', 'agora', 'hoje', 'antes', 'já',
+    'vence', 'evitar', 'garantir', 'permitir', 'assim', 'urgente',
+    'risco', 'impede', 'atrasa', 'impacto', 'prazo',
+  ];
+  const hasContext = contextualWords.some(w => lowerAction.includes(w));
+  if (!hasContext) return false;
+
+  return true;
 }
 
-USER INPUT:
+export async function aiOrchestrator(input: string): Promise<AnalysisResult> {
+  const prompt = `Responda exclusivamente em português do Brasil (pt-BR). É proibido usar qualquer palavra em inglês.
+
+Você é um assistente decisivo. Analise as tarefas e retorne UMA ação primária e a lista completa priorizada.
+
+REGRAS OBRIGATÓRIAS:
+1. priorities: liste TODAS as tarefas analisadas, ordenadas por nível (alta → média → baixa).
+2. primary_action: derive SEMPRE de priorities[0].task — a tarefa de maior prioridade.
+3. primary_action deve ser uma frase natural, humana e concisa com ação clara E razão contextual embutida.
+   - Formato: "[verbo] [tarefa] [motivo contextual breve]"
+   - Exemplo correto: "Pague a fatura do cartão agora pois vence hoje e evita multa."
+   - Exemplo errado: "Pague a fatura do cartão"
+4. NÃO inclua sequências como "depois", "em seguida" ou vírgulas separando ações em primary_action.
+5. Tom: natural, conversacional, direto — evite frases robóticas ou genéricas.
+
+Retorne APENAS o objeto JSON. Sem preâmbulos ou explicações fora do JSON.
+
+FORMATO DE SAÍDA (JSON ESTRITO):
+{
+"primary_action": "string",
+"reason": "string",
+"priorities": [
+  {
+    "task": "string",
+    "level": "alta | média | baixa",
+    "reason": "string"
+  }
+]
+}
+
+ENTRADA DO USUÁRIO:
 ${input}`;
 
   // Try Local Ollama Models
@@ -160,6 +194,18 @@ ${input}`;
       if (!validateLanguage(contentString)) {
         console.log(`[Orchestrator] Invalid language detected in ${model} — retrying with fallback`);
         continue; // Trigger fallback
+      }
+
+      // Validate Primary Action (derived from priorities[0], contextual, min 4 words)
+      if (result.primary_action && !validatePrimaryAction(result.primary_action)) {
+        console.log(`[Orchestrator] Multiple actions detected in primary_action — retrying with fallback`);
+        continue;
+      }
+
+      // Validate Priority List Size
+      if (!result.priorities || result.priorities.length < 2) {
+        console.log(`[Orchestrator] Insufficient tasks in priority list — retrying with fallback`);
+        continue;
       }
 
       console.log(`[Orchestrator] Success with model: ${model}`);
@@ -178,6 +224,12 @@ ${input}`;
     // Final validation
     if (!validateLanguage(JSON.stringify(result))) {
        console.warn(`[Orchestrator] Groq leaked English, but it's the last fallback.`);
+    }
+    if (result.primary_action && !validatePrimaryAction(result.primary_action)) {
+       console.warn(`[Orchestrator] Groq returned multiple actions in primary_action.`);
+    }
+    if (!result.priorities || result.priorities.length < 2) {
+       console.warn(`[Orchestrator] Groq returned insufficient priority tasks.`);
     }
 
     console.log(`[Orchestrator] Success with Groq fallback`);

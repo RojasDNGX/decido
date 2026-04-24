@@ -1100,7 +1100,7 @@ button:disabled {
   position: relative;
   z-index: 20001 !important;
   animation: pulseHighlight 2s infinite;
-  pointer-events: none;
+  pointer-events: auto;
   border-radius: 1rem;
 }
 

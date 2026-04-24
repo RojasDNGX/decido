@@ -1,122 +1,93 @@
-# AGENT TASK — REPLACE IFRAME WITH LOCAL VIDEO (FINAL IMPLEMENTATION)
+# AGENT TASK — FIX INPUT/BUTTON NOT WORKING VIA IP
 
 ---
 
 ## CONTEXT
 
-Previous implementation used iframe embed from Pexels, which caused:
+When accessing via local IP:
 
-* UI pollution
-* incorrect rendering
-* poor UX
+→ input does not respond
+→ button does not work
 
-We now have the video stored locally:
-
-/public/videos/checklist.mp4
+Works fine on localhost.
 
 ---
 
 ## OBJECTIVE
 
-Replace ALL iframe-based video usage with local video implementation using the correct HTML5 <video> element.
+Ensure full client interactivity when accessed via IP.
 
 ---
 
-# 🧩 TASK 1 — REMOVE IFRAME IMPLEMENTATION
+# 🧩 TASK 1 — VERIFY CLIENT COMPONENT
 
-* Locate all iframe usages related to video
-* Remove them completely
+Ensure the main page/component includes:
 
----
-
-# 🧩 TASK 2 — IMPLEMENT HERO BACKGROUND VIDEO
-
-Update hero section:
-
-<div className="relative overflow-hidden">
-
-<video
- src="/videos/checklist.mp4"
- autoPlay
- muted
- loop
- playsInline
- className="absolute inset-0 w-full h-full object-cover opacity-10 pointer-events-none"
-/>
-
-  <div className="absolute inset-0 bg-white/80 dark:bg-black/70"></div>
-
-  <div className="relative z-10">
-    {/* existing hero content */}
-  </div>
-
-</div>
+"use client"
 
 ---
 
-## RULES
+# 🧩 TASK 2 — FIX API ENDPOINTS
 
-* Video MUST be subtle (background only)
-* Use opacity between 0.05 and 0.12
-* MUST NOT affect readability
-* MUST NOT capture pointer events
+Search for:
 
----
+"localhost"
 
-# 🧩 TASK 3 — IMPLEMENT VIDEO IN "VEJA NA PRÁTICA"
+Replace with:
 
-Insert:
-
-<video
-src="/videos/checklist.mp4"
-autoPlay
-muted
-loop
-playsInline
-className="rounded-xl w-full mt-6 mb-6"
-/>
+* environment variable OR
+* internal API route (/api/...)
 
 ---
 
-# 🧩 TASK 4 — MOBILE OPTIMIZATION
+# 🧩 TASK 3 — SAFE FETCH
 
-* Ensure responsive scaling
-* If needed, reduce opacity further on mobile
-* Maintain performance
+Wrap all client fetch calls:
 
----
-
-# 🧩 TASK 5 — PERFORMANCE SAFETY
-
-* Do NOT preload aggressively
-* Ensure no layout shift
-* Keep video lightweight
+try {
+...
+} catch (e) {
+console.error(e)
+}
 
 ---
 
-# 🧩 TASK 6 — VALIDATION
+# 🧩 TASK 4 — VALIDATE BUTTON STATE
 
-Confirm:
+Ensure button is NOT permanently disabled due to:
 
-* Video loads correctly from /public
-* No iframe remains
-* Hero readability is preserved
-* CTA remains dominant
-* Works on desktop and mobile
+* missing state update
+* failed validation
 
 ---
 
-## CONSTRAINTS
+# 🧩 TASK 5 — CONSOLE DEBUG
 
-* DO NOT add controls
-* DO NOT enable audio
-* DO NOT modify layout structure
-* DO NOT add more videos
+Add temporary log:
+
+console.log("Input value:", value)
+
+---
+
+# 🧩 TASK 6 — BUILD MODE
+
+Ensure app is running with:
+
+next build
+next start -H 0.0.0.0
+
+---
+
+## VALIDATION
+
+* Input typing works
+* Button clickable
+* No console errors
+* Works via IP
 
 ---
 
 ## FINAL STEP
 
-* Confirm iframe removed
-* Confirm local video working
-* Request validation
+* Confirm fix
+* Remove debug logs

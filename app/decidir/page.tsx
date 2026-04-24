@@ -69,7 +69,7 @@ export default function Home() {
   const handleCopy = async () => {
     if (!result) return;
     try {
-      await navigator.clipboard.writeText(result.recommended_action);
+      await navigator.clipboard.writeText(result.primary_action || result.recommended_action || '');
       setCopied(true);
       logEvent('copy_action', userId);
       setTimeout(() => setCopied(false), 2000);
@@ -385,10 +385,16 @@ export default function Home() {
                 {history.map((item) => (
                   <div key={item.id} className="history-item" onClick={() => handleLoadHistory(item)}>
                     <div className="history-item-body">
-                      <p className="history-item-recommendation">{item.output.recommended_action}</p>
+                      <p className="history-item-recommendation">{item.output.primary_action || item.output.recommended_action}</p>
                       <p className="history-item-input">{item.input}</p>
                       <div className="history-item-meta">
-                        <span className="history-item-badge">{item.output.tasks.length} tarefa{item.output.tasks.length !== 1 ? 's' : ''}</span>
+                        {item.output.priorities ? (
+                          <span className="history-item-badge">{item.output.priorities.length} {item.output.priorities.length === 1 ? 'item' : 'itens'}</span>
+                        ) : item.output.tasks ? (
+                          <span className="history-item-badge">{item.output.tasks.length} tarefa{item.output.tasks.length !== 1 ? 's' : ''}</span>
+                        ) : (
+                          <span className="history-item-badge">Ação Única</span>
+                        )}
                         <span className="history-item-time">
                           <span className="history-item-relative">{formatRelativeDate(item.timestamp)}</span>
                           <span className="history-item-separator">·</span>
@@ -442,7 +448,7 @@ export default function Home() {
               </div>
               <div className="recommended-content">
                 <p className="recommended-label">Sua melhor próxima ação:</p>
-                <p className="recommended-text">{result.recommended_action}</p>
+                <p className="recommended-text">{result.primary_action || result.recommended_action}</p>
                 <div className="context-disclaimer">
                   <p>
                     Baseado nas informações fornecidas. A prioridade pode variar se houver <span className="context-emphasis">prazo ou urgência específica</span>.
@@ -462,65 +468,145 @@ export default function Home() {
               </div>
             </div>
 
-            <div className="task-list-container">
-              <div className="task-list-intro">
-                <h3>Priorização das Tarefas</h3>
-                <p>Análise detalhada baseada em urgência e impacto.</p>
-              </div>
+            {result.priorities ? (
+              <div className="task-list-container">
+                <div className="task-list-intro">
+                  <h3>Priorização das Tarefas</h3>
+                  <p>Análise detalhada baseada em urgência e impacto.</p>
+                </div>
 
-              <div className="task-list">
-                {['high', 'medium', 'low'].map((priority) => {
-                  const tasks = result.tasks.filter(t => t.priority === priority);
-                  if (tasks.length === 0) return null;
+                <div className="task-list">
+                  {['alta', 'média', 'baixa'].map((level) => {
+                    const levelTasks = result.priorities.filter(p => p.level === level);
+                    if (levelTasks.length === 0) return null;
 
-                  return (
-                    <div key={priority} className="priority-group">
-                      <div className={`priority-group-header priority-group-header--${priority}`}>
-                        <h4>
-                          {priority === 'high' ? '🔥 Prioridade Máxima' : 
-                           priority === 'medium' ? '⚡ Média Prioridade' : 
-                           '💤 Baixa Prioridade'}
-                        </h4>
-                        <span className="priority-count">{tasks.length} {tasks.length === 1 ? 'item' : 'itens'}</span>
-                      </div>
-                      
-                      {tasks.map((task, pIndex) => {
-                        // Using a unique key combining priority and index
-                        const globalIndex = result.tasks.findIndex(t => t === task);
-                        const isExpanded = expandedTask === globalIndex;
+                    const priorityKey = level === 'alta' ? 'high' : level === 'média' ? 'medium' : 'low';
+
+                    return (
+                      <div key={level} className="priority-group">
+                        <div className={`priority-group-header priority-group-header--${priorityKey}`}>
+                          <h4>
+                            {level === 'alta' ? '🔥 Prioridade Máxima' : 
+                             level === 'média' ? '⚡ Média Prioridade' : 
+                             '💤 Baixa Prioridade'}
+                          </h4>
+                          <span className="priority-count">{levelTasks.length} {levelTasks.length === 1 ? 'item' : 'itens'}</span>
+                        </div>
                         
-                        return (
-                          <div key={pIndex} className={`task-card task-card-${task.priority}`}>
-                            <div className="task-header">
-                              <span className="task-name">{task.name}</span>
-                              <div className="task-header-right">
-                                <button
-                                  id={`details-btn-${globalIndex}`}
-                                  className="details-toggle-btn"
-                                  onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
-                                  aria-expanded={isExpanded}
-                                >
-                                  {isExpanded ? 'Ocultar' : 'Por que?'}
-                                  <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
-                                </button>
+                        {levelTasks.map((item, pIndex) => {
+                          const globalIndex = result.priorities.findIndex(p => p === item);
+                          const isExpanded = expandedTask === globalIndex;
+                          
+                          return (
+                            <div key={pIndex} className={`task-card task-card-${priorityKey}`}>
+                              <div className="task-header">
+                                <span className="task-name">{item.task}</span>
+                                <div className="task-header-right">
+                                  <button
+                                    id={`details-btn-${globalIndex}`}
+                                    className="details-toggle-btn"
+                                    onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
+                                    aria-expanded={isExpanded}
+                                  >
+                                    {isExpanded ? 'Ocultar' : 'Por que?'}
+                                    <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
+                                  </button>
+                                </div>
                               </div>
-                            </div>
-                            <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
-                              <div className="task-details-inner">
-                                <div className="reason-container">
-                                  <p className="task-details-label">Justificativa da análise</p>
-                                  <p className="task-reason">{task.reason}</p>
+                              <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
+                                <div className="task-details-inner">
+                                  <div className="reason-container">
+                                    <p className="task-details-label">Justificativa da análise</p>
+                                    <p className="task-reason">{item.reason}</p>
+                                  </div>
                                 </div>
                               </div>
                             </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            ) : result.tasks ? (
+              <div className="task-list-container">
+                <div className="task-list-intro">
+                  <h3>Priorização das Tarefas</h3>
+                  <p>Análise detalhada baseada em urgência e impacto.</p>
+                </div>
+
+                <div className="task-list">
+                  {['high', 'medium', 'low'].map((priority) => {
+                    const tasks = result.tasks!.filter(t => t.priority === priority);
+                    if (tasks.length === 0) return null;
+
+                    return (
+                      <div key={priority} className="priority-group">
+                        <div className={`priority-group-header priority-group-header--${priority}`}>
+                          <h4>
+                            {priority === 'high' ? '🔥 Prioridade Máxima' : 
+                             priority === 'medium' ? '⚡ Média Prioridade' : 
+                             '💤 Baixa Prioridade'}
+                          </h4>
+                          <span className="priority-count">{tasks.length} {tasks.length === 1 ? 'item' : 'itens'}</span>
+                        </div>
+                        
+                        {tasks.map((task, pIndex) => {
+                          const globalIndex = result.tasks!.findIndex(t => t === task);
+                          const isExpanded = expandedTask === globalIndex;
+                          
+                          return (
+                            <div key={pIndex} className={`task-card task-card-${task.priority}`}>
+                              <div className="task-header">
+                                <span className="task-name">{task.name}</span>
+                                <div className="task-header-right">
+                                  <button
+                                    id={`details-btn-${globalIndex}`}
+                                    className="details-toggle-btn"
+                                    onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
+                                    aria-expanded={isExpanded}
+                                  >
+                                    {isExpanded ? 'Ocultar' : 'Por que?'}
+                                    <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
+                                  </button>
+                                </div>
+                              </div>
+                              <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
+                                <div className="task-details-inner">
+                                  <div className="reason-container">
+                                    <p className="task-details-label">Justificativa da análise</p>
+                                    <p className="task-reason">{task.reason}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="task-list-container">
+                <div className="task-list-intro">
+                  <h3>Por que esta ação?</h3>
+                  <p>O Decido focou no próximo passo de maior retorno e menor fricção agora.</p>
+                </div>
+                <div className="task-list">
+                  <div className="task-card task-card-high">
+                    <div className="task-details task-details--open" style={{ maxHeight: 'none' }}>
+                       <div className="task-details-inner" style={{ paddingTop: '1.2rem' }}>
+                         <div className="reason-container" style={{ marginTop: 0 }}>
+                           <p className="task-reason" style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>{result.reason}</p>
+                         </div>
+                       </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="next-actions-container">
               <p className="next-actions-label">Próximos passos sugeridos:</p>

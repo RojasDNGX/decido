@@ -16,7 +16,7 @@ export default function BackToTop() {
   if (!show) return null;
 
   return (
-    <button 
+    <button
       className="back-to-top-btn"
       onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       aria-label="Voltar ao topo"

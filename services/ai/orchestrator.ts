@@ -13,7 +13,7 @@ const LOCAL_MODELS = [
 async function tryOllama(model: string, prompt: string): Promise<AnalysisResult> {
   const isFastModel = model.includes('gemma');
   const timeoutLimit = isFastModel ? 6000 : 12000;
-  
+
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutLimit);
 
@@ -28,7 +28,7 @@ async function tryOllama(model: string, prompt: string): Promise<AnalysisResult>
         format: 'json',
         options: {
           temperature: 0.2,
-          num_predict: 250, // Reduced for gemma4 optimization
+          num_predict: 250,
         }
       }),
       signal: controller.signal,
@@ -92,7 +92,7 @@ async function tryGroq(prompt: string): Promise<AnalysisResult> {
 
     const data = await response.json();
     const content = data.choices[0]?.message?.content;
-    
+
     if (!content) throw new Error('Groq returned empty response');
 
     return JSON.parse(content) as AnalysisResult;
@@ -103,24 +103,21 @@ async function tryGroq(prompt: string): Promise<AnalysisResult> {
 }
 
 function validateLanguage(text: string): boolean {
-  // Detect common English transition words or indicators
   const englishIndicators = [
-    ' because ', ' however ', ' therefore ', ' task ', ' priority ', 
+    ' because ', ' however ', ' therefore ', ' task ', ' priority ',
     ' recommended ', ' action ', ' high ', ' medium ', ' low ',
     ' first ', ' should ', ' because ', ' is ', ' the ', ' and '
   ];
-  
-  // We check if at least 2 common English words are present to avoid false positives 
-  // (though the prompt is already Portuguese, models sometimes "leak" English in JSON values)
+
   const lowerText = text.toLowerCase();
   let matches = 0;
   for (const word of englishIndicators) {
     if (lowerText.includes(word)) {
       matches++;
     }
-    if (matches >= 3) return false; // Fail if too much English
+    if (matches >= 3) return false;
   }
-  
+
   return true;
 }
 
@@ -128,17 +125,15 @@ function validatePrimaryAction(action: string): boolean {
   if (!action) return false;
 
   const words = action.trim().split(/\s+/);
-  if (words.length < 4) return false; // Too short — no contextual reasoning possible
+  if (words.length < 4) return false;
 
   const lowerAction = action.toLowerCase();
 
-  // Reject multiple-action sequences
   const forbiddenSequences = [',', 'depois', 'then', 'and then', 'em seguida', 'por fim', 'após'];
   for (const seq of forbiddenSequences) {
     if (lowerAction.includes(seq)) return false;
   }
 
-  // Must contain embedded contextual reasoning (TASK 2 / TASK 5)
   const contextualWords = [
     'para', 'porque', 'pois', 'agora', 'hoje', 'antes', 'já',
     'vence', 'evitar', 'garantir', 'permitir', 'assim', 'urgente',
@@ -165,8 +160,6 @@ REGRAS OBRIGATÓRIAS:
 4. NÃO inclua sequências como "depois", "em seguida" ou vírgulas separando ações em primary_action.
 5. Tom: natural, conversacional, direto — evite frases robóticas ou genéricas.
 
-Retorne APENAS o objeto JSON. Sem preâmbulos ou explicações fora do JSON.
-
 FORMATO DE SAÍDA (JSON ESTRITO):
 {
 "primary_action": "string",
@@ -183,26 +176,22 @@ FORMATO DE SAÍDA (JSON ESTRITO):
 ENTRADA DO USUÁRIO:
 ${input}`;
 
-  // Try Local Ollama Models
   for (const model of LOCAL_MODELS) {
     try {
       console.log(`[Orchestrator] Attempting model: ${model}`);
       const result = await tryOllama(model, prompt);
-      
-      // Validate Language
+
       const contentString = JSON.stringify(result);
       if (!validateLanguage(contentString)) {
         console.log(`[Orchestrator] Invalid language detected in ${model} — retrying with fallback`);
-        continue; // Trigger fallback
+        continue;
       }
 
-      // Validate Primary Action (derived from priorities[0], contextual, min 4 words)
       if (result.primary_action && !validatePrimaryAction(result.primary_action)) {
         console.log(`[Orchestrator] Multiple actions detected in primary_action — retrying with fallback`);
         continue;
       }
 
-      // Validate Priority List Size
       if (!result.priorities || result.priorities.length < 2) {
         console.log(`[Orchestrator] Insufficient tasks in priority list — retrying with fallback`);
         continue;
@@ -212,16 +201,13 @@ ${input}`;
       return result;
     } catch (error: any) {
       console.warn(`[Orchestrator] Model ${model} failed:`, error.message);
-      // Continue to next model
     }
   }
 
-  // Try Groq External Fallback
   try {
     console.log(`[Orchestrator] Attempting Groq fallback`);
     const result = await tryGroq(prompt);
-    
-    // Final validation
+
     if (!validateLanguage(JSON.stringify(result))) {
        console.warn(`[Orchestrator] Groq leaked English, but it's the last fallback.`);
     }
@@ -240,7 +226,7 @@ ${input}`;
   }
 }
 
-// Model Warm-up: Try to load gemma4:e4b on module load
+// Model Warm-up
 if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
   console.log('[Orchestrator] Initializing warm-up with gemma4:e4b...');
   tryOllama('gemma4:e4b', 'Warm up request. Respond with empty JSON: {}')

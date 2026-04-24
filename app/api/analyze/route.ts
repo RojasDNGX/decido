@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-import { aiOrchestrator } from '@/services/aiOrchestrator';
+import { aiOrchestrator } from '@/services/ai/orchestrator';
 
 export async function POST(req: NextRequest) {
   try {

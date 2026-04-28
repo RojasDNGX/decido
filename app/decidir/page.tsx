@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
-import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, MAX_FREE_ANALYSES, setOnboardingDone } from '@/services/storage/storage';
+import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, setOnboardingDone } from '@/services/storage/storage';
 import { Decision } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
 import { useDecision } from '@/features/decision/useDecision';
@@ -21,7 +21,7 @@ const EXAMPLES = [
 export default function Home() {
   const [userId] = useState<string>(() => typeof window !== 'undefined' ? getUserId() : '');
   const [input, setInput] = useState('');
-  const { analyze, loading, result, setResult, error } = useDecision(userId);
+  const { analyze, loading, result, setResult, error, setError } = useDecision(userId);
   const [usageCount, setUsageCount] = useState<number>(() => typeof window !== 'undefined' ? getUsageCount() : 0);
   const [history, setHistory] = useState<Decision[]>(() => typeof window !== 'undefined' ? getDecisions() : []);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
@@ -31,10 +31,10 @@ export default function Home() {
   const [isViewingHistory, setIsViewingHistory] = useState(false);
   const [tourStep, setTourStep] = useState<number>(0); // 0 = hidden, 1 = input, 2 = button...
   const [isRefinementMode, setIsRefinementMode] = useState(false);
-  const [isLimit, setIsLimit] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
   const isDecisionFocus = !!result && !isViewingHistory;
+  const reachedLimit = mounted && isLimitReached();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -54,9 +54,12 @@ export default function Home() {
     }
     setExampleIndex(nextIndex);
     setInput(EXAMPLES[nextIndex]);
+    setResult(null);
+    setError(null);
+    setIsRefinementMode(false);
     setIsViewingHistory(false);
     logEvent('example_used', userId);
-    
+
     // Auto-resize after render
     setTimeout(() => {
       if (textareaRef.current) {
@@ -98,8 +101,6 @@ export default function Home() {
 
   useEffect(() => {
     setMounted(true);
-    setIsLimit(isLimitReached());
-    // Log page view once on mount; userId was already initialized via lazy state
     logEvent('page_view', userId, { usage: usageCount });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -214,7 +215,7 @@ export default function Home() {
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               </Link>
               
-              {!result && !isViewingHistory && !isLimit && (
+              {!result && !isViewingHistory && (
                 <button 
                   className="quick-action-btn"
                   title="Como funciona"
@@ -274,333 +275,319 @@ export default function Home() {
           <p>Seu assistente inteligente de decisões</p>
         </header>
 
-        {isLimit ? (
-          <div className="limit-reached-card">
-            <span className="limit-reached-icon">🔒</span>
-            <h2>Limite atingido</h2>
-            <p>Você usou todas as {MAX_FREE_ANALYSES} análises do plano gratuito.</p>
-            <p className="limit-reached-sub">Faça upgrade para continuar decidindo sem limites.</p>
-          </div>
-        ) : (
-          <section className={`input-section ${(tourStep === 1 || tourStep === 2) ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
-            <textarea
-              ref={textareaRef}
-              id="task-input"
-              rows={2}
-              className={`auto-resize-textarea ${tourStep === 1 ? 'tour-highlight' : ''}`}
-              placeholder="Descreva suas tarefas (inclua prazos ou urgência se houver)"
-              value={input}
-              onChange={handleInputChange}
-              disabled={loading}
-            />
-            {tourStep === 1 && renderTourPopover(1)}
-            {(!input || EXAMPLES.includes(input)) && (
-              <button
-                id="try-example-btn"
-                className="example-btn"
-                onClick={handleExample}
+        <>
+            <section className={`input-section ${(tourStep === 1 || tourStep === 2) ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
+              <textarea
+                ref={textareaRef}
+                id="task-input"
+                rows={2}
+                className={`auto-resize-textarea ${tourStep === 1 ? 'tour-highlight' : ''}`}
+                placeholder="Descreva suas tarefas (inclua prazos ou urgência se houver)"
+                value={input}
+                onChange={handleInputChange}
                 disabled={loading}
-              >
-                {exampleIndex === -1 ? '✨ Tentar com um exemplo' : '✨ Tentar outro exemplo'}
-              </button>
-            )}
-            
-            <div className={tourStep === 2 ? 'tour-highlight-container' : ''} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', position: 'relative' }}>
-              {isRefinementMode && (
-                <span className="refinement-indicator">Refinando análise anterior</span>
-              )}
-              <button 
-                ref={analyzeBtnRef}
-                id="analyze-btn" 
-                className={tourStep === 2 ? 'tour-highlight' : ''}
-                onClick={handleAnalyze} 
-                disabled={loading || !input || input.trim().length === 0}
-              >
-                {loading ? 'Analisando...' : 'Analisar'}
-              </button>
-              {tourStep === 2 && renderTourPopover(2)}
-            </div>
-          </section>
-        )}
-
-        {mounted && tourStep > 0 && <div className="tour-overlay" />}
-
-        {mounted && history.length > 0 && !result && !loading && (
-          <section id="history-container" className={`history-section ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
-            <div className={tourStep === 3 ? 'tour-highlight' : ''}>
-              <div className="history-header">
-                <h2 className="history-title">Decisões anteriores</h2>
-                <span className="history-count">{history.length} {history.length === 1 ? 'registro' : 'registros'}</span>
-              </div>
-              <div className="history-list">
-                {history.map((item) => (
-                  <div key={item.id} className="history-item" onClick={() => handleLoadHistory(item)}>
-                    <div className="history-item-body">
-                      <p className="history-item-recommendation">{item.output.primary_action || item.output.recommended_action}</p>
-                      <p className="history-item-input">{item.input}</p>
-                      <div className="history-item-meta">
-                        {item.output.priorities ? (
-                          <span className="history-item-badge">{item.output.priorities.length} {item.output.priorities.length === 1 ? 'item' : 'itens'}</span>
-                        ) : item.output.tasks ? (
-                          <span className="history-item-badge">{item.output.tasks.length} tarefa{item.output.tasks.length !== 1 ? 's' : ''}</span>
-                        ) : (
-                          <span className="history-item-badge">Ação Única</span>
-                        )}
-                        <span className="history-item-time">
-                          <span className="history-item-relative">{formatRelativeDate(item.timestamp)}</span>
-                          <span className="history-item-separator">·</span>
-                          <span className="history-item-absolute">{formatAbsoluteDate(item.timestamp)}</span>
-                        </span>
-                      </div>
-                    </div>
-                    <span className="history-item-arrow">›</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-            {tourStep === 3 && renderTourPopover(3)}
-          </section>
-        )}
-
-        {mounted && history.length === 0 && !result && !loading && !isLimitReached() && (
-          <div id="history-container" className={`empty-history-card ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
-            <div className={tourStep === 3 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-              <span className="empty-history-icon">📝</span>
-              <p className="empty-history-title">Nenhuma decisão recente</p>
-              <p className="empty-history-sub">As tarefas que você analisar aparecerão aqui para consulta rápida depois.</p>
-            </div>
-            {tourStep === 3 && renderTourPopover(3)}
-          </div>
-        )}
-
-        {error && <div className="error-message">{error}</div>}
-
-        {loading && (
-          <div className="loading-spinner">
-            <div className="spinner"></div>
-          </div>
-        )}
-
-        {result && (
-          <section className={`result-section ${isDecisionFocus ? 'decision-focus-active' : ''}`}>
-            <div className={`recommended-card ${isDecisionFocus ? 'decision-focus-card' : ''}`}>
-              <div className="recommended-card-header">
-                <div className="recommended-badge-container">
-                  <span className="recommended-badge">O que fazer agora</span>
-                </div>
+              />
+              {tourStep === 1 && renderTourPopover(1)}
+              {(!input || EXAMPLES.includes(input)) && (
                 <button
-                  id="copy-action-btn"
-                  className={`copy-btn ${copied ? 'copy-btn--copied' : ''}`}
-                  onClick={handleCopy}
-                  aria-label="Copiar ação recomendada"
+                  id="try-example-btn"
+                  className="example-btn"
+                  onClick={handleExample}
+                  disabled={loading || reachedLimit}
                 >
-                  {copied ? '✓ Copiado!' : '⎘ Copiar'}
+                  {exampleIndex === -1 ? '✨ Tentar com um exemplo' : '✨ Tentar outro exemplo'}
                 </button>
+              )}
+
+              <div className={tourStep === 2 ? 'tour-highlight-container' : ''} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', position: 'relative' }}>
+                {isRefinementMode && (
+                  <span className="refinement-indicator">Refinando análise anterior</span>
+                )}
+                <button
+                  ref={analyzeBtnRef}
+                  id="analyze-btn"
+                  className={tourStep === 2 ? 'tour-highlight' : ''}
+                  onClick={handleAnalyze}
+                  disabled={loading || !input || input.trim().length === 0 || reachedLimit}
+                >
+                  {loading ? 'Analisando...' : 'Analisar'}
+                </button>
+                {tourStep === 2 && renderTourPopover(2)}
               </div>
-              <div className="recommended-content">
-                <p className="recommended-action-line">
-                  <span className="recommended-label">Próxima ação:</span>
-                  <span className="recommended-text">{result.primary_action || result.recommended_action}</span>
-                </p>
-                <div className="context-disclaimer">
-                  <p>
-                    Baseado no seu contexto, esta é a melhor próxima ação. A prioridade pode variar se houver <span className="context-emphasis">prazo ou urgência específica</span>.
-                    {' '}
-                    <button 
-                      className="refine-link"
-                      onClick={() => {
-                        setIsRefinementMode(true);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                        textareaRef.current?.focus();
-                      }}
+            </section>
+
+            {reachedLimit && (
+              <div className="error-message">
+                Você atingiu o limite diário de análises. Tente novamente amanhã ou{' '}
+                <Link href="/limite" style={{ color: 'inherit', textDecoration: 'underline' }}>obtenha um plano</Link>.
+              </div>
+            )}
+            {error && !reachedLimit && <div className="error-message">{error}</div>}
+
+            {mounted && tourStep > 0 && <div className="tour-overlay" />}
+
+            {mounted && history.length > 0 && !result && !loading && (
+              <section id="history-container" className={`history-section ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
+                <div className={tourStep === 3 ? 'tour-highlight' : ''}>
+                  <div className="history-header">
+                    <h2 className="history-title">Decisões anteriores</h2>
+                    <span className="history-count">{history.length} {history.length === 1 ? 'registro' : 'registros'}</span>
+                  </div>
+                  <div className="history-list">
+                    {history.map((item) => (
+                      <div key={item.id} className="history-item" onClick={() => handleLoadHistory(item)}>
+                        <div className="history-item-body">
+                          <p className="history-item-recommendation">{item.output.primary_action || item.output.recommended_action}</p>
+                          <p className="history-item-input">{item.input}</p>
+                          <div className="history-item-meta">
+                            {item.output.priorities ? (
+                              <span className="history-item-badge">{item.output.priorities.length} {item.output.priorities.length === 1 ? 'item' : 'itens'}</span>
+                            ) : item.output.tasks ? (
+                              <span className="history-item-badge">{item.output.tasks.length} tarefa{item.output.tasks.length !== 1 ? 's' : ''}</span>
+                            ) : (
+                              <span className="history-item-badge">Ação Única</span>
+                            )}
+                            <span className="history-item-time">
+                              <span className="history-item-relative">{formatRelativeDate(item.timestamp)}</span>
+                              <span className="history-item-separator">·</span>
+                              <span className="history-item-absolute">{formatAbsoluteDate(item.timestamp)}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <span className="history-item-arrow">›</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                {tourStep === 3 && renderTourPopover(3)}
+              </section>
+            )}
+
+            {mounted && history.length === 0 && !result && !loading && !isLimitReached() && (
+              <div id="history-container" className={`empty-history-card ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
+                <div className={tourStep === 3 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                  <span className="empty-history-icon">📝</span>
+                  <p className="empty-history-title">Nenhuma decisão recente</p>
+                  <p className="empty-history-sub">As tarefas que você analisar aparecerão aqui para consulta rápida depois.</p>
+                </div>
+                {tourStep === 3 && renderTourPopover(3)}
+              </div>
+            )}
+
+            {loading && (
+              <div className="loading-spinner">
+                <div className="spinner"></div>
+              </div>
+            )}
+
+            {result && (
+              <section className={`result-section ${isDecisionFocus ? 'decision-focus-active' : ''}`}>
+                <div className={`recommended-card ${isDecisionFocus ? 'decision-focus-card' : ''}`}>
+                  <div className="recommended-card-header">
+                    <div className="recommended-badge-container">
+                      <span className="recommended-badge">O que fazer agora</span>
+                    </div>
+                    <button
+                      id="copy-action-btn"
+                      className={`copy-btn ${copied ? 'copy-btn--copied' : ''}`}
+                      onClick={handleCopy}
+                      aria-label="Copiar ação recomendada"
                     >
-                      Refinar informações
+                      {copied ? '✓ Copiado!' : '⎘ Copiar'}
                     </button>
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {result.priorities ? (
-              <div className="task-list-container">
-                <div className="task-list-intro">
-                  <h3>Priorização das Tarefas</h3>
-                  <p>Análise detalhada baseada em urgência e impacto.</p>
-                </div>
-
-                <div className="task-list">
-                  {['alta', 'média', 'baixa'].map((level) => {
-                    const levelTasks = result.priorities.filter(p => p.level === level);
-                    if (levelTasks.length === 0) return null;
-
-                    const priorityKey = level === 'alta' ? 'high' : level === 'média' ? 'medium' : 'low';
-
-                    return (
-                      <div key={level} className="priority-group">
-                        <div className={`priority-group-header priority-group-header--${priorityKey}`}>
-                          <h4>
-                            {level === 'alta' ? '🔥 Prioridade Máxima' : 
-                             level === 'média' ? '⚡ Média Prioridade' : 
-                             '💤 Baixa Prioridade'}
-                          </h4>
-                          <span className="priority-count">{levelTasks.length} {levelTasks.length === 1 ? 'item' : 'itens'}</span>
-                        </div>
-                        
-                        {levelTasks.map((item, pIndex) => {
-                          const globalIndex = result.priorities.findIndex(p => p === item);
-                          const isExpanded = expandedTask === globalIndex;
-                          
-                          return (
-                            <div key={pIndex} className={`task-card task-card-${priorityKey}`}>
-                              <div className="task-header">
-                                <span className="task-name">{item.task}</span>
-                                <div className="task-header-right">
-                                  <button
-                                    id={`details-btn-${globalIndex}`}
-                                    className="details-toggle-btn"
-                                    onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
-                                    aria-expanded={isExpanded}
-                                  >
-                                    {isExpanded ? 'Ocultar' : 'Por que?'}
-                                    <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
-                                  </button>
-                                </div>
-                              </div>
-                              <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
-                                <div className="task-details-inner">
-                                  <div className="reason-container">
-                                    <p className="task-details-label">Justificativa da análise</p>
-                                    <p className="task-reason">{item.reason}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : result.tasks ? (
-              <div className="task-list-container">
-                <div className="task-list-intro">
-                  <h3>Priorização das Tarefas</h3>
-                  <p>Análise detalhada baseada em urgência e impacto.</p>
-                </div>
-
-                <div className="task-list">
-                  {['high', 'medium', 'low'].map((priority) => {
-                    const tasks = result.tasks!.filter(t => t.priority === priority);
-                    if (tasks.length === 0) return null;
-
-                    return (
-                      <div key={priority} className="priority-group">
-                        <div className={`priority-group-header priority-group-header--${priority}`}>
-                          <h4>
-                            {priority === 'high' ? '🔥 Prioridade Máxima' : 
-                             priority === 'medium' ? '⚡ Média Prioridade' : 
-                             '💤 Baixa Prioridade'}
-                          </h4>
-                          <span className="priority-count">{tasks.length} {tasks.length === 1 ? 'item' : 'itens'}</span>
-                        </div>
-                        
-                        {tasks.map((task, pIndex) => {
-                          const globalIndex = result.tasks!.findIndex(t => t === task);
-                          const isExpanded = expandedTask === globalIndex;
-                          
-                          return (
-                            <div key={pIndex} className={`task-card task-card-${task.priority}`}>
-                              <div className="task-header">
-                                <span className="task-name">{task.name}</span>
-                                <div className="task-header-right">
-                                  <button
-                                    id={`details-btn-${globalIndex}`}
-                                    className="details-toggle-btn"
-                                    onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
-                                    aria-expanded={isExpanded}
-                                  >
-                                    {isExpanded ? 'Ocultar' : 'Por que?'}
-                                    <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
-                                  </button>
-                                </div>
-                              </div>
-                              <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
-                                <div className="task-details-inner">
-                                  <div className="reason-container">
-                                    <p className="task-details-label">Justificativa da análise</p>
-                                    <p className="task-reason">{task.reason}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="task-list-container">
-                <div className="task-list-intro">
-                  <h3>Por que esta ação?</h3>
-                  <p>O Decido focou no próximo passo de maior retorno e menor fricção agora.</p>
-                </div>
-                <div className="task-list">
-                  <div className="task-card task-card-high">
-                    <div className="task-details task-details--open" style={{ maxHeight: 'none' }}>
-                       <div className="task-details-inner" style={{ paddingTop: '1.2rem' }}>
-                         <div className="reason-container" style={{ marginTop: 0 }}>
-                           <p className="task-reason" style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>{result.reason}</p>
-                         </div>
-                       </div>
+                  </div>
+                  <div className="recommended-content">
+                    <p className="recommended-action-line">
+                      <span className="recommended-label">Próxima ação:</span>
+                      <span className="recommended-text">{result.primary_action || result.recommended_action}</span>
+                    </p>
+                    <div className="context-disclaimer">
+                      <p>
+                        Baseado no seu contexto, esta é a melhor próxima ação. A prioridade pode variar se houver <span className="context-emphasis">prazo ou urgência específica</span>.
+                        {' '}
+                        <button
+                          className="refine-link"
+                          onClick={() => {
+                            setIsRefinementMode(true);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            textareaRef.current?.focus();
+                          }}
+                        >
+                          Refinar informações
+                        </button>
+                      </p>
                     </div>
                   </div>
                 </div>
-              </div>
+
+                {result.priorities ? (
+                  <div className="task-list-container">
+                    <div className="task-list-intro">
+                      <h3>Priorização das Tarefas</h3>
+                      <p>Análise detalhada baseada em urgência e impacto.</p>
+                    </div>
+                    <div className="task-list">
+                      {['alta', 'média', 'baixa'].map((level) => {
+                        const levelTasks = result.priorities.filter(p => p.level === level);
+                        if (levelTasks.length === 0) return null;
+                        const priorityKey = level === 'alta' ? 'high' : level === 'média' ? 'medium' : 'low';
+                        return (
+                          <div key={level} className="priority-group">
+                            <div className={`priority-group-header priority-group-header--${priorityKey}`}>
+                              <h4>
+                                {level === 'alta' ? '🔥 Prioridade Máxima' :
+                                 level === 'média' ? '⚡ Média Prioridade' :
+                                 '💤 Baixa Prioridade'}
+                              </h4>
+                              <span className="priority-count">{levelTasks.length} {levelTasks.length === 1 ? 'item' : 'itens'}</span>
+                            </div>
+                            {levelTasks.map((item, pIndex) => {
+                              const globalIndex = result.priorities.findIndex(p => p === item);
+                              const isExpanded = expandedTask === globalIndex;
+                              return (
+                                <div key={pIndex} className={`task-card task-card-${priorityKey}`}>
+                                  <div className="task-header">
+                                    <span className="task-name">{item.task}</span>
+                                    <div className="task-header-right">
+                                      <button
+                                        id={`details-btn-${globalIndex}`}
+                                        className="details-toggle-btn"
+                                        onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
+                                        aria-expanded={isExpanded}
+                                      >
+                                        {isExpanded ? 'Ocultar' : 'Por que?'}
+                                        <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
+                                    <div className="task-details-inner">
+                                      <div className="reason-container">
+                                        <p className="task-details-label">Justificativa da análise</p>
+                                        <p className="task-reason">{item.reason}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : result.tasks ? (
+                  <div className="task-list-container">
+                    <div className="task-list-intro">
+                      <h3>Priorização das Tarefas</h3>
+                      <p>Análise detalhada baseada em urgência e impacto.</p>
+                    </div>
+                    <div className="task-list">
+                      {['high', 'medium', 'low'].map((priority) => {
+                        const tasks = result.tasks!.filter(t => t.priority === priority);
+                        if (tasks.length === 0) return null;
+                        return (
+                          <div key={priority} className="priority-group">
+                            <div className={`priority-group-header priority-group-header--${priority}`}>
+                              <h4>
+                                {priority === 'high' ? '🔥 Prioridade Máxima' :
+                                 priority === 'medium' ? '⚡ Média Prioridade' :
+                                 '💤 Baixa Prioridade'}
+                              </h4>
+                              <span className="priority-count">{tasks.length} {tasks.length === 1 ? 'item' : 'itens'}</span>
+                            </div>
+                            {tasks.map((task, pIndex) => {
+                              const globalIndex = result.tasks!.findIndex(t => t === task);
+                              const isExpanded = expandedTask === globalIndex;
+                              return (
+                                <div key={pIndex} className={`task-card task-card-${task.priority}`}>
+                                  <div className="task-header">
+                                    <span className="task-name">{task.name}</span>
+                                    <div className="task-header-right">
+                                      <button
+                                        id={`details-btn-${globalIndex}`}
+                                        className="details-toggle-btn"
+                                        onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
+                                        aria-expanded={isExpanded}
+                                      >
+                                        {isExpanded ? 'Ocultar' : 'Por que?'}
+                                        <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
+                                      </button>
+                                    </div>
+                                  </div>
+                                  <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
+                                    <div className="task-details-inner">
+                                      <div className="reason-container">
+                                        <p className="task-details-label">Justificativa da análise</p>
+                                        <p className="task-reason">{task.reason}</p>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="task-list-container">
+                    <div className="task-list-intro">
+                      <h3>Por que esta ação?</h3>
+                      <p>O Decido focou no próximo passo de maior retorno e menor fricção agora.</p>
+                    </div>
+                    <div className="task-list">
+                      <div className="task-card task-card-high">
+                        <div className="task-details task-details--open" style={{ maxHeight: 'none' }}>
+                          <div className="task-details-inner" style={{ paddingTop: '1.2rem' }}>
+                            <div className="reason-container" style={{ marginTop: 0 }}>
+                              <p className="task-reason" style={{ fontSize: '1.1rem', lineHeight: '1.6' }}>{result.reason}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="next-actions-container">
+                  <p className="next-actions-label">Próximos passos sugeridos:</p>
+                  <div className="next-actions-grid">
+                    <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Lembrete')}>
+                      <span>Lembrete</span>
+                    </button>
+                    <button className="next-action-pill" onClick={() => handleCopy()}>
+                      <span>Compartilhar</span>
+                    </button>
+                    <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Alternativas')}>
+                      <span>Explorar alternativas</span>
+                    </button>
+                    <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Exoneração Técnica')}>
+                      <span>Entender melhor essa decisão</span>
+                    </button>
+                  </div>
+                </div>
+              </section>
             )}
 
-            <div className="next-actions-container">
-              <p className="next-actions-label">Próximos passos sugeridos:</p>
-              <div className="next-actions-grid">
-                <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Lembrete')}>
-                  <span>Lembrete</span>
-                </button>
-                <button className="next-action-pill" onClick={() => handleCopy()}>
-                  <span>Compartilhar</span>
-                </button>
-                <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Alternativas')}>
-                  <span>Explorar alternativas</span>
-                </button>
-                <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Exoneração Técnica')}>
-                  <span>Entender melhor essa decisão</span>
-                </button>
+            <footer id="app-footer" className={(tourStep === 4) ? 'tour-highlight-container' : ''} style={{ textAlign: 'center', opacity: (tourStep === 4) ? 1 : 0.5, fontSize: '0.9rem', marginTop: 'auto', marginBottom: '20px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', borderRadius: '1rem', position: 'relative' }}>
+              <div className={tourStep === 4 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
+                {mounted && (
+                  <span>Plano Gratuito: {getRemainingUsage()} {getRemainingUsage() === 1 ? 'análise restante' : 'análises restantes'}</span>
+                )}
+                {mounted && history.length > 0 && (
+                  <button
+                    onClick={handleClearData}
+                    className="clear-data-btn"
+                  >
+                    Limpar dados do histórico
+                  </button>
+                )}
               </div>
-            </div>
-          </section>
-        )}
-
-        <footer id="app-footer" className={(tourStep === 4) ? 'tour-highlight-container' : ''} style={{ textAlign: 'center', opacity: (tourStep === 4) ? 1 : 0.5, fontSize: '0.9rem', marginTop: 'auto', marginBottom: '20px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', borderRadius: '1rem', position: 'relative' }}>
-          <div className={tourStep === 4 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-            {mounted && (
-              isLimitReached() ? (
-                <span>Faça upgrade para continuar decidindo sem limites. <a href="#" style={{ color: 'var(--primary)', textDecoration: 'underline' }}>Ver planos</a></span>
-              ) : (
-                <span>Plano Gratuito: {getRemainingUsage()} {getRemainingUsage() === 1 ? 'análise restante' : 'análises restantes'}</span>
-              )
-            )}
-            {mounted && history.length > 0 && (
-              <button 
-                onClick={handleClearData}
-                className="clear-data-btn"
-              >
-                Limpar dados do histórico
-              </button>
-            )}
-          </div>
-          {tourStep === 4 && renderTourPopover(4)}
-        </footer>
+              {tourStep === 4 && renderTourPopover(4)}
+            </footer>
+        </>
 
       </div>
     </main>

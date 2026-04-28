@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnalysisResult } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
 import { isLimitReached, incrementUsageCount, saveDecision } from '@/services/storage/storage';
 
 export function useDecision(userId: string) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export function useDecision(userId: string) {
 
     if (isLimitReached()) {
       logEvent('limit_reached', userId);
-      setError('Limite de uso do plano gratuito atingido. Faça upgrade para continuar decidindo.');
+      router.push('/limite');
       return;
     }
 
@@ -37,6 +39,12 @@ export function useDecision(userId: string) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ input }),
       });
+
+      if (response.status === 429) {
+        logEvent('limit_reached', userId);
+        router.push('/limite');
+        return;
+      }
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -55,6 +63,10 @@ export function useDecision(userId: string) {
       }
 
       onSuccess?.();
+
+      if (isLimitReached()) {
+        router.push('/limite');
+      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ocorreu um erro inesperado.';
       logEvent('analyze_error', userId, { message });
@@ -64,5 +76,5 @@ export function useDecision(userId: string) {
     }
   };
 
-  return { analyze, loading, result, setResult, error };
+  return { analyze, loading, result, setResult, error, setError };
 }

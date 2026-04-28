@@ -1,77 +1,103 @@
-You are updating roadmap-current.md to reflect the current project phase.
+# PATCH — ROADMAP CURRENT (DECIDO)
 
-This is NOT a rewrite. Apply only the adjustments below.
+You are updating `docs/roadmap-current.md`.
 
----
+This roadmap is already structured for a decision-oriented product.
 
-## CHANGES
+DO NOT rewrite or restructure the document.
 
-1. Replace:
-
-"You are responsible for executing this roadmap step by step."
-
-WITH:
-
-"This roadmap reflects the current validation phase of the product.
-
-Execution is guided by both this roadmap AND direct user instructions.
-
-You must NOT assume this roadmap is the only source of truth."
+Apply ONLY the adjustments below.
 
 ---
 
-2. Replace:
+## 🎯 OBJECTIVE
 
-"Execute ONLY that phase"
+Align roadmap with:
 
-WITH:
-
-"Phases serve as validation checkpoints, not mandatory execution steps.
-
-You may assist in these phases when explicitly requested,
-but you must NOT execute them autonomously without user direction."
+* agent-assisted workflow
+* validation-first execution
+* decision-driven evolution
 
 ---
 
-3. Add new section after GLOBAL RULES:
-
-## ⚠️ CURRENT PROJECT STATE
-
-The MVP is already built.
-
-This roadmap is now used for:
-
-* validation guidance
-* insight organization
-* structured learning
-
-NOT for blind execution.
+## 🧩 CHANGES
 
 ---
 
-4. In the section:
+### 1. ADD SECTION (AFTER "🧠 CONTEXTO ATUAL")
 
-"AGENT TASK — INPUT REFINEMENT PATCH (WEEK 6)"
+Insert:
 
-Add at the top:
+## ⚠️ EXECUTION MODEL
 
-Status: [x] (Already implemented)
+This roadmap is NOT a task list.
 
-This section is kept for historical reference.
+It is a **decision and validation guide**.
+
+Execution happens through:
+
+* small, targeted implementations
+* direct user instructions
+* runtime validation
+
+The agent MUST NOT:
+
+* execute phases autonomously
+* assume linear progression
+
+The agent MAY:
+
+* assist when explicitly requested
+* implement isolated steps
+* support validation and analysis
 
 ---
 
-## CONSTRAINTS
+### 2. ADD SECTION (AFTER "🎯 FOCO DA SPRINT ATUAL")
 
-* DO NOT rewrite phases
-* DO NOT remove content
-* DO NOT change structure
-* ONLY apply the changes above
+Insert:
+
+## ✅ VALIDATION CHECKPOINT
+
+This sprint is only complete if:
+
+* [ ] Insight Layer is implemented
+* [ ] `decidoInsights()` returns valid data
+* [ ] Metrics reflect real usage behavior
+* [ ] No inconsistencies detected in event flow
+
+If any item fails:
+
+→ Sprint is NOT complete
+
+---
+
+### 3. ADD SECTION (END OF DOCUMENT)
+
+Insert:
+
+## 🧭 EXECUTION RULE
+
+If resuming after pause:
+
+1. Run `decidoInsights()`
+2. Observe metrics
+3. Identify anomalies or patterns
+4. Decide next action BEFORE implementing anything
+
+---
+
+## 🚫 CONSTRAINTS
+
+* DO NOT remove existing content
+* DO NOT rewrite sections
+* DO NOT convert into checklist-style roadmap
+* DO NOT introduce technical tasks
 
 ---
 
 ## OUTPUT
 
-Return ONLY the modified sections (before → after)
+Return ONLY the inserted sections.
 
-No explanations.
+Do NOT repeat the full document.

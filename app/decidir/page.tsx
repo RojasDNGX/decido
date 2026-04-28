@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, setOnboardingDone } from '@/services/storage/storage';
 import { Decision } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
+import '@/services/analytics/insights';
 import { useDecision } from '@/features/decision/useDecision';
 
 const EXAMPLES = [

@@ -21,7 +21,6 @@ export function useDecision(userId: string) {
     }
 
     if (isLimitReached()) {
-      logEvent('limit_reached', userId);
       router.push('/limite');
       return;
     }
@@ -31,7 +30,13 @@ export function useDecision(userId: string) {
     }
     setLoading(true);
     setError(null);
-    logEvent('analyze_started', userId, { inputLength: input.length, isRefinement: isRefinementMode });
+
+    const attemptId = `${userId}-${Date.now()}`;
+    logEvent('analyze_started', userId, {
+      attempt_id: attemptId,
+      input_length: input.length,
+      is_refinement: isRefinementMode,
+    });
 
     try {
       const response = await fetch('/api/analyze', {
@@ -41,7 +46,7 @@ export function useDecision(userId: string) {
       });
 
       if (response.status === 429) {
-        logEvent('limit_reached', userId);
+        logEvent('limit_reached', userId, { attempt_id: attemptId });
         router.push('/limite');
         return;
       }
@@ -55,12 +60,16 @@ export function useDecision(userId: string) {
       setResult(data);
       saveDecision({ input, output: data });
 
+      let usageCount: number | undefined;
       if (!isRefinementMode) {
-        const newCount = incrementUsageCount();
-        logEvent('analyze_success', userId, { usageCount: newCount, taskCount: data.tasks?.length });
-      } else {
-        logEvent('analyze_success', userId, { refinement: true, taskCount: data.tasks?.length });
+        usageCount = incrementUsageCount();
       }
+      logEvent('analyze_success', userId, {
+        attempt_id: attemptId,
+        usage_count: usageCount,
+        task_count: data.priorities.length || data.tasks?.length || 0,
+        is_refinement: isRefinementMode,
+      });
 
       onSuccess?.();
 
@@ -69,7 +78,10 @@ export function useDecision(userId: string) {
       }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ocorreu um erro inesperado.';
-      logEvent('analyze_error', userId, { message });
+      logEvent('analyze_error', userId, {
+        attempt_id: attemptId,
+        error_message: message,
+      });
       setError(message);
     } finally {
       setLoading(false);

@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, setOnboardingDone } from '@/services/storage/storage';
-import { Decision } from '@/types';
+import { Decision, Priority, Task } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
 import '@/services/analytics/insights';
 import { useDecision } from '@/features/decision/useDecision';
@@ -32,6 +32,10 @@ export default function Home() {
   const [isViewingHistory, setIsViewingHistory] = useState(false);
   const [tourStep, setTourStep] = useState<number>(0); // 0 = hidden, 1 = input, 2 = button...
   const [isRefinementMode, setIsRefinementMode] = useState(false);
+  const [localPriorities, setLocalPriorities] = useState<Priority[] | null>(null);
+  const [localTasks, setLocalTasks] = useState<Task[] | null>(null);
+  const [userAdjustedIds, setUserAdjustedIds] = useState<Set<string>>(new Set());
+  const [lastMovedTask, setLastMovedTask] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
   const isDecisionFocus = !!result && !isViewingHistory;
@@ -61,11 +65,14 @@ export default function Home() {
     setIsViewingHistory(false);
     logEvent('example_used', userId);
 
-    // Auto-resize after render
+    // Auto-resize, focus and place cursor at end after render
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.style.height = 'auto';
         textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`;
+        textareaRef.current.focus();
+        const len = textareaRef.current.value.length;
+        textareaRef.current.setSelectionRange(len, len);
       }
     }, 0);
   };
@@ -106,6 +113,12 @@ export default function Home() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  useEffect(() => {
+    setLocalPriorities(null);
+    setLocalTasks(null);
+    setUserAdjustedIds(new Set());
+  }, [result]);
+
   const handleAnalyze = () => {
     analyze(input, isRefinementMode, () => {
       setHistory(getDecisions());
@@ -121,6 +134,33 @@ export default function Home() {
         }
       }, 100);
     });
+  };
+
+  const PRIORITY_LEVELS: Priority['level'][] = ['alta', 'média', 'baixa'];
+  const TASK_LEVELS: Task['priority'][] = ['high', 'medium', 'low'];
+
+  const movePriority = (globalIndex: number, direction: 'up' | 'down') => {
+    const source = localPriorities ?? result!.priorities;
+    const item = source[globalIndex];
+    const idx = PRIORITY_LEVELS.indexOf(item.level);
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= PRIORITY_LEVELS.length) return;
+    setLocalPriorities(source.map((p, i) => i === globalIndex ? { ...p, level: PRIORITY_LEVELS[newIdx] } : p));
+    setUserAdjustedIds(prev => new Set([...prev, item.task]));
+    setLastMovedTask(item.task);
+    setTimeout(() => setLastMovedTask(null), 200);
+  };
+
+  const moveTask = (globalIndex: number, direction: 'up' | 'down') => {
+    const source = localTasks ?? result!.tasks!;
+    const item = source[globalIndex];
+    const idx = TASK_LEVELS.indexOf(item.priority);
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= TASK_LEVELS.length) return;
+    setLocalTasks(source.map((t, i) => i === globalIndex ? { ...t, priority: TASK_LEVELS[newIdx] } : t));
+    setUserAdjustedIds(prev => new Set([...prev, item.name]));
+    setLastMovedTask(item.name);
+    setTimeout(() => setLastMovedTask(null), 200);
   };
 
   const handleLoadHistory = (decision: Decision) => {
@@ -290,14 +330,18 @@ export default function Home() {
               />
               {tourStep === 1 && renderTourPopover(1)}
               {(!input || EXAMPLES.includes(input)) && (
-                <button
-                  id="try-example-btn"
-                  className="example-btn"
-                  onClick={handleExample}
-                  disabled={loading || reachedLimit}
-                >
-                  {exampleIndex === -1 ? '✨ Tentar com um exemplo' : '✨ Tentar outro exemplo'}
-                </button>
+                <div className="example-block">
+                  <p className="example-label">Não sabe como começar? Use um exemplo:</p>
+                  <button
+                    id="try-example-btn"
+                    className="example-btn"
+                    onClick={handleExample}
+                    disabled={loading || reachedLimit}
+                  >
+                    {exampleIndex === -1 ? '✨ Tentar com um exemplo' : '✨ Tentar outro exemplo'}
+                  </button>
+                  <p className="example-hint">Você pode editar depois para refletir sua situação real.</p>
+                </div>
               )}
 
               <div className={tourStep === 2 ? 'tour-highlight-container' : ''} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%', position: 'relative' }}>
@@ -428,53 +472,65 @@ export default function Home() {
                       <p>Análise detalhada baseada em urgência e impacto.</p>
                     </div>
                     <div className="task-list">
-                      {['alta', 'média', 'baixa'].map((level) => {
-                        const levelTasks = result.priorities.filter(p => p.level === level);
-                        if (levelTasks.length === 0) return null;
-                        const priorityKey = level === 'alta' ? 'high' : level === 'média' ? 'medium' : 'low';
-                        return (
-                          <div key={level} className="priority-group">
-                            <div className={`priority-group-header priority-group-header--${priorityKey}`}>
-                              <h4>
-                                {level === 'alta' ? '🔥 Prioridade Máxima' :
-                                 level === 'média' ? '⚡ Média Prioridade' :
-                                 '💤 Baixa Prioridade'}
-                              </h4>
-                              <span className="priority-count">{levelTasks.length} {levelTasks.length === 1 ? 'item' : 'itens'}</span>
-                            </div>
-                            {levelTasks.map((item, pIndex) => {
-                              const globalIndex = result.priorities.findIndex(p => p === item);
-                              const isExpanded = expandedTask === globalIndex;
-                              return (
-                                <div key={pIndex} className={`task-card task-card-${priorityKey}`}>
-                                  <div className="task-header">
-                                    <span className="task-name">{item.task}</span>
-                                    <div className="task-header-right">
-                                      <button
-                                        id={`details-btn-${globalIndex}`}
-                                        className="details-toggle-btn"
-                                        onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
-                                        aria-expanded={isExpanded}
-                                      >
-                                        {isExpanded ? 'Ocultar' : 'Por que?'}
-                                        <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
-                                      </button>
+                      {(() => {
+                        const effectivePriorities = localPriorities ?? result.priorities;
+                        return PRIORITY_LEVELS.map((level) => {
+                          const levelTasks = effectivePriorities.filter(p => p.level === level);
+                          if (levelTasks.length === 0) return null;
+                          const levelIdx = PRIORITY_LEVELS.indexOf(level);
+                          const priorityKey = level === 'alta' ? 'high' : level === 'média' ? 'medium' : 'low';
+                          return (
+                            <div key={level} className="priority-group">
+                              <div className={`priority-group-header priority-group-header--${priorityKey}`}>
+                                <h4>
+                                  {level === 'alta' ? '🔥 Prioridade Máxima' :
+                                   level === 'média' ? '⚡ Média Prioridade' :
+                                   '💤 Baixa Prioridade'}
+                                </h4>
+                                <span className="priority-count">{levelTasks.length} {levelTasks.length === 1 ? 'item' : 'itens'}</span>
+                              </div>
+                              {levelTasks.map((item) => {
+                                const globalIndex = effectivePriorities.findIndex(p => p.task === item.task);
+                                const isExpanded = expandedTask === globalIndex;
+                                return (
+                                  <div key={item.task} className={`task-card task-card-${priorityKey}${lastMovedTask === item.task ? ' task-card--moved' : ''}`}>
+                                    <div className="task-header">
+                                      <span className="task-name">{item.task}</span>
+                                      <div className="task-header-right">
+                                        <div className="priority-controls">
+                                          <span className="priority-controls-label">Ajustar</span>
+                                          <button className="priority-move-btn" onClick={() => movePriority(globalIndex, 'up')} disabled={levelIdx === 0} aria-label="Aumentar prioridade">↑</button>
+                                          <button className="priority-move-btn" onClick={() => movePriority(globalIndex, 'down')} disabled={levelIdx === PRIORITY_LEVELS.length - 1} aria-label="Diminuir prioridade">↓</button>
+                                        </div>
+                                        <button
+                                          id={`details-btn-${globalIndex}`}
+                                          className="details-toggle-btn"
+                                          onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
+                                          aria-expanded={isExpanded}
+                                        >
+                                          {isExpanded ? 'Ocultar' : 'Por que?'}
+                                          <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
-                                    <div className="task-details-inner">
-                                      <div className="reason-container">
-                                        <p className="task-details-label">Justificativa da análise</p>
-                                        <p className="task-reason">{item.reason}</p>
+                                    {userAdjustedIds.has(item.task) && (
+                                      <span className="adjusted-badge">Ajustado por você</span>
+                                    )}
+                                    <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
+                                      <div className="task-details-inner">
+                                        <div className="reason-container">
+                                          <p className="task-details-label">Justificativa da análise</p>
+                                          <p className="task-reason">{item.reason}</p>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
+                                );
+                              })}
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 ) : result.tasks ? (
@@ -484,52 +540,64 @@ export default function Home() {
                       <p>Análise detalhada baseada em urgência e impacto.</p>
                     </div>
                     <div className="task-list">
-                      {['high', 'medium', 'low'].map((priority) => {
-                        const tasks = result.tasks!.filter(t => t.priority === priority);
-                        if (tasks.length === 0) return null;
-                        return (
-                          <div key={priority} className="priority-group">
-                            <div className={`priority-group-header priority-group-header--${priority}`}>
-                              <h4>
-                                {priority === 'high' ? '🔥 Prioridade Máxima' :
-                                 priority === 'medium' ? '⚡ Média Prioridade' :
-                                 '💤 Baixa Prioridade'}
-                              </h4>
-                              <span className="priority-count">{tasks.length} {tasks.length === 1 ? 'item' : 'itens'}</span>
-                            </div>
-                            {tasks.map((task, pIndex) => {
-                              const globalIndex = result.tasks!.findIndex(t => t === task);
-                              const isExpanded = expandedTask === globalIndex;
-                              return (
-                                <div key={pIndex} className={`task-card task-card-${task.priority}`}>
-                                  <div className="task-header">
-                                    <span className="task-name">{task.name}</span>
-                                    <div className="task-header-right">
-                                      <button
-                                        id={`details-btn-${globalIndex}`}
-                                        className="details-toggle-btn"
-                                        onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
-                                        aria-expanded={isExpanded}
-                                      >
-                                        {isExpanded ? 'Ocultar' : 'Por que?'}
-                                        <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
-                                      </button>
+                      {(() => {
+                        const effectiveTasks = localTasks ?? result.tasks!;
+                        return TASK_LEVELS.map((priority) => {
+                          const tasks = effectiveTasks.filter(t => t.priority === priority);
+                          if (tasks.length === 0) return null;
+                          const levelIdx = TASK_LEVELS.indexOf(priority);
+                          return (
+                            <div key={priority} className="priority-group">
+                              <div className={`priority-group-header priority-group-header--${priority}`}>
+                                <h4>
+                                  {priority === 'high' ? '🔥 Prioridade Máxima' :
+                                   priority === 'medium' ? '⚡ Média Prioridade' :
+                                   '💤 Baixa Prioridade'}
+                                </h4>
+                                <span className="priority-count">{tasks.length} {tasks.length === 1 ? 'item' : 'itens'}</span>
+                              </div>
+                              {tasks.map((task) => {
+                                const globalIndex = effectiveTasks.findIndex(t => t.name === task.name);
+                                const isExpanded = expandedTask === globalIndex;
+                                return (
+                                  <div key={task.name} className={`task-card task-card-${task.priority}${lastMovedTask === task.name ? ' task-card--moved' : ''}`}>
+                                    <div className="task-header">
+                                      <span className="task-name">{task.name}</span>
+                                      <div className="task-header-right">
+                                        <div className="priority-controls">
+                                          <span className="priority-controls-label">Ajustar</span>
+                                          <button className="priority-move-btn" onClick={() => moveTask(globalIndex, 'up')} disabled={levelIdx === 0} aria-label="Aumentar prioridade">↑</button>
+                                          <button className="priority-move-btn" onClick={() => moveTask(globalIndex, 'down')} disabled={levelIdx === TASK_LEVELS.length - 1} aria-label="Diminuir prioridade">↓</button>
+                                        </div>
+                                        <button
+                                          id={`details-btn-${globalIndex}`}
+                                          className="details-toggle-btn"
+                                          onClick={() => setExpandedTask(isExpanded ? null : globalIndex)}
+                                          aria-expanded={isExpanded}
+                                        >
+                                          {isExpanded ? 'Ocultar' : 'Por que?'}
+                                          <span className={`details-chevron ${isExpanded ? 'details-chevron--open' : ''}`}>›</span>
+                                        </button>
+                                      </div>
                                     </div>
-                                  </div>
-                                  <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
-                                    <div className="task-details-inner">
-                                      <div className="reason-container">
-                                        <p className="task-details-label">Justificativa da análise</p>
-                                        <p className="task-reason">{task.reason}</p>
+                                    {userAdjustedIds.has(task.name) && (
+                                      <span className="adjusted-badge">Ajustado por você</span>
+                                    )}
+                                    <div className={`task-details ${isExpanded ? 'task-details--open' : ''}`}>
+                                      <div className="task-details-inner">
+                                        <div className="reason-container">
+                                          <p className="task-details-label">Justificativa da análise</p>
+                                          <p className="task-reason">{task.reason}</p>
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        );
-                      })}
+                                );
+                              })}
+                            </div>
+                          );
+                        });
+                      })()}
                     </div>
                   </div>
                 ) : (

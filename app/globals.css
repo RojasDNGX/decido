@@ -501,6 +501,91 @@ button:disabled {
   transform: none;
 }
 
+/* Priority adjustment controls */
+.priority-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-right: 0.5rem;
+}
+
+.priority-controls-label {
+  font-size: 0.65rem;
+  color: #525252;
+  margin-right: 0.1rem;
+  user-select: none;
+}
+
+.priority-move-btn {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #525252;
+  width: 22px;
+  height: 22px;
+  border-radius: 0.35rem;
+  cursor: pointer;
+  font-size: 0.7rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+  padding: 0;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.priority-move-btn:hover:not(:disabled) {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #a3a3a3;
+  background: rgba(255, 255, 255, 0.05);
+  opacity: 1;
+  transform: scale(1.05);
+}
+
+.priority-move-btn:active:not(:disabled) {
+  transform: scale(0.97);
+}
+
+.priority-move-btn:disabled {
+  opacity: 0.18;
+  cursor: default;
+}
+
+.adjusted-badge {
+  display: inline-block;
+  font-size: 0.65rem;
+  color: #525252;
+  font-style: italic;
+  margin: 0.1rem 0 0.35rem;
+}
+
+@keyframes taskSlideIn {
+  from { opacity: 0.65; transform: translateY(-5px) scale(0.99); }
+  to   { opacity: 1;    transform: translateY(0)    scale(1); }
+}
+
+.task-card--moved {
+  animation: taskSlideIn 0.18s ease-out;
+}
+
+.example-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.example-label {
+  font-size: 0.8rem;
+  color: #737373;
+  margin: 0;
+}
+
+.example-hint {
+  font-size: 0.75rem;
+  color: #525252;
+  margin: 0;
+}
+
 .clear-data-btn {
   background: transparent;
   color: #737373;
@@ -1373,7 +1458,7 @@ button:disabled {
 }
 
 /* Decision focus mode */
-.decision-focus-dim > *:not(.result-section) {
+.decision-focus-dim > *:not(.result-section):not(.input-section) {
   opacity: 0.35;
   transform: scale(0.98);
   transition: all 0.25s ease;

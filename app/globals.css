@@ -228,6 +228,32 @@ button:disabled {
   animation: copiedPulse 0.3s ease;
 }
 
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  color: #737373;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.share-btn:hover {
+  border-color: rgba(255, 255, 255, 0.3);
+  color: #a3a3a3;
+}
+
+.share-btn--shared {
+  border-color: #10b981;
+  color: #10b981;
+}
+
 @keyframes copiedPulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.06); }

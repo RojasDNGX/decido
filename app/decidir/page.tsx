@@ -27,6 +27,7 @@ export default function Home() {
   const [history, setHistory] = useState<Decision[]>(() => typeof window !== 'undefined' ? getDecisions() : []);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [exampleIndex, setExampleIndex] = useState(-1);
   const [isViewingHistory, setIsViewingHistory] = useState(false);
@@ -75,6 +76,23 @@ export default function Home() {
         textareaRef.current.setSelectionRange(len, len);
       }
     }, 0);
+  };
+
+  const handleShare = async () => {
+    if (!result) return;
+    const text = `Próxima ação: ${result.primary_action || result.recommended_action || ''}`;
+    try {
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        await navigator.share({ text });
+      } else {
+        await navigator.clipboard.writeText(text);
+        setShared(true);
+        setTimeout(() => setShared(false), 2000);
+      }
+      logEvent('share_action', userId);
+    } catch {
+      // silent fail
+    }
   };
 
   const handleCopy = async () => {
@@ -440,6 +458,13 @@ export default function Home() {
                       aria-label="Copiar ação recomendada"
                     >
                       {copied ? '✓ Copiado!' : '⎘ Copiar'}
+                    </button>
+                    <button
+                      className={`share-btn ${shared ? 'share-btn--shared' : ''}`}
+                      onClick={handleShare}
+                      aria-label="Compartilhar decisão"
+                    >
+                      {shared ? '✓' : '↗'}
                     </button>
                   </div>
                   <div className="recommended-content">

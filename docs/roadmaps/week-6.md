@@ -25,7 +25,7 @@ Allow richer input context without increasing complexity or breaking the core ex
 
 # 🧩 PHASE 1 — INPUT CONTEXT ENHANCEMENT
 
-Status: [ ]
+Status: [x]
 
 ---
 
@@ -60,7 +60,7 @@ Example:
 
 # 🧩 PHASE 2 — CONTEXT-AWARE ANALYSIS (PASSIVE)
 
-Status: [ ]
+Status: [x]
 
 ---
 

@@ -183,6 +183,7 @@ It must be executed according to RUN MODES.
 
 ### run prod
 
+* Production URL: http://10.10.0.47:3000
 * Playwright execution is MANDATORY
 * Must run full test suite
 * ZERO tolerance for failure
@@ -248,6 +249,55 @@ Definition of "completed":
 
 Keep the active docs clean and focused only on current execution,
 while preserving completed work in a structured archive.
+
+---
+
+# 📁 DOCS/ BRANCH SYNCHRONIZATION RULE
+
+The `docs/` folder and all its contents (roadmaps, archive, user-tests, etc.)
+exist ONLY in `dev` and `feature/*` branches.
+
+---
+
+## RULE: main has NO docs/
+
+The `main` branch must NEVER contain a `docs/` folder.
+
+`main` is production. Planning and development artifacts do not belong there.
+
+If production-relevant documentation is needed in the future:
+→ Create it intentionally at that moment
+→ Add it directly to `main` via a dedicated commit
+→ Do NOT carry it over from dev automatically
+
+---
+
+## RULE: dev and feature/* must stay in sync for docs/
+
+At any point in time, `docs/` content in `feature/*` branches must reflect
+the most current state in `dev` — and vice versa.
+
+This includes:
+* `docs/roadmaps/` — active roadmap files
+* `docs/archive/roadmaps/` — completed roadmaps
+* `docs/user-tests/` — user research and testing artifacts
+* Any future subfolder created under `docs/`
+
+---
+
+## WHEN TO SYNC
+
+* When a roadmap is archived on `dev` → apply the same on the active `feature/*` branch
+* When a `feature/*` branch adds a doc → ensure `dev` reflects it before merging
+* When starting a new `feature/*` branch → it should branch from `dev` and inherit current `docs/`
+
+---
+
+## CONSTRAINTS
+
+* Do NOT leave `docs/` diverged between `dev` and `feature/*` branches
+* Do NOT merge a `feature/*` branch into `dev` with a stale `docs/` state
+* Do NOT push roadmap or planning files into `main` during a merge
 
 ---
 

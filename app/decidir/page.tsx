@@ -326,12 +326,13 @@ export default function Home() {
                 id="task-input"
                 rows={2}
                 className={`auto-resize-textarea ${tourStep === 1 ? 'tour-highlight' : ''}`}
-                placeholder="Descreva suas tarefas (inclua prazos ou urgência se houver)"
+                placeholder="O que está disputando sua atenção agora?"
                 value={input}
                 onChange={handleInputChange}
                 disabled={loading}
               />
               {tourStep === 1 && renderTourPopover(1)}
+              <p className="input-helper-text">Quanto mais contexto você der, melhor será a decisão.</p>
               {(!input || EXAMPLES.includes(input)) && (
                 <div className="example-block">
                   <p className="example-label">Não sabe como começar? Use um exemplo:</p>

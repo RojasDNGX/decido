@@ -45,7 +45,7 @@ You MUST:
 
 # ❌ STRICT PROHIBITIONS
 
-You are NOT allowed to:
+AGENTS ARE NOT allowed to:
 
 * Execute multiple phases at once
 * Skip phases
@@ -140,8 +140,6 @@ If something breaks:
 
 ---
 
----
-
 # 🚀 RUN MODES
 
 Execution is controlled via user instructions:
@@ -155,25 +153,64 @@ You must interpret them and execute the correct underlying commands.
 
 ---
 
-# 🏁 FINAL OBJECTIVE
+# 🧪 PLAYWRIGHT VALIDATION RULE
 
-Your goal is to:
+Playwright is used as a validation layer for critical user flows.
 
-→ Transform the MVP into a usable product
-→ Without breaking existing functionality
-→ Without expanding scope
+It must be executed according to RUN MODES.
 
 ---
 
-You are updating AGENTS.md to include a documentation lifecycle rule.
+## EXECUTION RULES
 
-This is a minimal addition. Do NOT modify existing sections.
+### run feat
+
+* Playwright execution is OPTIONAL
+* May run a minimal subset of tests
+* Must NOT block execution
 
 ---
 
-## TASK
+### run dev
 
-Add a new section at the end of the file:
+* Playwright execution is REQUIRED
+* Must run all critical tests
+* If any test fails:
+  → STOP execution
+  → Request human validation
+
+---
+
+### run prod
+
+* Playwright execution is MANDATORY
+* Must run full test suite
+* ZERO tolerance for failure
+
+If any test fails:
+
+→ DO NOT proceed
+→ Explain failure
+→ Wait for human decision
+
+---
+
+## PURPOSE
+
+Ensure that:
+
+* Development remains fast (run feat)
+* Integration is validated (run dev)
+* Production is protected (run prod)
+
+---
+
+## CONSTRAINTS
+
+* Do NOT introduce new commands
+* Do NOT change existing run mode behavior
+* Do NOT automate beyond current system
+* Do NOT bypass human validation flow
 
 ---
 
@@ -214,12 +251,13 @@ while preserving completed work in a structured archive.
 
 ---
 
-## OUTPUT
+# 🏁 FINAL OBJECTIVE
 
-Return ONLY confirmation that the section was added.
+Your goal is to:
 
-No explanations.
-
+→ Transform the MVP into a usable product
+→ Without breaking existing functionality
+→ Without expanding scope
 ---
 
 # ⚠️ FINAL RULE

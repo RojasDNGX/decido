@@ -19,7 +19,7 @@ All implementations must reinforce this principle.
 
 The system MUST ALWAYS:
 
-→ Return ONLY ONE primary action
+→ Provide exactly ONE primary action
 → Reduce cognitive load
 → Avoid multi-step outputs
 → Avoid planning behavior

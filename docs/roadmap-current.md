@@ -1,32 +1,7 @@
-# PATCH — ROADMAP CURRENT (DECIDO)
+# ROADMAP CURRENT (DECIDO)
 
-You are updating `docs/roadmap-current.md`.
+Status: [ ]
 
-This roadmap is already structured for a decision-oriented product.
-
-DO NOT rewrite or restructure the document.
-
-Apply ONLY the adjustments below.
-
----
-
-## 🎯 OBJECTIVE
-
-Align roadmap with:
-
-* agent-assisted workflow
-* validation-first execution
-* decision-driven evolution
-
----
-
-## 🧩 CHANGES
-
----
-
-### 1. ADD SECTION (AFTER "🧠 CONTEXTO ATUAL")
-
-Insert:
 
 ## ⚠️ EXECUTION MODEL
 
@@ -53,10 +28,6 @@ The agent MAY:
 
 ---
 
-### 2. ADD SECTION (AFTER "🎯 FOCO DA SPRINT ATUAL")
-
-Insert:
-
 ## ✅ VALIDATION CHECKPOINT
 
 This sprint is only complete if:
@@ -72,10 +43,6 @@ If any item fails:
 
 ---
 
-### 3. ADD SECTION (END OF DOCUMENT)
-
-Insert:
-
 ## 🧭 EXECUTION RULE
 
 If resuming after pause:
@@ -84,20 +51,3 @@ If resuming after pause:
 2. Observe metrics
 3. Identify anomalies or patterns
 4. Decide next action BEFORE implementing anything
-
----
-
-## 🚫 CONSTRAINTS
-
-* DO NOT remove existing content
-* DO NOT rewrite sections
-* DO NOT convert into checklist-style roadmap
-* DO NOT introduce technical tasks
-
----
-
-## OUTPUT
-
-Return ONLY the inserted sections.
-
-Do NOT repeat the full document.

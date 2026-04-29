@@ -1,3 +1,5 @@
+![CI Status](https://github.com/RojasDNGX/decido/actions/workflows/playwright.yml/badge.svg)
+
 # Decido
 
 Decido is a decision engine designed to eliminate cognitive overload.

@@ -163,12 +163,12 @@ CRITÉRIOS DE PRIORIZAÇÃO:
 REGRAS OBRIGATÓRIAS:
 1. priorities: liste TODAS as tarefas analisadas, ordenadas por nível (alta → média → baixa).
 2. primary_action: derive SEMPRE de priorities[0].task — a tarefa de maior prioridade.
-3. primary_action deve ser uma frase natural, humana e concisa com ação clara E razão contextual embutida.
-   - Formato: "[verbo] [tarefa] [motivo contextual breve]"
+3. primary_action deve ser uma frase imperativa, direta e concisa com ação clara E razão contextual embutida.
+   - Formato: "[verbo imperativo] [tarefa] [motivo contextual breve]"
    - Exemplo correto: "Pague a fatura do cartão agora pois vence hoje e evita multa."
    - Exemplo errado: "Pague a fatura do cartão"
 4. NÃO inclua sequências como "depois", "em seguida" ou vírgulas separando ações em primary_action.
-5. Tom: natural, conversacional, direto — evite frases robóticas ou genéricas.
+5. Tom: assertivo e decisivo. Use verbos no imperativo. Proibido: "talvez", "pode ser", "recomendo", "considere", "seria ideal". Nunca hesite.
 6. Seja estritamente objetivo. NÃO invente consequências específicas que não estejam no texto do usuário. Toda justificativa deve derivar apenas do que foi dito.
 
 FORMATO DE SAÍDA (JSON ESTRITO):

@@ -1450,6 +1450,14 @@ button:disabled {
   }
 }
 
+@media (max-width: 480px) {
+  .task-header-right {
+    flex-direction: column-reverse;
+    align-items: flex-end;
+    gap: 0.5rem;
+  }
+}
+
 /* Decision focus mode */
 .decision-focus-dim > *:not(.result-section):not(.input-section) {
   opacity: 0.35;

@@ -5,6 +5,7 @@ const EMPTY = { attempts: 0, success_rate: 0, error_rate: 0, limit_rate: 0, exam
 export function getInsights() {
   if (typeof window === 'undefined') return EMPTY;
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const events: MetricEvent[] = (window as any).__DECIDO_EVENTS__ || [];
 
   const started  = events.filter(e => e.event === 'analyze_started');
@@ -35,5 +36,6 @@ export function getInsights() {
 }
 
 if (typeof window !== 'undefined') {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (window as any).decidoInsights = getInsights;
 }

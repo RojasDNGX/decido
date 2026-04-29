@@ -16,6 +16,7 @@ export interface MetricEvent {
   meta?: Record<string, unknown>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const globalAny = typeof window !== 'undefined' ? (window as any) : {};
 if (!globalAny.__DECIDO_EVENTS__) globalAny.__DECIDO_EVENTS__ = [];
 export const events: MetricEvent[] = globalAny.__DECIDO_EVENTS__;

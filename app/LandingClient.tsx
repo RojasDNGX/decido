@@ -79,8 +79,8 @@ export default function LandingClient() {
           />
           <div className="landing-container" style={{ maxWidth: '1400px', position: 'relative', zIndex: 10 }}>
             <h1 className="landing-h1">
-              Sua próxima tarefa, decidida{' '}<br/>
-              <span style={{ background: 'linear-gradient(to right, #60a5fa, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>em segundos.</span>
+              A primeira decisão do seu dia,{' '}<br/>
+              <span style={{ background: 'linear-gradient(to right, #60a5fa, #a855f7)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>resolvida em segundos.</span>
             </h1>
             <p className="hero-sub" style={{ margin: '0 auto 3.5rem' }}>
               Você descreve o que tem para fazer. O Decido te diz o que fazer agora — sem esforço, sem paralisia.
@@ -126,7 +126,7 @@ export default function LandingClient() {
                 <p className="landing-p" style={{ fontSize: '1.2rem' }}>Cole ou digite todas as tarefas, compromissos e ideias que estão ocupando espaço na sua cabeça.</p>
               </div>
               <div style={{ flex: '1.5', background: 'var(--glass)', padding: '2rem', borderRadius: '1.5rem', border: '1px solid var(--glass-border)', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}>
-                <div style={{ opacity: 0.5, fontSize: '1rem', lineHeight: '1.6' }}>"Preciso pagar contas hoje, levar o cachorro no veterinário, terminar o relatório trimestral e responder o e-mail do cliente..."</div>
+                <div style={{ opacity: 0.5, fontSize: '1rem', lineHeight: '1.6' }}>&ldquo;Preciso pagar contas hoje, levar o cachorro no veterinário, terminar o relatório trimestral e responder o e-mail do cliente...&rdquo;</div>
               </div>
             </div>
             
@@ -167,7 +167,7 @@ export default function LandingClient() {
               <div style={{ marginBottom: '3rem' }}>
                 <p style={{ fontSize: '0.7rem', fontWeight: '800', color: '#525252', marginBottom: '1rem', letterSpacing: '0.1em' }}>SUA ENTRADA:</p>
                 <div style={{ padding: '1.2rem', background: 'rgba(255,255,255,0.03)', borderRadius: '1rem', fontStyle: 'italic', color: '#d4d4d4', border: '1px dashed rgba(255,255,255,0.1)', fontSize: '1rem' }}>
-                  "Responder e-mail do chefe, comprar pão, consertar vazamento da pia."
+                  &ldquo;Responder e-mail do chefe, comprar pão, consertar vazamento da pia.&rdquo;
                 </div>
               </div>
               

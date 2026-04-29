@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { aiOrchestrator } from '@/services/ai/orchestrator';
+import { checkIpLimit, incrementIpCount } from '@/services/security/rate-limiter';
 
 const USAGE_LIMIT = 5;
 const COOKIE_NAME = 'decido_usage';
@@ -9,9 +10,16 @@ function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
+function getClientIp(req: NextRequest): string {
+  const forwarded = req.headers.get('x-forwarded-for');
+  if (forwarded) return forwarded.split(',')[0].trim();
+  return '127.0.0.1';
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { input } = await req.json();
+    const isProd = process.env.NODE_ENV === 'production';
 
     if (!input || typeof input !== 'string' || input.trim() === '') {
       return NextResponse.json(
@@ -20,6 +28,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 1. Verificação por Cookie (Soft Limit - Todos os ambientes)
     const today = getTodayDate();
     const raw = req.cookies.get(COOKIE_NAME)?.value;
     let usage = { count: 0, date: today };
@@ -42,9 +51,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    usage.count += 1;
+    // 2. Verificação por IP (Hard Limit - Apenas Produção)
+    const ip = getClientIp(req);
+    if (isProd) {
+      const { allowed } = checkIpLimit(ip);
+      if (!allowed) {
+        return NextResponse.json(
+          { error: 'Limite de segurança por dispositivo atingido. Tente novamente amanhã.' },
+          { status: 429 }
+        );
+      }
+    }
 
+    // Processar análise
     const result = await aiOrchestrator(input);
+
+    // Atualizar contadores
+    usage.count += 1;
+    if (isProd) {
+      incrementIpCount(ip);
+    }
 
     const response = NextResponse.json(result);
     response.cookies.set(COOKIE_NAME, JSON.stringify(usage), {
@@ -55,10 +81,10 @@ export async function POST(req: NextRequest) {
     });
 
     return response;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('API Route Error:', error);
     return NextResponse.json(
-      { error: error.message || 'Não foi possível processar a análise no momento.' },
+      { error: error instanceof Error ? error.message : 'Não foi possível processar a análise no momento.' },
       { status: 500 }
     );
   }

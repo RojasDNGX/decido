@@ -1097,57 +1097,6 @@ button:disabled {
   100% { transform: scale(1); opacity: 1; }
 }
 
-/* ── Phase 3 Week 3: Next Actions ── */
-
-.next-actions-container {
-  margin-top: 3rem;
-  padding: 2rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid var(--glass-border);
-  border-radius: 1.5rem;
-  animation: fadeIn 0.6s ease-out;
-}
-
-.next-actions-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: #737373;
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.next-actions-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-.next-action-pill {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.6rem 1.2rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--glass-border);
-  border-radius: 2rem;
-  color: #e5e5e5;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.next-action-pill:hover {
-  background: rgba(59, 130, 246, 0.1);
-  border-color: var(--primary);
-  color: white;
-  transform: translateY(-2px);
-}
-
-.next-action-icon {
-  font-size: 1.1rem;
-}
 
 /* ── Phase 4 Week 3: Minimalist Onboarding Tour ── */
 

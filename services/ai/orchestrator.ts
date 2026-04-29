@@ -2,7 +2,6 @@ import { AnalysisResult } from '@/types';
 
 const OLLAMA_URL = 'http://10.10.0.9:11434/api/generate';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const TIMEOUT_MS = 12000;
 
 const LOCAL_MODELS = [
   'gemma4:e4b',
@@ -159,6 +158,7 @@ REGRAS OBRIGATÓRIAS:
    - Exemplo errado: "Pague a fatura do cartão"
 4. NÃO inclua sequências como "depois", "em seguida" ou vírgulas separando ações em primary_action.
 5. Tom: natural, conversacional, direto — evite frases robóticas ou genéricas.
+6. Seja estritamente objetivo. NÃO invente ou presuma entidades externas (como "clientes", "chefes", "amigos") nem consequências específicas que não estejam explicitamente mencionadas no texto do usuário. Toda justificativa deve derivar apenas do que foi dito.
 
 FORMATO DE SAÍDA (JSON ESTRITO):
 {
@@ -178,58 +178,28 @@ ${input}`;
 
   for (const model of LOCAL_MODELS) {
     try {
-      console.log(`[Orchestrator] Attempting model: ${model}`);
       const result = await tryOllama(model, prompt);
 
       const contentString = JSON.stringify(result);
-      if (!validateLanguage(contentString)) {
-        console.log(`[Orchestrator] Invalid language detected in ${model} — retrying with fallback`);
-        continue;
-      }
+      if (!validateLanguage(contentString)) continue;
+      if (result.primary_action && !validatePrimaryAction(result.primary_action)) continue;
+      if (!result.priorities || result.priorities.length < 2) continue;
 
-      if (result.primary_action && !validatePrimaryAction(result.primary_action)) {
-        console.log(`[Orchestrator] Multiple actions detected in primary_action — retrying with fallback`);
-        continue;
-      }
-
-      if (!result.priorities || result.priorities.length < 2) {
-        console.log(`[Orchestrator] Insufficient tasks in priority list — retrying with fallback`);
-        continue;
-      }
-
-      console.log(`[Orchestrator] Success with model: ${model}`);
       return result;
-    } catch (error: any) {
-      console.warn(`[Orchestrator] Model ${model} failed:`, error.message);
+    } catch {
+      // Model unavailable, try next
     }
   }
 
   try {
-    console.log(`[Orchestrator] Attempting Groq fallback`);
-    const result = await tryGroq(prompt);
-
-    if (!validateLanguage(JSON.stringify(result))) {
-       console.warn(`[Orchestrator] Groq leaked English, but it's the last fallback.`);
-    }
-    if (result.primary_action && !validatePrimaryAction(result.primary_action)) {
-       console.warn(`[Orchestrator] Groq returned multiple actions in primary_action.`);
-    }
-    if (!result.priorities || result.priorities.length < 2) {
-       console.warn(`[Orchestrator] Groq returned insufficient priority tasks.`);
-    }
-
-    console.log(`[Orchestrator] Success with Groq fallback`);
-    return result;
-  } catch (error: any) {
-    console.error(`[Orchestrator] All providers failed:`, error.message);
+    return await tryGroq(prompt);
+  } catch (error: unknown) {
+    console.error(`[Orchestrator] All providers failed:`, error instanceof Error ? error.message : error);
     throw new Error('Não foi possível processar a análise no momento.');
   }
 }
 
 // Model Warm-up
 if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {
-  console.log('[Orchestrator] Initializing warm-up with gemma4:e4b...');
-  tryOllama('gemma4:e4b', 'Warm up request. Respond with empty JSON: {}')
-    .then(() => console.log('[Orchestrator] Warm-up successful'))
-    .catch((e) => console.warn('[Orchestrator] Warm-up skipped/failed:', e.message));
+  tryOllama('gemma4:e4b', 'Warm up request. Respond with empty JSON: {}').catch(() => {});
 }

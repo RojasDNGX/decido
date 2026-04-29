@@ -108,12 +108,14 @@ export default function Home() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     logEvent('page_view', userId, { usage: usageCount });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLocalPriorities(null);
     setLocalTasks(null);
     setUserAdjustedIds(new Set());
@@ -180,6 +182,7 @@ export default function Home() {
   };
 
   const formatRelativeDate = (timestamp: number): string => {
+    // eslint-disable-next-line react-hooks/purity
     const diff = Date.now() - timestamp;
     const minutes = Math.floor(diff / 60000);
     if (minutes < 1) return 'agora mesmo';
@@ -630,23 +633,6 @@ export default function Home() {
                   </div>
                 )}
 
-                <div className="next-actions-container">
-                  <p className="next-actions-label">Próximos passos sugeridos:</p>
-                  <div className="next-actions-grid">
-                    <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Lembrete')}>
-                      <span>Lembrete</span>
-                    </button>
-                    <button className="next-action-pill" onClick={() => handleCopy()}>
-                      <span>Compartilhar</span>
-                    </button>
-                    <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Alternativas')}>
-                      <span>Explorar alternativas</span>
-                    </button>
-                    <button className="next-action-pill" onClick={() => alert('Recurso em desenvolvimento: Exoneração Técnica')}>
-                      <span>Entender melhor essa decisão</span>
-                    </button>
-                  </div>
-                </div>
               </section>
             )}
 

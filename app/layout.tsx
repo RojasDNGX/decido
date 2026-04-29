@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/next';
 import BackToTop from '@/components/shared/BackToTop';
 import './globals.css';
 

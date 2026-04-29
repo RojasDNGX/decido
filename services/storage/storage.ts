@@ -35,7 +35,7 @@ export const incrementUsageCount = (): number => {
 export const isLimitReached = (): boolean => {
   try {
     return getUsageCount() >= MAX_FREE_ANALYSES;
-  } catch (e) {
+  } catch {
     return false;
   }
 };
@@ -43,7 +43,7 @@ export const isLimitReached = (): boolean => {
 export const getRemainingUsage = (): number => {
   try {
     return Math.max(MAX_FREE_ANALYSES - getUsageCount(), 0);
-  } catch (e) {
+  } catch {
     return MAX_FREE_ANALYSES;
   }
 };
@@ -52,7 +52,7 @@ export const isOnboardingDone = (): boolean => {
   if (typeof window === 'undefined') return true;
   try {
     return localStorage.getItem(STORAGE_KEYS.ONBOARDING_DONE) === 'true';
-  } catch (e) {
+  } catch {
     return true; // Default to true to not block user
   }
 };

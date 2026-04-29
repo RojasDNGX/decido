@@ -61,7 +61,9 @@ No ambiguity.
 
 ## 🚧 Current Stage
 
-MVP — actively being tested with real users.
+**v1.0.0 — Production MVP.**
+
+Validated, stable, and ready for real users.
 
 ---
 
@@ -69,14 +71,18 @@ MVP — actively being tested with real users.
 
 * Next.js (App Router)
 * Modular feature-based structure
-* AI orchestration layer
+* AI orchestration layer — Ollama (local) + Groq (cloud fallback)
+* Cookie + IP-based server-side rate limiting
 * Lightweight client-side persistence
+* In-browser analytics via `window.decidoInsights()`
 
 ---
 
 ## 🚀 Getting Started
 
 ```bash
+cp .env.example .env.local
+# Add your GROQ_API_KEY to .env.local
 npm install
 npm run dev
 ```

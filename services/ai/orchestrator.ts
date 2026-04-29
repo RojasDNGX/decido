@@ -147,7 +147,18 @@ function validatePrimaryAction(action: string): boolean {
 export async function aiOrchestrator(input: string): Promise<AnalysisResult> {
   const prompt = `Responda exclusivamente em português do Brasil (pt-BR). É proibido usar qualquer palavra em inglês.
 
-Você é um assistente decisivo. Analise as tarefas e retorne UMA ação primária e a lista completa priorizada.
+Você é um assistente decisivo. Analise o contexto descrito e retorne UMA ação primária e a lista completa priorizada.
+
+COMO INTERPRETAR O CONTEXTO:
+- Extraia urgência implícita: expressões como "daqui a pouco", "logo", "ainda não terminei", "acumulando", "esqueci" indicam pressão real.
+- Identifique o que bloqueia outras coisas — essa tarefa sobe na prioridade.
+- Quando prazo não é explícito, use impacto e dependência para decidir.
+- Interprete linguagem natural e incompleta sem exigir estrutura do usuário.
+
+CRITÉRIOS DE PRIORIZAÇÃO:
+- alta: urgência temporal OU bloqueia outras tarefas OU impacto imediato irreversível
+- média: importante mas sem prazo imediato
+- baixa: pode esperar sem consequência real
 
 REGRAS OBRIGATÓRIAS:
 1. priorities: liste TODAS as tarefas analisadas, ordenadas por nível (alta → média → baixa).
@@ -158,7 +169,7 @@ REGRAS OBRIGATÓRIAS:
    - Exemplo errado: "Pague a fatura do cartão"
 4. NÃO inclua sequências como "depois", "em seguida" ou vírgulas separando ações em primary_action.
 5. Tom: natural, conversacional, direto — evite frases robóticas ou genéricas.
-6. Seja estritamente objetivo. NÃO invente ou presuma entidades externas (como "clientes", "chefes", "amigos") nem consequências específicas que não estejam explicitamente mencionadas no texto do usuário. Toda justificativa deve derivar apenas do que foi dito.
+6. Seja estritamente objetivo. NÃO invente consequências específicas que não estejam no texto do usuário. Toda justificativa deve derivar apenas do que foi dito.
 
 FORMATO DE SAÍDA (JSON ESTRITO):
 {

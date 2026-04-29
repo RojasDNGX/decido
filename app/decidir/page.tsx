@@ -332,10 +332,8 @@ export default function Home() {
                 disabled={loading}
               />
               {tourStep === 1 && renderTourPopover(1)}
-              <p className="input-helper-text">Quanto mais contexto você der, melhor será a decisão.</p>
               {(!input || EXAMPLES.includes(input)) && (
                 <div className="example-block">
-                  <p className="example-label">Não sabe como começar? Use um exemplo:</p>
                   <button
                     id="try-example-btn"
                     className="example-btn"
@@ -344,7 +342,6 @@ export default function Home() {
                   >
                     {exampleIndex === -1 ? '✨ Tentar com um exemplo' : '✨ Tentar outro exemplo'}
                   </button>
-                  <p className="example-hint">Você pode editar depois para refletir sua situação real.</p>
                 </div>
               )}
 

@@ -586,12 +586,6 @@ button:disabled {
   margin: 0;
 }
 
-.input-helper-text {
-  font-size: 0.75rem;
-  color: #525252;
-  margin: 0.25rem 0 0;
-}
-
 .clear-data-btn {
   background: transparent;
   color: #737373;

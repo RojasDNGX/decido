@@ -16,6 +16,11 @@ export interface MetricEvent {
   meta?: Record<string, unknown>;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const globalAny = typeof window !== 'undefined' ? (window as any) : {};
+if (!globalAny.__DECIDO_EVENTS__) globalAny.__DECIDO_EVENTS__ = [];
+export const events: MetricEvent[] = globalAny.__DECIDO_EVENTS__;
+
 export const logEvent = (event: EventName, userId?: string, meta?: Record<string, unknown>): void => {
   const payload: MetricEvent = {
     event,
@@ -24,6 +29,6 @@ export const logEvent = (event: EventName, userId?: string, meta?: Record<string
     meta,
   };
 
-  // Structured log visible in browser console and server terminal
   console.log('[decido:metric]', JSON.stringify(payload));
+  events.push(payload);
 };

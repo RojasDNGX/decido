@@ -1,39 +1,5 @@
 # 🚀 Decido — Execution Roadmap (Week 2 — Productization Layer)
 
-## AGENT EXECUTION INSTRUCTIONS (READ FIRST)
-
-You are responsible for executing this roadmap step by step.
-
-At the start of EVERY session:
-
-1. Read this entire file.
-2. Find the FIRST phase with Status: [ ] (not completed).
-3. Execute ONLY that phase.
-4. After finishing:
-
-   * Explain what was implemented
-   * Request human validation
-5. WAIT for approval before continuing.
-6. After approval:
-
-   * Mark the phase as [x]
-   * Save this file
-   * Suggest the next phase
-
----
-
-## GLOBAL RULES (STRICT)
-
-* DO NOT modify AI decision logic or prompt
-* DO NOT refactor unrelated code
-* DO NOT execute multiple phases at once
-* DO NOT expand scope
-* KEEP everything minimal and functional
-* PRIORITIZE stability over perfection
-* Any sub-section inside a completed phase ([x]) must be considered logically completed and non-executable, even if not explicitly re-listed in execution flow.
-
----
-
 ## PHASE 1 — DECISION DETAILS VIEW
 
 Status: [x]
@@ -133,33 +99,6 @@ Product feels stable and consistent
 ## ADDITIONAL REFINEMENTS (POST VALIDATION)
 
 Status: [x]
-
-# 🚀 Decido — Phase 6 (Additional Refinements Execution Prompt)
-
-You are continuing the controlled execution of the Decido roadmap.
-
----
-
-## CONTEXT
-
-* Week 2 is already completed and validated
-* You are NOT creating a new phase
-* You are executing **refinements inside Phase 6**
-* These are **UI/UX polish improvements only**
-
----
-
-## EXECUTION RULES (STRICT)
-
-* DO NOT modify AI logic or prompts
-* DO NOT add new features beyond what is described
-* DO NOT refactor unrelated code
-* KEEP implementations minimal and controlled
-* Execute ALL tasks below as a single refinement block
-* After finishing:
-
-  * Explain what was implemented
-  * Request validation
 
 ---
 
@@ -357,37 +296,5 @@ User always understands their usage state and next step
 
 ---
 
-## FINAL STEP
-
-After completing all refinements:
-
-1. Summarize what was implemented
-2. Confirm no regressions occurred
-3. Request validation
-
----
-
-## IMPORTANT
-
-This is still Phase 6.
-
-DO NOT:
-
-* Create new phases
-* Expand scope
-* Add features outside this list
-
-Execute now.
-
----
-
-## EXECUTION RULE
-
-* Always execute ONE phase at a time
-* Always wait for human validation
-* Never skip phases
-* Never continue automatically
-
----
 
 STATUS WEEK 2: CLOSED (PRODUCTIZED LAYER COMPLETE)

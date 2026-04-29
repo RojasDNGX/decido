@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
-import { Analytics } from '@vercel/analytics/next';
-import BackToTop from './components/BackToTop';
+import BackToTop from '@/components/shared/BackToTop';
 import './globals.css';
 
 const outfit = Outfit({

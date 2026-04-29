@@ -847,12 +847,40 @@ button:disabled {
   transform: translateY(-2px);
 }
 
+.task-name-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.task-order {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #525252;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+.task-order--hidden {
+  visibility: hidden;
+}
+
 .task-card-high {
   border-left: 4px solid var(--high-priority);
 }
 
 .task-card-high:hover {
   border-color: var(--high-priority);
+}
+
+.task-card-high.task-card--secondary {
+  border-left-color: rgba(239, 68, 68, 0.35);
+}
+
+.task-card-high.task-card--secondary:hover {
+  border-color: rgba(239, 68, 68, 0.5);
 }
 
 .task-card-medium {
@@ -863,12 +891,28 @@ button:disabled {
   border-color: var(--medium-priority);
 }
 
+.task-card-medium.task-card--secondary {
+  border-left-color: rgba(245, 158, 11, 0.35);
+}
+
+.task-card-medium.task-card--secondary:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+}
+
 .task-card-low {
   border-left: 4px solid var(--low-priority);
 }
 
 .task-card-low:hover {
   border-color: var(--low-priority);
+}
+
+.task-card-low.task-card--secondary {
+  border-left-color: rgba(16, 185, 129, 0.35);
+}
+
+.task-card-low.task-card--secondary:hover {
+  border-color: rgba(16, 185, 129, 0.5);
 }
 
 /* ── Phase 1 Week 3: Clarity Improvements ── */

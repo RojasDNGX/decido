@@ -477,6 +477,7 @@ export default function Home() {
                         return PRIORITY_LEVELS.map((level) => {
                           const levelTasks = effectivePriorities.filter(p => p.level === level);
                           if (levelTasks.length === 0) return null;
+                          const hasMultipleItems = levelTasks.length > 1;
                           const levelIdx = PRIORITY_LEVELS.indexOf(level);
                           const priorityKey = level === 'alta' ? 'high' : level === 'média' ? 'medium' : 'low';
                           return (
@@ -489,13 +490,17 @@ export default function Home() {
                                 </h4>
                                 <span className="priority-count">{levelTasks.length} {levelTasks.length === 1 ? 'item' : 'itens'}</span>
                               </div>
-                              {levelTasks.map((item) => {
+                              {levelTasks.map((item, pIndex) => {
                                 const globalIndex = effectivePriorities.findIndex(p => p.task === item.task);
                                 const isExpanded = expandedTask === globalIndex;
+                                const isSecondary = pIndex > 0;
                                 return (
-                                  <div key={item.task} className={`task-card task-card-${priorityKey}${lastMovedTask === item.task ? ' task-card--moved' : ''}`}>
+                                  <div key={item.task} className={`task-card task-card-${priorityKey}${isSecondary ? ' task-card--secondary' : ''}${lastMovedTask === item.task ? ' task-card--moved' : ''}`}>
                                     <div className="task-header">
-                                      <span className="task-name">{item.task}</span>
+                                      <div className="task-name-row">
+                                        <span className={`task-order${!hasMultipleItems ? ' task-order--hidden' : ''}`}>{pIndex + 1}.</span>
+                                        <span className="task-name">{item.task}</span>
+                                      </div>
                                       <div className="task-header-right">
                                         <div className="priority-controls">
                                           <span className="priority-controls-label">Ajustar</span>
@@ -545,6 +550,7 @@ export default function Home() {
                         return TASK_LEVELS.map((priority) => {
                           const tasks = effectiveTasks.filter(t => t.priority === priority);
                           if (tasks.length === 0) return null;
+                          const hasMultipleItems = tasks.length > 1;
                           const levelIdx = TASK_LEVELS.indexOf(priority);
                           return (
                             <div key={priority} className="priority-group">
@@ -556,13 +562,17 @@ export default function Home() {
                                 </h4>
                                 <span className="priority-count">{tasks.length} {tasks.length === 1 ? 'item' : 'itens'}</span>
                               </div>
-                              {tasks.map((task) => {
+                              {tasks.map((task, pIndex) => {
                                 const globalIndex = effectiveTasks.findIndex(t => t.name === task.name);
                                 const isExpanded = expandedTask === globalIndex;
+                                const isSecondary = pIndex > 0;
                                 return (
-                                  <div key={task.name} className={`task-card task-card-${task.priority}${lastMovedTask === task.name ? ' task-card--moved' : ''}`}>
+                                  <div key={task.name} className={`task-card task-card-${task.priority}${isSecondary ? ' task-card--secondary' : ''}${lastMovedTask === task.name ? ' task-card--moved' : ''}`}>
                                     <div className="task-header">
-                                      <span className="task-name">{task.name}</span>
+                                      <div className="task-name-row">
+                                        <span className={`task-order${!hasMultipleItems ? ' task-order--hidden' : ''}`}>{pIndex + 1}.</span>
+                                        <span className="task-name">{task.name}</span>
+                                      </div>
                                       <div className="task-header-right">
                                         <div className="priority-controls">
                                           <span className="priority-controls-label">Ajustar</span>

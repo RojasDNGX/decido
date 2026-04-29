@@ -32,10 +32,10 @@ The agent MAY:
 
 This sprint is only complete if:
 
-* [ ] Insight Layer is implemented
-* [ ] `decidoInsights()` returns valid data
-* [ ] Metrics reflect real usage behavior
-* [ ] No inconsistencies detected in event flow
+* [ ] Placeholder guides richer input naturally
+* [ ] Helper text provides clarity without clutter
+* [ ] AI reasoning reflects the expanded context
+* [ ] System remains stable and 100% focused on one action
 
 If any item fails:
 

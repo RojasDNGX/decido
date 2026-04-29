@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnalysisResult } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
-import { isLimitReached, incrementUsageCount, saveDecision } from '@/services/storage/storage';
+import { isLimitReached, incrementUsageCount, saveDecision, getCompactHistory } from '@/services/storage/storage';
 
 export function useDecision(userId: string) {
   const router = useRouter();
@@ -39,10 +39,11 @@ export function useDecision(userId: string) {
     });
 
     try {
+      const history = getCompactHistory();
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input, ...(history.length ? { history } : {}) }),
       });
 
       if (response.status === 429) {

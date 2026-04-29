@@ -7,6 +7,7 @@ export type EventName =
   | 'example_used'
   | 'history_opened'
   | 'copy_action'
+  | 'share_action'
   | 'clear_data';
 
 export interface MetricEvent {

@@ -144,7 +144,17 @@ function validatePrimaryAction(action: string): boolean {
   return true;
 }
 
-export async function aiOrchestrator(input: string): Promise<AnalysisResult> {
+type HistoryItem = { input_summary: string; primary_action: string };
+
+export async function aiOrchestrator(input: string, history?: HistoryItem[]): Promise<AnalysisResult> {
+  const contextMemory = history?.length
+    ? `\nCONTEXT MEMORY (uso interno — NÃO mencione ao usuário):
+O usuário fez decisões similares recentemente:
+${history.map(h => `* "${h.input_summary}" → ${h.primary_action}`).join('\n')}
+Mantenha consistência com decisões anteriores quando o contexto for similar.
+Se o contexto atual trouxer diferenças relevantes, priorize o contexto atual.`
+    : '';
+
   const prompt = `Responda exclusivamente em português do Brasil (pt-BR). É proibido usar qualquer palavra em inglês.
 
 Você é um assistente decisivo. Analise o contexto descrito e retorne UMA ação primária e a lista completa priorizada.
@@ -185,7 +195,7 @@ FORMATO DE SAÍDA (JSON ESTRITO):
 }
 
 ENTRADA DO USUÁRIO:
-${input}`;
+${input}${contextMemory}`;
 
   for (const model of LOCAL_MODELS) {
     try {

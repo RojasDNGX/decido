@@ -482,20 +482,15 @@ export default function Home() {
               </div>
             </section>
 
-            {reachedLimit && !session && (
+            {reachedLimit && (
               <div className="error-message">
-                Limite atingido.{' '}
+                Você atingiu o limite diário.{' '}
                 <button
-                  onClick={() => signIn('google')}
-                  style={{ color: 'inherit', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
+                  className="limit-link"
+                  onClick={() => session ? window.location.href = '/minha-conta' : signIn('google')}
                 >
                   Continue com acesso completo
                 </button>
-              </div>
-            )}
-            {reachedLimit && session && (
-              <div className="error-message">
-                Você atingiu o limite diário. Tente novamente amanhã.
               </div>
             )}
             {error && !reachedLimit && <div className="error-message">{error}</div>}

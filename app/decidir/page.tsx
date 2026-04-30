@@ -361,53 +361,21 @@ export default function Home() {
                 <Link href="/" className="quick-action-btn" title="Ir para Home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 </Link>
-                {!result && !isViewingHistory && (
+                {history.length > 0 && (
                   <button
                     className="quick-action-btn"
-                    title="Como funciona"
-                    onClick={() => setTourStep(1)}
+                    title="Nova Análise"
+                    onClick={() => {
+                      setResult(null);
+                      setInput('');
+                      setIsViewingHistory(false);
+                      setExampleIndex(-1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+                    }}
                   >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   </button>
-                )}
-                {history.length > 0 && (
-                  <>
-                    <button
-                      className="quick-action-btn"
-                      title={result ? 'Voltar ao Início' : 'Histórico'}
-                      onClick={() => {
-                        if (result) {
-                          setResult(null);
-                          setInput('');
-                          setIsViewingHistory(false);
-                          setExampleIndex(-1);
-                          window.scrollTo({ top: 0, behavior: 'smooth' });
-                        } else {
-                          document.querySelector('.history-section')?.scrollIntoView({ behavior: 'smooth' });
-                        }
-                      }}
-                    >
-                      {result ? (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-                      ) : (
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-                      )}
-                    </button>
-                    <button
-                      className="quick-action-btn"
-                      title="Nova Análise"
-                      onClick={() => {
-                        setResult(null);
-                        setInput('');
-                        setIsViewingHistory(false);
-                        setExampleIndex(-1);
-                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                        if (textareaRef.current) textareaRef.current.style.height = 'auto';
-                      }}
-                    >
-                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                    </button>
-                  </>
                 )}
               </div>
 
@@ -447,48 +415,21 @@ export default function Home() {
                     >
                       Ir para Home
                     </Link>
-                    {!result && !isViewingHistory && (
+                    {history.length > 0 && (
                       <button
                         className="context-switcher-item"
-                        onClick={() => { setTourStep(1); setHamburgerOpen(false); }}
+                        onClick={() => {
+                          setResult(null);
+                          setInput('');
+                          setIsViewingHistory(false);
+                          setExampleIndex(-1);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          if (textareaRef.current) textareaRef.current.style.height = 'auto';
+                          setHamburgerOpen(false);
+                        }}
                       >
-                        Como funciona
+                        Nova análise
                       </button>
-                    )}
-                    {history.length > 0 && (
-                      <>
-                        <button
-                          className="context-switcher-item"
-                          onClick={() => {
-                            if (result) {
-                              setResult(null);
-                              setInput('');
-                              setIsViewingHistory(false);
-                              setExampleIndex(-1);
-                              window.scrollTo({ top: 0, behavior: 'smooth' });
-                            } else {
-                              document.querySelector('.history-section')?.scrollIntoView({ behavior: 'smooth' });
-                            }
-                            setHamburgerOpen(false);
-                          }}
-                        >
-                          {result ? 'Voltar ao Início' : 'Histórico'}
-                        </button>
-                        <button
-                          className="context-switcher-item"
-                          onClick={() => {
-                            setResult(null);
-                            setInput('');
-                            setIsViewingHistory(false);
-                            setExampleIndex(-1);
-                            window.scrollTo({ top: 0, behavior: 'smooth' });
-                            if (textareaRef.current) textareaRef.current.style.height = 'auto';
-                            setHamburgerOpen(false);
-                          }}
-                        >
-                          Nova análise
-                        </button>
-                      </>
                     )}
                   </div>
                 )}
@@ -541,7 +482,16 @@ export default function Home() {
                   onClick={handleAnalyze}
                   disabled={loading || !input || input.trim().length === 0 || reachedLimit}
                 >
-                  {loading ? 'Analisando...' : 'Analisar'}
+                  {loading ? (
+                    <>
+                      <span>Analisando</span>
+                      <span className="loading-dots">
+                        <span>.</span>
+                        <span>.</span>
+                        <span>.</span>
+                      </span>
+                    </>
+                  ) : (result ? 'Rever decisão' : 'Analisar')}
                 </button>
                 {tourStep === 2 && renderTourPopover(2)}
               </div>
@@ -605,11 +555,7 @@ export default function Home() {
               </div>
             )}
 
-            {loading && (
-              <div className="loading-spinner">
-                <div className="spinner"></div>
-              </div>
-            )}
+
 
             {result && (
               <section className={`result-section ${isDecisionFocus ? 'decision-focus-active' : ''}`}>

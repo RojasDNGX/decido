@@ -62,6 +62,15 @@ Focus is now on:
 
 ---
 
+## Phase 6 — Enterprise Refinement (Module 6)
+
+* Decision re-evaluation flow
+* UI/UX simplification and action consolidation
+* Micro-interactions and visual polish
+* Header navigation refinement
+
+---
+
 ## Principle
 
 Decido evolves through small, validated steps.

@@ -645,7 +645,6 @@ export default function Home() {
                   </div>
                   <div className="recommended-content">
                     <p className="recommended-action-line">
-                      <span className="recommended-label">Próxima ação:</span>
                       <span className="recommended-text">{result.primary_action || result.recommended_action}</span>
                     </p>
                     <div className="context-disclaimer">

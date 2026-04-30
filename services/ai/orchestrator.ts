@@ -144,21 +144,42 @@ function validatePrimaryAction(action: string): boolean {
   return true;
 }
 
-export async function aiOrchestrator(input: string): Promise<AnalysisResult> {
+type HistoryItem = { input_summary: string; primary_action: string };
+
+export async function aiOrchestrator(input: string, history?: HistoryItem[]): Promise<AnalysisResult> {
+  const contextMemory = history?.length
+    ? `\nCONTEXT MEMORY (uso interno — NÃO mencione ao usuário):
+O usuário fez decisões similares recentemente:
+${history.map(h => `* "${h.input_summary}" → ${h.primary_action}`).join('\n')}
+Mantenha consistência com decisões anteriores quando o contexto for similar.
+Se o contexto atual trouxer diferenças relevantes, priorize o contexto atual.`
+    : '';
+
   const prompt = `Responda exclusivamente em português do Brasil (pt-BR). É proibido usar qualquer palavra em inglês.
 
-Você é um assistente decisivo. Analise as tarefas e retorne UMA ação primária e a lista completa priorizada.
+Você é um assistente decisivo. Analise o contexto descrito e retorne UMA ação primária e a lista completa priorizada.
+
+COMO INTERPRETAR O CONTEXTO:
+- Extraia urgência implícita: expressões como "daqui a pouco", "logo", "ainda não terminei", "acumulando", "esqueci" indicam pressão real.
+- Identifique o que bloqueia outras coisas — essa tarefa sobe na prioridade.
+- Quando prazo não é explícito, use impacto e dependência para decidir.
+- Interprete linguagem natural e incompleta sem exigir estrutura do usuário.
+
+CRITÉRIOS DE PRIORIZAÇÃO:
+- alta: urgência temporal OU bloqueia outras tarefas OU impacto imediato irreversível
+- média: importante mas sem prazo imediato
+- baixa: pode esperar sem consequência real
 
 REGRAS OBRIGATÓRIAS:
 1. priorities: liste TODAS as tarefas analisadas, ordenadas por nível (alta → média → baixa).
 2. primary_action: derive SEMPRE de priorities[0].task — a tarefa de maior prioridade.
-3. primary_action deve ser uma frase natural, humana e concisa com ação clara E razão contextual embutida.
-   - Formato: "[verbo] [tarefa] [motivo contextual breve]"
+3. primary_action deve ser uma frase imperativa, direta e concisa com ação clara E razão contextual embutida.
+   - Formato: "[verbo imperativo] [tarefa] [motivo contextual breve]"
    - Exemplo correto: "Pague a fatura do cartão agora pois vence hoje e evita multa."
    - Exemplo errado: "Pague a fatura do cartão"
 4. NÃO inclua sequências como "depois", "em seguida" ou vírgulas separando ações em primary_action.
-5. Tom: natural, conversacional, direto — evite frases robóticas ou genéricas.
-6. Seja estritamente objetivo. NÃO invente ou presuma entidades externas (como "clientes", "chefes", "amigos") nem consequências específicas que não estejam explicitamente mencionadas no texto do usuário. Toda justificativa deve derivar apenas do que foi dito.
+5. Tom: assertivo e decisivo. Use verbos no imperativo. Proibido: "talvez", "pode ser", "recomendo", "considere", "seria ideal". Nunca hesite.
+6. Seja estritamente objetivo. NÃO invente consequências específicas que não estejam no texto do usuário. Toda justificativa deve derivar apenas do que foi dito.
 
 FORMATO DE SAÍDA (JSON ESTRITO):
 {
@@ -174,7 +195,7 @@ FORMATO DE SAÍDA (JSON ESTRITO):
 }
 
 ENTRADA DO USUÁRIO:
-${input}`;
+${input}${contextMemory}`;
 
   for (const model of LOCAL_MODELS) {
     try {

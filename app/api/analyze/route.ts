@@ -18,7 +18,7 @@ function getClientIp(req: NextRequest): string {
 
 export async function POST(req: NextRequest) {
   try {
-    const { input } = await req.json();
+    const { input, history } = await req.json();
     const isProd = process.env.NODE_ENV === 'production';
 
     if (!input || typeof input !== 'string' || input.trim() === '') {
@@ -64,7 +64,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Processar análise
-    const result = await aiOrchestrator(input);
+    const result = await aiOrchestrator(input, history);
 
     // Atualizar contadores
     usage.count += 1;

@@ -27,7 +27,7 @@ export default function Home() {
   const [history, setHistory] = useState<Decision[]>(() => typeof window !== 'undefined' ? getDecisions() : []);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
-  const [shared, setShared] = useState(false);
+
   const [mounted, setMounted] = useState(false);
   const [exampleIndex, setExampleIndex] = useState(-1);
   const [isViewingHistory, setIsViewingHistory] = useState(false);
@@ -76,23 +76,6 @@ export default function Home() {
         textareaRef.current.setSelectionRange(len, len);
       }
     }, 0);
-  };
-
-  const handleShare = async () => {
-    if (!result) return;
-    const text = `Próxima ação: ${result.primary_action || result.recommended_action || ''}`;
-    try {
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({ text });
-      } else {
-        await navigator.clipboard.writeText(text);
-        setShared(true);
-        setTimeout(() => setShared(false), 2000);
-      }
-      logEvent('share_action', userId);
-    } catch {
-      // silent fail
-    }
   };
 
   const handleCopy = async () => {
@@ -451,29 +434,17 @@ export default function Home() {
                     <div className="recommended-badge-container">
                       <span className="recommended-badge">O que fazer agora</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                      <button
-                        id="copy-action-btn"
-                        className={`copy-btn ${copied ? 'copy-btn--copied' : ''}`}
-                        onClick={handleCopy}
-                        aria-label="Copiar ação recomendada"
-                      >
-                        {copied
-                          ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span className="btn-label"> Copiado!</span></>
-                          : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span className="btn-label"> Copiar</span></>
-                        }
-                      </button>
-                      <button
-                        className={`copy-btn ${shared ? 'copy-btn--copied' : ''}`}
-                        onClick={handleShare}
-                        aria-label="Compartilhar decisão"
-                      >
-                        {shared
-                          ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span className="btn-label"> Copiado!</span></>
-                          : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg><span className="btn-label"> Compartilhar</span></>
-                        }
-                      </button>
-                    </div>
+                    <button
+                      id="copy-action-btn"
+                      className={`copy-btn ${copied ? 'copy-btn--copied' : ''}`}
+                      onClick={handleCopy}
+                      aria-label="Copiar ação recomendada"
+                    >
+                      {copied
+                        ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span className="btn-label"> Copiado!</span></>
+                        : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span className="btn-label"> Copiar</span></>
+                      }
+                    </button>
                   </div>
                   <div className="recommended-content">
                     <p className="recommended-action-line">

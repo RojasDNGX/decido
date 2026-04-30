@@ -78,3 +78,48 @@ test('user can adjust priority without breaking UI', async ({ page }) => {
 
   await expect(page.locator('text=Ajustado por você')).toBeVisible();
 });
+
+test('share button copies link after decision', async ({ page }) => {
+  await page.addInitScript(() => {
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText: () => Promise.resolve() },
+      configurable: true,
+    });
+  });
+
+  await page.goto('/decidir');
+  await waitForMount(page);
+
+  await page.fill('textarea', 'Pagar conta ou sair para jantar');
+  await page.click('button:has-text("Analisar")');
+  await expect(page.locator('.result-section')).toBeVisible({ timeout: 10000 });
+
+  await page.click('button[aria-label="Copiar link da decisão"]');
+  await expect(page.locator('button[aria-label="Copiar link da decisão"]')).toContainText('Link copiado!', { timeout: 5000 });
+});
+
+test('shared decision page renders read-only view', async ({ page }) => {
+  const response = await page.request.post('/api/share', {
+    data: MOCK_RESULT,
+    headers: { 'Content-Type': 'application/json' },
+  });
+  expect(response.status()).toBe(200);
+  const { share_url } = await response.json();
+  expect(share_url).toMatch(/^\/d\/[A-Za-z0-9]{10}$/);
+
+  await page.goto(share_url);
+  await expect(page.locator('.recommended-card')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('text=Pagar a fatura do cartão')).toBeVisible();
+  await expect(page.locator('text=Visualização compartilhada')).toBeVisible();
+
+  await expect(page.locator('textarea')).toHaveCount(0);
+  await expect(page.locator('button:has-text("Analisar")')).toHaveCount(0);
+});
+
+test('invalid shared link renders graceful fallback', async ({ page }) => {
+  await page.goto('/d/invalidlink1');
+  await expect(page.locator('text=Decisão indisponível')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('text=Este link não contém uma decisão válida.')).toBeVisible();
+  await expect(page.locator('text=Tomar nova decisão')).toBeVisible();
+  await expect(page.locator('.recommended-card')).toHaveCount(0);
+});

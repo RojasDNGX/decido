@@ -27,6 +27,9 @@ export default function Home() {
   const [history, setHistory] = useState<Decision[]>(() => typeof window !== 'undefined' ? getDecisions() : []);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
 
   const [mounted, setMounted] = useState(false);
   const [exampleIndex, setExampleIndex] = useState(-1);
@@ -41,6 +44,8 @@ export default function Home() {
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const hamburgerRef = useRef<HTMLDivElement>(null);
+  const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [activeContext, setActiveContext] = useState<string>(() =>
     typeof window !== 'undefined' ? (localStorage.getItem('decido_context') || 'Você') : 'Você'
   );
@@ -81,6 +86,32 @@ export default function Home() {
         textareaRef.current.setSelectionRange(len, len);
       }
     }, 0);
+  };
+
+  const handleShareCopy = async () => {
+    if (!result || shareLoading) return;
+    setShareLoading(true);
+    try {
+      let url = shareUrl;
+      if (!url) {
+        const res = await fetch('/api/share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result),
+        });
+        const data = await res.json();
+        url = data.share_url;
+        setShareUrl(url);
+      }
+      await navigator.clipboard.writeText(window.location.origin + url);
+      setShareCopied(true);
+      logEvent('share_link_copied', userId);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // silent fail
+    } finally {
+      setShareLoading(false);
+    }
   };
 
   const handleCopy = async () => {
@@ -125,6 +156,8 @@ export default function Home() {
     setLocalPriorities(null);
     setLocalTasks(null);
     setUserAdjustedIds(new Set());
+    setShareUrl(null);
+    setShareCopied(false);
   }, [result]);
 
   useEffect(() => {
@@ -137,6 +170,17 @@ export default function Home() {
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, [contextMenuOpen]);
+
+  useEffect(() => {
+    if (!hamburgerOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (hamburgerRef.current && !hamburgerRef.current.contains(e.target as Node)) {
+        setHamburgerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [hamburgerOpen]);
 
   const handleAnalyze = () => {
     analyze(input, isRefinementMode, () => {
@@ -271,20 +315,113 @@ export default function Home() {
           </Link>
           
           {mounted && (
-            <div className="quick-actions" style={{ display: 'flex', gap: '0.75rem' }}>
-              <div className="context-switcher" ref={contextMenuRef}
-                onMouseEnter={() => setContextMenuOpen(true)}
-                onMouseLeave={() => setContextMenuOpen(false)}
-              >
+            <div className="quick-actions">
+
+              {/* Desktop: icon buttons */}
+              <div className="quick-actions-desktop">
+                <div className="context-switcher" ref={contextMenuRef}
+                  onMouseEnter={() => setContextMenuOpen(true)}
+                  onMouseLeave={() => setContextMenuOpen(false)}
+                >
+                  <button
+                    className="quick-action-btn"
+                    title="Contexto"
+                    onClick={() => setContextMenuOpen(o => !o)}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </button>
+                  {contextMenuOpen && (
+                    <div className="context-switcher-menu">
+                      {([
+                        { label: 'Você > pessoal', main: 'Você', sub: 'pessoal' },
+                        { label: 'Time > workspace', main: 'Time', sub: 'workspace' },
+                      ]).map(({ label, main, sub }) => (
+                        <button
+                          key={label}
+                          className={`context-switcher-item${activeContext === label ? ' context-switcher-item--active' : ''}`}
+                          onClick={() => {
+                            setActiveContext(label);
+                            localStorage.setItem('decido_context', label);
+                            setContextMenuOpen(false);
+                          }}
+                        >
+                          {main} <span style={{ opacity: 0.45 }}>{`- ${sub}`}</span>
+                        </button>
+                      ))}
+                      <div className="context-switcher-divider" />
+                      <button
+                        className="context-switcher-item context-switcher-item--muted"
+                        onClick={() => setContextMenuOpen(false)}
+                      >
+                        + Criar workspace
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <Link href="/" className="quick-action-btn" title="Ir para Home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </Link>
+                {!result && !isViewingHistory && (
+                  <button
+                    className="quick-action-btn"
+                    title="Como funciona"
+                    onClick={() => setTourStep(1)}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  </button>
+                )}
+                {history.length > 0 && (
+                  <>
+                    <button
+                      className="quick-action-btn"
+                      title={result ? 'Voltar ao Início' : 'Histórico'}
+                      onClick={() => {
+                        if (result) {
+                          setResult(null);
+                          setInput('');
+                          setIsViewingHistory(false);
+                          setExampleIndex(-1);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                        } else {
+                          document.querySelector('.history-section')?.scrollIntoView({ behavior: 'smooth' });
+                        }
+                      }}
+                    >
+                      {result ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                      )}
+                    </button>
+                    <button
+                      className="quick-action-btn"
+                      title="Nova Análise"
+                      onClick={() => {
+                        setResult(null);
+                        setInput('');
+                        setIsViewingHistory(false);
+                        setExampleIndex(-1);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        if (textareaRef.current) textareaRef.current.style.height = 'auto';
+                      }}
+                    >
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* Mobile: hamburger */}
+              <div className="quick-actions-mobile" ref={hamburgerRef}>
                 <button
                   className="quick-action-btn"
-                  title="Contexto"
-                  onClick={() => setContextMenuOpen(o => !o)}
+                  aria-label="Menu"
+                  onClick={() => setHamburgerOpen(o => !o)}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
                 </button>
-                {contextMenuOpen && (
-                  <div className="context-switcher-menu">
+                {hamburgerOpen && (
+                  <div className="context-switcher-menu hamburger-menu">
                     {([
                       { label: 'Você > pessoal', main: 'Você', sub: 'pessoal' },
                       { label: 'Time > workspace', main: 'Time', sub: 'workspace' },
@@ -295,76 +432,68 @@ export default function Home() {
                         onClick={() => {
                           setActiveContext(label);
                           localStorage.setItem('decido_context', label);
-                          setContextMenuOpen(false);
+                          setHamburgerOpen(false);
                         }}
                       >
                         {main} <span style={{ opacity: 0.45 }}>{`- ${sub}`}</span>
                       </button>
                     ))}
                     <div className="context-switcher-divider" />
-                    <button
-                      className="context-switcher-item context-switcher-item--muted"
-                      onClick={() => setContextMenuOpen(false)}
+                    <Link
+                      href="/"
+                      className="context-switcher-item"
+                      style={{ display: 'block', textDecoration: 'none' }}
+                      onClick={() => setHamburgerOpen(false)}
                     >
-                      + Criar workspace
-                    </button>
+                      Ir para Home
+                    </Link>
+                    {!result && !isViewingHistory && (
+                      <button
+                        className="context-switcher-item"
+                        onClick={() => { setTourStep(1); setHamburgerOpen(false); }}
+                      >
+                        Como funciona
+                      </button>
+                    )}
+                    {history.length > 0 && (
+                      <>
+                        <button
+                          className="context-switcher-item"
+                          onClick={() => {
+                            if (result) {
+                              setResult(null);
+                              setInput('');
+                              setIsViewingHistory(false);
+                              setExampleIndex(-1);
+                              window.scrollTo({ top: 0, behavior: 'smooth' });
+                            } else {
+                              document.querySelector('.history-section')?.scrollIntoView({ behavior: 'smooth' });
+                            }
+                            setHamburgerOpen(false);
+                          }}
+                        >
+                          {result ? 'Voltar ao Início' : 'Histórico'}
+                        </button>
+                        <button
+                          className="context-switcher-item"
+                          onClick={() => {
+                            setResult(null);
+                            setInput('');
+                            setIsViewingHistory(false);
+                            setExampleIndex(-1);
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                            if (textareaRef.current) textareaRef.current.style.height = 'auto';
+                            setHamburgerOpen(false);
+                          }}
+                        >
+                          Nova análise
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
               </div>
-              <Link href="/" className="quick-action-btn" title="Ir para Home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              </Link>
-              
-              {!result && !isViewingHistory && (
-                <button 
-                  className="quick-action-btn"
-                  title="Como funciona"
-                  onClick={() => setTourStep(1)}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                </button>
-              )}
-              {history.length > 0 && (
-                <>
-                  <button 
-                    className="quick-action-btn"
-                title={result ? "Voltar ao Início" : "Histórico"}
-                onClick={() => {
-                  if (result) {
-                    setResult(null);
-                    setInput('');
-                    setIsViewingHistory(false);
-                    setExampleIndex(-1);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  } else {
-                    document.querySelector('.history-section')?.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
-              >
-                {result ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
-                )}
-              </button>
-              <button 
-                className="quick-action-btn"
-                title="Nova Análise"
-                onClick={() => {
-                  setResult(null);
-                  setInput('');
-                  setIsViewingHistory(false);
-                  setExampleIndex(-1);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = 'auto';
-                  }
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              </button>
-            </>
-          )}
+
             </div>
           )}
         </header>
@@ -489,6 +618,18 @@ export default function Home() {
                     <div className="recommended-badge-container">
                       <span className="recommended-badge">O que fazer agora</span>
                     </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button
+                      className={`copy-btn share-btn ${shareCopied ? 'copy-btn--copied' : ''}`}
+                      onClick={handleShareCopy}
+                      disabled={shareLoading}
+                      aria-label="Copiar link da decisão"
+                    >
+                      {shareCopied
+                        ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span className="btn-label"> Link copiado!</span></>
+                        : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span className="btn-label"> Copiar link</span></>
+                      }
+                    </button>
                     <button
                       id="copy-action-btn"
                       className={`copy-btn ${copied ? 'copy-btn--copied' : ''}`}
@@ -500,6 +641,7 @@ export default function Home() {
                         : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span className="btn-label"> Copiar</span></>
                       }
                     </button>
+                    </div>
                   </div>
                   <div className="recommended-content">
                     <p className="recommended-action-line">

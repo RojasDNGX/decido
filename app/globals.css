@@ -1553,3 +1553,37 @@ button:disabled {
   margin: 0.3rem 0.4rem;
 }
 
+
+.share-btn {
+  opacity: 0.7;
+}
+
+.share-btn:hover {
+  opacity: 1;
+}
+
+.quick-actions-desktop {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.quick-actions-mobile {
+  display: none;
+  position: relative;
+}
+
+.hamburger-menu {
+  top: calc(100% + 0.4rem);
+  right: 0;
+  left: auto;
+}
+
+@media (max-width: 540px) {
+  .quick-actions-desktop {
+    display: none;
+  }
+
+  .quick-actions-mobile {
+    display: block;
+  }
+}

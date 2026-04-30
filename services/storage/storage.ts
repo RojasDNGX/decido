@@ -7,7 +7,7 @@ export const STORAGE_KEYS = {
   ONBOARDING_DONE: 'decido_onboarding_done',
 };
 
-export const MAX_FREE_ANALYSES = 5;
+export const MAX_FREE_ANALYSES = 3;
 
 export const getUsageCount = (): number => {
   if (typeof window === 'undefined') return 0;

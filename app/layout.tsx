@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Outfit } from 'next/font/google';
 import BackToTop from '@/components/shared/BackToTop';
+import Providers from './providers';
 import './globals.css';
 
 const outfit = Outfit({
@@ -21,7 +22,9 @@ export default function RootLayout({
   return (
     <html lang="pt-BR">
       <body className={outfit.className} suppressHydrationWarning>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
         <BackToTop />
         {/* Analytics desativado para ambiente LAN local */}
       </body>

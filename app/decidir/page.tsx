@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, setOnboardingDone } from '@/services/storage/storage';
 import { Decision, Priority, Task } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
 import '@/services/analytics/insights';
 import { useDecision } from '@/features/decision/useDecision';
+import ProfileMenu from '@/components/ProfileMenu';
 
 const EXAMPLES = [
   'Preciso pagar a fatura do cartão que vence hoje, estudar para a prova de amanhã e responder os e-mails do trabalho.',
@@ -20,6 +22,8 @@ const EXAMPLES = [
 ];
 
 export default function Home() {
+  const { data: session } = useSession();
+  const isPro = session?.user?.plan === 'pro';
   const [userId] = useState<string>(() => typeof window !== 'undefined' ? getUserId() : '');
   const [input, setInput] = useState('');
   const { analyze, loading, result, setResult, error, setError } = useDecision(userId);
@@ -42,15 +46,13 @@ export default function Home() {
   const [lastMovedTask, setLastMovedTask] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const hamburgerRef = useRef<HTMLDivElement>(null);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [activeContext, setActiveContext] = useState<string>(() =>
     typeof window !== 'undefined' ? (localStorage.getItem('decido_context') || 'Você') : 'Você'
   );
   const isDecisionFocus = !!result && !isViewingHistory;
-  const reachedLimit = mounted && isLimitReached();
+  const reachedLimit = mounted && !isPro && isLimitReached();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -159,17 +161,6 @@ export default function Home() {
     setShareUrl(null);
     setShareCopied(false);
   }, [result]);
-
-  useEffect(() => {
-    if (!contextMenuOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
-        setContextMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [contextMenuOpen]);
 
   useEffect(() => {
     if (!hamburgerOpen) return;
@@ -319,45 +310,13 @@ export default function Home() {
 
               {/* Desktop: icon buttons */}
               <div className="quick-actions-desktop">
-                <div className="context-switcher" ref={contextMenuRef}
-                  onMouseEnter={() => setContextMenuOpen(true)}
-                  onMouseLeave={() => setContextMenuOpen(false)}
-                >
-                  <button
-                    className="quick-action-btn"
-                    title="Contexto"
-                    onClick={() => setContextMenuOpen(o => !o)}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  </button>
-                  {contextMenuOpen && (
-                    <div className="context-switcher-menu">
-                      {([
-                        { label: 'Você > pessoal', main: 'Você', sub: 'pessoal' },
-                        { label: 'Time > workspace', main: 'Time', sub: 'workspace' },
-                      ]).map(({ label, main, sub }) => (
-                        <button
-                          key={label}
-                          className={`context-switcher-item${activeContext === label ? ' context-switcher-item--active' : ''}`}
-                          onClick={() => {
-                            setActiveContext(label);
-                            localStorage.setItem('decido_context', label);
-                            setContextMenuOpen(false);
-                          }}
-                        >
-                          {main} <span style={{ opacity: 0.45 }}>{`- ${sub}`}</span>
-                        </button>
-                      ))}
-                      <div className="context-switcher-divider" />
-                      <button
-                        className="context-switcher-item context-switcher-item--muted"
-                        onClick={() => setContextMenuOpen(false)}
-                      >
-                        + Criar workspace
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <ProfileMenu
+                  activeContext={activeContext}
+                  onContextChange={(label) => {
+                    setActiveContext(label);
+                    localStorage.setItem('decido_context', label);
+                  }}
+                />
                 <Link href="/" className="quick-action-btn" title="Ir para Home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 </Link>
@@ -431,6 +390,32 @@ export default function Home() {
                         Nova análise
                       </button>
                     )}
+                    <div className="context-switcher-divider" />
+                    {session ? (
+                      <>
+                        <Link
+                          href="/minha-conta"
+                          className="context-switcher-item"
+                          style={{ display: 'block', textDecoration: 'none' }}
+                          onClick={() => setHamburgerOpen(false)}
+                        >
+                          Minha conta
+                        </Link>
+                        <button
+                          className="context-switcher-item context-switcher-item--muted"
+                          onClick={() => { signOut(); setHamburgerOpen(false); }}
+                        >
+                          Sair
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="context-switcher-item"
+                        onClick={() => { signIn('google'); setHamburgerOpen(false); }}
+                      >
+                        Entrar
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -497,10 +482,20 @@ export default function Home() {
               </div>
             </section>
 
-            {reachedLimit && (
+            {reachedLimit && !session && (
               <div className="error-message">
-                Você atingiu o limite diário de análises. Tente novamente amanhã ou{' '}
-                <Link href="/limite" style={{ color: 'inherit', textDecoration: 'underline' }}>obtenha um plano</Link>.
+                Limite atingido.{' '}
+                <button
+                  onClick={() => signIn('google')}
+                  style={{ color: 'inherit', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
+                >
+                  Continue com acesso completo
+                </button>
+              </div>
+            )}
+            {reachedLimit && session && (
+              <div className="error-message">
+                Você atingiu o limite diário. Tente novamente amanhã.
               </div>
             )}
             {error && !reachedLimit && <div className="error-message">{error}</div>}

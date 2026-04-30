@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { aiOrchestrator } from '@/services/ai/orchestrator';
 import { checkIpLimit, incrementIpCount } from '@/services/security/rate-limiter';
+import { auth } from '@/auth';
 
-const USAGE_LIMIT = 5;
+const USAGE_LIMIT = 3;
 const COOKIE_NAME = 'decido_usage';
 
 function getTodayDate(): string {
@@ -18,6 +19,9 @@ function getClientIp(req: NextRequest): string {
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await auth();
+    const isPro = session?.user?.plan === 'pro';
+
     const { input, history } = await req.json();
     const isProd = process.env.NODE_ENV === 'production';
 
@@ -44,7 +48,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    if (usage.count >= USAGE_LIMIT) {
+    if (!isPro && usage.count >= USAGE_LIMIT) {
       return NextResponse.json(
         { error: 'Limite diário de análises atingido. Tente novamente amanhã.' },
         { status: 429 }
@@ -53,7 +57,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Verificação por IP (Hard Limit - Apenas Produção)
     const ip = getClientIp(req);
-    if (isProd) {
+    if (!isPro && isProd) {
       const { allowed } = checkIpLimit(ip);
       if (!allowed) {
         return NextResponse.json(
@@ -66,19 +70,18 @@ export async function POST(req: NextRequest) {
     // Processar análise
     const result = await aiOrchestrator(input, history);
 
-    // Atualizar contadores
-    usage.count += 1;
-    if (isProd) {
-      incrementIpCount(ip);
-    }
-
+    // Atualizar contadores (apenas para não-PRO)
     const response = NextResponse.json(result);
-    response.cookies.set(COOKIE_NAME, JSON.stringify(usage), {
-      httpOnly: true,
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24,
-    });
+    if (!isPro) {
+      usage.count += 1;
+      if (isProd) incrementIpCount(ip);
+      response.cookies.set(COOKIE_NAME, JSON.stringify(usage), {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 60 * 60 * 24,
+      });
+    }
 
     return response;
   } catch (error: unknown) {

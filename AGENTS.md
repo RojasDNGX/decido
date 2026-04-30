@@ -254,7 +254,7 @@ while preserving completed work in a structured archive.
 
 # 📁 DOCS/ BRANCH SYNCHRONIZATION RULE
 
-The `docs/` folder and all its contents (roadmaps, archive, user-tests, etc.)
+The `docs/` folder and all its contents (roadmaps, archive, etc.)
 exist ONLY in `dev` and `feature/*` branches.
 
 ---
@@ -279,8 +279,8 @@ the most current state in `dev` — and vice versa.
 
 This includes:
 * `docs/roadmaps/` — active roadmap files
-* `docs/archive/roadmaps/` — completed roadmaps
-* `docs/user-tests/` — user research and testing artifacts
+* `docs/archive/roadmaps/core/` — completed core roadmaps
+* `docs/archive/roadmaps/enterprise/` — completed enterprise roadmaps
 * Any future subfolder created under `docs/`
 
 ---

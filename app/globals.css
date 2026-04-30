@@ -1489,3 +1489,67 @@ button:disabled {
   transition: all 0.25s ease;
 }
 
+/* Context Switcher */
+.context-switcher {
+  position: relative;
+  min-width: 160px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.context-switcher-menu::before {
+  content: '';
+  position: absolute;
+  top: -0.4rem;
+  left: 0;
+  right: 0;
+  height: 0.4rem;
+}
+
+.context-switcher-menu {
+  position: absolute;
+  top: calc(100% + 0.4rem);
+  right: 0;
+  background: #1a1a1a;
+  border: 1px solid var(--glass-border);
+  border-radius: 0.6rem;
+  padding: 0.4rem;
+  min-width: 160px;
+  z-index: 100;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.context-switcher-item {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0.4rem;
+  padding: 0.5rem 0.7rem;
+  color: var(--foreground);
+  font-size: 0.82rem;
+  font-family: inherit;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s;
+}
+
+.context-switcher-item:hover {
+  background: var(--glass);
+}
+
+.context-switcher-item--active {
+  color: var(--primary);
+}
+
+.context-switcher-item--muted {
+  opacity: 0.45;
+  font-size: 0.78rem;
+}
+
+.context-switcher-divider {
+  height: 1px;
+  background: var(--glass-border);
+  margin: 0.3rem 0.4rem;
+}
+

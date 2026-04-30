@@ -39,6 +39,11 @@ export default function Home() {
   const [lastMovedTask, setLastMovedTask] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [activeContext, setActiveContext] = useState<string>(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('decido_context') || 'Você') : 'Você'
+  );
   const isDecisionFocus = !!result && !isViewingHistory;
   const reachedLimit = mounted && isLimitReached();
 
@@ -121,6 +126,17 @@ export default function Home() {
     setLocalTasks(null);
     setUserAdjustedIds(new Set());
   }, [result]);
+
+  useEffect(() => {
+    if (!contextMenuOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
+        setContextMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [contextMenuOpen]);
 
   const handleAnalyze = () => {
     analyze(input, isRefinementMode, () => {
@@ -256,6 +272,45 @@ export default function Home() {
           
           {mounted && (
             <div className="quick-actions" style={{ display: 'flex', gap: '0.75rem' }}>
+              <div className="context-switcher" ref={contextMenuRef}
+                onMouseEnter={() => setContextMenuOpen(true)}
+                onMouseLeave={() => setContextMenuOpen(false)}
+              >
+                <button
+                  className="quick-action-btn"
+                  title="Contexto"
+                  onClick={() => setContextMenuOpen(o => !o)}
+                >
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                </button>
+                {contextMenuOpen && (
+                  <div className="context-switcher-menu">
+                    {([
+                      { label: 'Você > pessoal', main: 'Você', sub: 'pessoal' },
+                      { label: 'Time > workspace', main: 'Time', sub: 'workspace' },
+                    ]).map(({ label, main, sub }) => (
+                      <button
+                        key={label}
+                        className={`context-switcher-item${activeContext === label ? ' context-switcher-item--active' : ''}`}
+                        onClick={() => {
+                          setActiveContext(label);
+                          localStorage.setItem('decido_context', label);
+                          setContextMenuOpen(false);
+                        }}
+                      >
+                        {main} <span style={{ opacity: 0.45 }}>{`- ${sub}`}</span>
+                      </button>
+                    ))}
+                    <div className="context-switcher-divider" />
+                    <button
+                      className="context-switcher-item context-switcher-item--muted"
+                      onClick={() => setContextMenuOpen(false)}
+                    >
+                      + Criar workspace
+                    </button>
+                  </div>
+                )}
+              </div>
               <Link href="/" className="quick-action-btn" title="Ir para Home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
               </Link>
@@ -310,9 +365,9 @@ export default function Home() {
               </button>
             </>
           )}
-        </div>
-      )}
-    </header>
+            </div>
+          )}
+        </header>
     <div className={`container ${isDecisionFocus ? 'decision-focus-dim' : ''}`} key={mounted ? 'client' : 'server'}>
 
         <header className="header">

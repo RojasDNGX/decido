@@ -1,9 +1,7 @@
 # ROADMAP CURRENT (DECIDO)
 
-→ Active week: none
-→ week-13 archived at `docs/archive/roadmaps/week-13.md`
+Status: [ ]
 
----
 
 ## ⚠️ EXECUTION MODEL
 
@@ -30,52 +28,14 @@ The agent MAY:
 
 ---
 
-## 🎯 WEEK-13 — PRO ACTIVATION (CONTROLLED TOGGLE + PERCEPTION LAYER)
-
-### STEP 1 — USER PLAN UPDATE FUNCTION
-Status: [x]
-
-Add `setUserPlan(email, plan)` to `/lib/users-db.ts`
-
----
-
-### STEP 2 — CREATE INTERNAL ACTIVATION ENDPOINT
-Status: [x]
-
-Create `/app/api/dev/set-plan/route.ts` (POST, dev only, no auth)
-
----
-
-### STEP 3 — VALIDATE PLAN USAGE (CORE LOGIC)
-Status: [x]
-
-Confirm `if (user.plan === 'pro')` bypass exists in decision flow
-
----
-
-### STEP 4 — INTRODUCE PERCEPTION LAYER (CRITICAL)
-Status: [x]
-
-Add `formatDecisionOutput(text, plan)` + `makeMoreDecisive(text)` to decision pipeline
-
----
-
-### STEP 5 — TEST FLOW
-Status: [x]
-
-Validate free vs PRO behavior — limit bypass + tone perception
-
----
-
 ## ✅ VALIDATION CHECKPOINT
 
-Sprint is only complete if:
+This sprint is only complete if:
 
-* [x] `setUserPlan` function exists and works
-* [x] `/api/dev/set-plan` endpoint responds correctly
-* [x] PRO users bypass usage limit
-* [x] Decision output tone differs between free and pro
-* [x] No UI changes introduced
+* [ ] Insight Layer is implemented
+* [ ] `decidoInsights()` returns valid data
+* [ ] Metrics reflect real usage behavior
+* [ ] No inconsistencies detected in event flow
 
 If any item fails:
 
@@ -87,7 +47,7 @@ If any item fails:
 
 If resuming after pause:
 
-1. Read `docs/roadmaps/week-13.md`
-2. Identify first incomplete step: `Status: [ ]`
-3. Execute ONLY that step
-4. Stop and request human validation
+1. Run `decidoInsights()`
+2. Observe metrics
+3. Identify anomalies or patterns
+4. Decide next action BEFORE implementing anything

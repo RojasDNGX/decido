@@ -7,7 +7,7 @@ export const STORAGE_KEYS = {
   ONBOARDING_DONE: 'decido_onboarding_done',
 };
 
-export const MAX_FREE_ANALYSES = 5;
+export const MAX_FREE_ANALYSES = 3;
 
 export const getUsageCount = (): number => {
   if (typeof window === 'undefined') return 0;
@@ -119,6 +119,15 @@ export const getDecisions = (): Decision[] => {
     return [];
   }
 };
+
+export const getCompactHistory = (): { input_summary: string; primary_action: string }[] =>
+  getDecisions()
+    .slice(0, 5)
+    .map(d => ({
+      input_summary: d.input.replace(/\s+/g, ' ').trim().slice(0, 80),
+      primary_action: (d.output.primary_action || d.output.recommended_action || '').trim(),
+    }))
+    .filter(h => h.primary_action);
 
 export const clearData = (): void => {
   if (typeof window === 'undefined') return;

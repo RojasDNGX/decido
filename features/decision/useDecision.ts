@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnalysisResult } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
-import { isLimitReached, incrementUsageCount, saveDecision } from '@/services/storage/storage';
+import { isLimitReached, incrementUsageCount, saveDecision, getCompactHistory } from '@/services/storage/storage';
 
 export function useDecision(userId: string) {
   const router = useRouter();
@@ -20,11 +20,6 @@ export function useDecision(userId: string) {
       return;
     }
 
-    if (isLimitReached()) {
-      router.push('/limite');
-      return;
-    }
-
     if (!isRefinementMode) {
       setResult(null);
     }
@@ -39,13 +34,14 @@ export function useDecision(userId: string) {
     });
 
     try {
+      const history = getCompactHistory();
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input, ...(history.length ? { history } : {}) }),
       });
 
-      if (response.status === 429) {
+      if (response.status === 429 || response.status === 403) {
         logEvent('limit_reached', userId, { attempt_id: attemptId });
         router.push('/limite');
         return;
@@ -72,10 +68,6 @@ export function useDecision(userId: string) {
       });
 
       onSuccess?.();
-
-      if (isLimitReached()) {
-        router.push('/limite');
-      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ocorreu um erro inesperado.';
       logEvent('analyze_error', userId, {

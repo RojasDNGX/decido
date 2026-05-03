@@ -2,11 +2,13 @@
 
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
+import { useSession, signIn, signOut } from 'next-auth/react';
 import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, setOnboardingDone } from '@/services/storage/storage';
 import { Decision, Priority, Task } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
 import '@/services/analytics/insights';
 import { useDecision } from '@/features/decision/useDecision';
+import ProfileMenu from '@/components/ProfileMenu';
 
 const EXAMPLES = [
   'Preciso pagar a fatura do cartão que vence hoje, estudar para a prova de amanhã e responder os e-mails do trabalho.',
@@ -20,6 +22,8 @@ const EXAMPLES = [
 ];
 
 export default function Home() {
+  const { data: session, update } = useSession();
+  const isPro = session?.user?.plan === 'pro';
   const [userId] = useState<string>(() => typeof window !== 'undefined' ? getUserId() : '');
   const [input, setInput] = useState('');
   const { analyze, loading, result, setResult, error, setError } = useDecision(userId);
@@ -27,6 +31,10 @@ export default function Home() {
   const [history, setHistory] = useState<Decision[]>(() => typeof window !== 'undefined' ? getDecisions() : []);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const [shareCopied, setShareCopied] = useState(false);
+  const [shareLoading, setShareLoading] = useState(false);
+
   const [mounted, setMounted] = useState(false);
   const [exampleIndex, setExampleIndex] = useState(-1);
   const [isViewingHistory, setIsViewingHistory] = useState(false);
@@ -38,8 +46,13 @@ export default function Home() {
   const [lastMovedTask, setLastMovedTask] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
+  const hamburgerRef = useRef<HTMLDivElement>(null);
+  const [hamburgerOpen, setHamburgerOpen] = useState(false);
+  const [activeContext, setActiveContext] = useState<string>(() =>
+    typeof window !== 'undefined' ? (localStorage.getItem('decido_context') || 'Você') : 'Você'
+  );
   const isDecisionFocus = !!result && !isViewingHistory;
-  const reachedLimit = mounted && isLimitReached();
+  const reachedLimit = mounted && !isPro && isLimitReached();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -77,6 +90,32 @@ export default function Home() {
     }, 0);
   };
 
+  const handleShareCopy = async () => {
+    if (!result || shareLoading) return;
+    setShareLoading(true);
+    try {
+      let url = shareUrl;
+      if (!url) {
+        const res = await fetch('/api/share', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(result),
+        });
+        const data = await res.json();
+        url = data.share_url;
+        setShareUrl(url);
+      }
+      await navigator.clipboard.writeText(window.location.origin + url);
+      setShareCopied(true);
+      logEvent('share_link_copied', userId);
+      setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      // silent fail
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
   const handleCopy = async () => {
     if (!result) return;
     try {
@@ -108,8 +147,8 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    update();
     logEvent('page_view', userId, { usage: usageCount });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -119,7 +158,20 @@ export default function Home() {
     setLocalPriorities(null);
     setLocalTasks(null);
     setUserAdjustedIds(new Set());
+    setShareUrl(null);
+    setShareCopied(false);
   }, [result]);
+
+  useEffect(() => {
+    if (!hamburgerOpen) return;
+    const handleClick = (e: MouseEvent) => {
+      if (hamburgerRef.current && !hamburgerRef.current.contains(e.target as Node)) {
+        setHamburgerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [hamburgerOpen]);
 
   const handleAnalyze = () => {
     analyze(input, isRefinementMode, () => {
@@ -254,64 +306,123 @@ export default function Home() {
           </Link>
           
           {mounted && (
-            <div className="quick-actions" style={{ display: 'flex', gap: '0.75rem' }}>
-              <Link href="/" className="quick-action-btn" title="Ir para Home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-              </Link>
-              
-              {!result && !isViewingHistory && (
-                <button 
-                  className="quick-action-btn"
-                  title="Como funciona"
-                  onClick={() => setTourStep(1)}
-                >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                </button>
-              )}
-              {history.length > 0 && (
-                <>
-                  <button 
+            <div className="quick-actions">
+
+              {/* Desktop: icon buttons */}
+              <div className="quick-actions-desktop">
+                <ProfileMenu
+                  activeContext={activeContext}
+                  onContextChange={(label) => {
+                    setActiveContext(label);
+                    localStorage.setItem('decido_context', label);
+                  }}
+                />
+                <Link href="/" className="quick-action-btn" title="Ir para Home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </Link>
+                {history.length > 0 && (
+                  <button
                     className="quick-action-btn"
-                title={result ? "Voltar ao Início" : "Histórico"}
-                onClick={() => {
-                  if (result) {
-                    setResult(null);
-                    setInput('');
-                    setIsViewingHistory(false);
-                    setExampleIndex(-1);
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  } else {
-                    document.querySelector('.history-section')?.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }}
-              >
-                {result ? (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
-                ) : (
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+                    title="Nova Análise"
+                    onClick={() => {
+                      setResult(null);
+                      setInput('');
+                      setIsViewingHistory(false);
+                      setExampleIndex(-1);
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                      if (textareaRef.current) textareaRef.current.style.height = 'auto';
+                    }}
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                  </button>
                 )}
-              </button>
-              <button 
-                className="quick-action-btn"
-                title="Nova Análise"
-                onClick={() => {
-                  setResult(null);
-                  setInput('');
-                  setIsViewingHistory(false);
-                  setExampleIndex(-1);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                  if (textareaRef.current) {
-                    textareaRef.current.style.height = 'auto';
-                  }
-                }}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-              </button>
-            </>
+              </div>
+
+              {/* Mobile: hamburger */}
+              <div className="quick-actions-mobile" ref={hamburgerRef}>
+                <button
+                  className="quick-action-btn"
+                  aria-label="Menu"
+                  onClick={() => setHamburgerOpen(o => !o)}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+                </button>
+                {hamburgerOpen && (
+                  <div className="context-switcher-menu hamburger-menu">
+                    {([
+                      { label: 'Você > pessoal', main: 'Você', sub: 'pessoal' },
+                      { label: 'Time > workspace', main: 'Time', sub: 'workspace' },
+                    ]).map(({ label, main, sub }) => (
+                      <button
+                        key={label}
+                        className={`context-switcher-item${activeContext === label ? ' context-switcher-item--active' : ''}`}
+                        onClick={() => {
+                          setActiveContext(label);
+                          localStorage.setItem('decido_context', label);
+                          setHamburgerOpen(false);
+                        }}
+                      >
+                        {main} <span style={{ opacity: 0.45 }}>{`- ${sub}`}</span>
+                      </button>
+                    ))}
+                    <div className="context-switcher-divider" />
+                    <Link
+                      href="/"
+                      className="context-switcher-item"
+                      style={{ display: 'block', textDecoration: 'none' }}
+                      onClick={() => setHamburgerOpen(false)}
+                    >
+                      Ir para Home
+                    </Link>
+                    {history.length > 0 && (
+                      <button
+                        className="context-switcher-item"
+                        onClick={() => {
+                          setResult(null);
+                          setInput('');
+                          setIsViewingHistory(false);
+                          setExampleIndex(-1);
+                          window.scrollTo({ top: 0, behavior: 'smooth' });
+                          if (textareaRef.current) textareaRef.current.style.height = 'auto';
+                          setHamburgerOpen(false);
+                        }}
+                      >
+                        Nova análise
+                      </button>
+                    )}
+                    <div className="context-switcher-divider" />
+                    {session ? (
+                      <>
+                        <Link
+                          href="/minha-conta"
+                          className="context-switcher-item"
+                          style={{ display: 'block', textDecoration: 'none' }}
+                          onClick={() => setHamburgerOpen(false)}
+                        >
+                          Minha conta
+                        </Link>
+                        <button
+                          className="context-switcher-item context-switcher-item--muted"
+                          onClick={() => { signOut(); setHamburgerOpen(false); }}
+                        >
+                          Sair
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="context-switcher-item"
+                        onClick={() => { signIn('google'); setHamburgerOpen(false); }}
+                      >
+                        Entrar
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+            </div>
           )}
-        </div>
-      )}
-    </header>
+        </header>
     <div className={`container ${isDecisionFocus ? 'decision-focus-dim' : ''}`} key={mounted ? 'client' : 'server'}>
 
         <header className="header">
@@ -326,7 +437,7 @@ export default function Home() {
                 id="task-input"
                 rows={2}
                 className={`auto-resize-textarea ${tourStep === 1 ? 'tour-highlight' : ''}`}
-                placeholder="Descreva suas tarefas (inclua prazos ou urgência se houver)"
+                placeholder="O que está disputando sua atenção agora?"
                 value={input}
                 onChange={handleInputChange}
                 disabled={loading}
@@ -334,16 +445,14 @@ export default function Home() {
               {tourStep === 1 && renderTourPopover(1)}
               {(!input || EXAMPLES.includes(input)) && (
                 <div className="example-block">
-                  <p className="example-label">Não sabe como começar? Use um exemplo:</p>
                   <button
                     id="try-example-btn"
                     className="example-btn"
                     onClick={handleExample}
-                    disabled={loading || reachedLimit}
+                    disabled={loading}
                   >
                     {exampleIndex === -1 ? '✨ Tentar com um exemplo' : '✨ Tentar outro exemplo'}
                   </button>
-                  <p className="example-hint">Você pode editar depois para refletir sua situação real.</p>
                 </div>
               )}
 
@@ -356,9 +465,18 @@ export default function Home() {
                   id="analyze-btn"
                   className={tourStep === 2 ? 'tour-highlight' : ''}
                   onClick={handleAnalyze}
-                  disabled={loading || !input || input.trim().length === 0 || reachedLimit}
+                  disabled={loading || !input || input.trim().length === 0}
                 >
-                  {loading ? 'Analisando...' : 'Analisar'}
+                  {loading ? (
+                    <>
+                      <span>Analisando</span>
+                      <span className="loading-dots">
+                        <span>.</span>
+                        <span>.</span>
+                        <span>.</span>
+                      </span>
+                    </>
+                  ) : (result ? 'Rever decisão' : 'Analisar')}
                 </button>
                 {tourStep === 2 && renderTourPopover(2)}
               </div>
@@ -366,8 +484,13 @@ export default function Home() {
 
             {reachedLimit && (
               <div className="error-message">
-                Você atingiu o limite diário de análises. Tente novamente amanhã ou{' '}
-                <Link href="/limite" style={{ color: 'inherit', textDecoration: 'underline' }}>obtenha um plano</Link>.
+                Você atingiu o limite diário.{' '}
+                <button
+                  className="limit-link"
+                  onClick={() => session ? window.location.href = '/minha-conta' : signIn('google')}
+                >
+                  Continue com acesso completo
+                </button>
               </div>
             )}
             {error && !reachedLimit && <div className="error-message">{error}</div>}
@@ -422,11 +545,7 @@ export default function Home() {
               </div>
             )}
 
-            {loading && (
-              <div className="loading-spinner">
-                <div className="spinner"></div>
-              </div>
-            )}
+
 
             {result && (
               <section className={`result-section ${isDecisionFocus ? 'decision-focus-active' : ''}`}>
@@ -435,18 +554,33 @@ export default function Home() {
                     <div className="recommended-badge-container">
                       <span className="recommended-badge">O que fazer agora</span>
                     </div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                    <button
+                      className={`copy-btn share-btn ${shareCopied ? 'copy-btn--copied' : ''}`}
+                      onClick={handleShareCopy}
+                      disabled={shareLoading}
+                      aria-label="Copiar link da decisão"
+                    >
+                      {shareCopied
+                        ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span className="btn-label"> Link copiado!</span></>
+                        : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg><span className="btn-label"> Copiar link</span></>
+                      }
+                    </button>
                     <button
                       id="copy-action-btn"
                       className={`copy-btn ${copied ? 'copy-btn--copied' : ''}`}
                       onClick={handleCopy}
                       aria-label="Copiar ação recomendada"
                     >
-                      {copied ? '✓ Copiado!' : '⎘ Copiar'}
+                      {copied
+                        ? <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span className="btn-label"> Copiado!</span></>
+                        : <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span className="btn-label"> Copiar</span></>
+                      }
                     </button>
+                    </div>
                   </div>
                   <div className="recommended-content">
                     <p className="recommended-action-line">
-                      <span className="recommended-label">Próxima ação:</span>
                       <span className="recommended-text">{result.primary_action || result.recommended_action}</span>
                     </p>
                     <div className="context-disclaimer">
@@ -638,7 +772,7 @@ export default function Home() {
 
             <footer id="app-footer" className={(tourStep === 4) ? 'tour-highlight-container' : ''} style={{ textAlign: 'center', opacity: (tourStep === 4) ? 1 : 0.5, fontSize: '0.9rem', marginTop: 'auto', marginBottom: '20px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', borderRadius: '1rem', position: 'relative' }}>
               <div className={tourStep === 4 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-                {mounted && (
+                {mounted && !isPro && (
                   <span>Plano Gratuito: {getRemainingUsage()} {getRemainingUsage() === 1 ? 'análise restante' : 'análises restantes'}</span>
                 )}
                 {mounted && history.length > 0 && (

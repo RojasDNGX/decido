@@ -22,7 +22,7 @@ const EXAMPLES = [
 ];
 
 export default function Home() {
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const isPro = session?.user?.plan === 'pro';
   const [userId] = useState<string>(() => typeof window !== 'undefined' ? getUserId() : '');
   const [input, setInput] = useState('');
@@ -147,8 +147,8 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    update();
     logEvent('page_view', userId, { usage: usageCount });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -449,7 +449,7 @@ export default function Home() {
                     id="try-example-btn"
                     className="example-btn"
                     onClick={handleExample}
-                    disabled={loading || reachedLimit}
+                    disabled={loading}
                   >
                     {exampleIndex === -1 ? '✨ Tentar com um exemplo' : '✨ Tentar outro exemplo'}
                   </button>
@@ -465,7 +465,7 @@ export default function Home() {
                   id="analyze-btn"
                   className={tourStep === 2 ? 'tour-highlight' : ''}
                   onClick={handleAnalyze}
-                  disabled={loading || !input || input.trim().length === 0 || reachedLimit}
+                  disabled={loading || !input || input.trim().length === 0}
                 >
                   {loading ? (
                     <>
@@ -772,7 +772,7 @@ export default function Home() {
 
             <footer id="app-footer" className={(tourStep === 4) ? 'tour-highlight-container' : ''} style={{ textAlign: 'center', opacity: (tourStep === 4) ? 1 : 0.5, fontSize: '0.9rem', marginTop: 'auto', marginBottom: '20px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', borderRadius: '1rem', position: 'relative' }}>
               <div className={tourStep === 4 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-                {mounted && (
+                {mounted && !isPro && (
                   <span>Plano Gratuito: {getRemainingUsage()} {getRemainingUsage() === 1 ? 'análise restante' : 'análises restantes'}</span>
                 )}
                 {mounted && history.length > 0 && (

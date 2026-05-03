@@ -1108,7 +1108,12 @@ button:disabled {
   transition: transform 0.2s ease;
 }
 
-.limit-link:hover {
+.limit-link:hover,
+.limit-link:focus,
+.limit-link:focus-visible {
+  background: none;
+  outline: none;
+  padding: 4px 8px;
   transform: translateY(-2px);
 }
 

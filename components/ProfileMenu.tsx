@@ -47,6 +47,8 @@ export default function ProfileMenu({ activeContext, onContextChange }: ProfileM
     );
   }
 
+  const isPro = (session.user as { plan?: string })?.plan === 'pro';
+
   return (
     <div
       ref={menuRef}
@@ -54,22 +56,42 @@ export default function ProfileMenu({ activeContext, onContextChange }: ProfileM
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
-      <button
-        className="quick-action-btn"
-        title={session.user?.name ?? 'Minha conta'}
-        onClick={() => setOpen(o => !o)}
-        style={{ padding: '4px' }}
-      >
-        {session.user?.image ? (
-          <img
-            src={session.user.image}
-            alt={session.user.name ?? 'avatar'}
-            style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
-          />
-        ) : (
-          PERSON_ICON
+      <div style={{ position: 'relative', display: 'inline-flex' }}>
+        <button
+          className="quick-action-btn"
+          title={session.user?.name ?? 'Minha conta'}
+          onClick={() => setOpen(o => !o)}
+          style={{ padding: '4px' }}
+        >
+          {session.user?.image ? (
+            <img
+              src={session.user.image}
+              alt={session.user.name ?? 'avatar'}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', objectFit: 'cover' }}
+            />
+          ) : (
+            PERSON_ICON
+          )}
+        </button>
+        {isPro && (
+          <span style={{
+            position: 'absolute',
+            bottom: '-2px',
+            right: '-6px',
+            fontSize: '9px',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            background: '#6366f1',
+            color: '#fff',
+            padding: '1px 4px',
+            borderRadius: '4px',
+            lineHeight: 1.4,
+            pointerEvents: 'none',
+          }}>
+            PRO
+          </span>
         )}
-      </button>
+      </div>
 
       {open && (
         <div className="context-switcher-menu">

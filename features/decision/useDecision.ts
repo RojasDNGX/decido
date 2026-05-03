@@ -20,11 +20,6 @@ export function useDecision(userId: string) {
       return;
     }
 
-    if (isLimitReached()) {
-      router.push('/limite');
-      return;
-    }
-
     if (!isRefinementMode) {
       setResult(null);
     }
@@ -46,7 +41,7 @@ export function useDecision(userId: string) {
         body: JSON.stringify({ input, ...(history.length ? { history } : {}) }),
       });
 
-      if (response.status === 429) {
+      if (response.status === 429 || response.status === 403) {
         logEvent('limit_reached', userId, { attempt_id: attemptId });
         router.push('/limite');
         return;
@@ -73,10 +68,6 @@ export function useDecision(userId: string) {
       });
 
       onSuccess?.();
-
-      if (isLimitReached()) {
-        router.push('/limite');
-      }
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ocorreu um erro inesperado.';
       logEvent('analyze_error', userId, {

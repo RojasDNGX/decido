@@ -50,3 +50,7 @@ export function getUserPlan(email: string): 'free' | 'pro' {
   const row = db.prepare('SELECT plan FROM users WHERE email = ?').get(email) as Pick<UserRow, 'plan'> | undefined;
   return row?.plan ?? 'free';
 }
+
+export function setUserPlan(email: string, plan: 'free' | 'pro') {
+  db.prepare(`UPDATE users SET plan = ? WHERE email = ?`).run(plan, email);
+}

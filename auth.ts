@@ -11,11 +11,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
-      if (user?.email) {
+      const email = user?.email ?? (token.email as string | undefined);
+      if (email) {
         const dbUser = getOrCreateUser(
-          user.email,
-          user.name ?? undefined,
-          user.image ?? undefined
+          email,
+          user?.name ?? undefined,
+          user?.image ?? undefined
         );
         token.plan = dbUser.plan;
       }

@@ -3,9 +3,67 @@ import { NextRequest, NextResponse } from 'next/server';
 import { aiOrchestrator } from '@/services/ai/orchestrator';
 import { checkIpLimit, incrementIpCount } from '@/services/security/rate-limiter';
 import { auth } from '@/auth';
+import { getUserPlan } from '@/lib/users-db';
+import type { Priority } from '@/types';
 
 const USAGE_LIMIT = 3;
 const COOKIE_NAME = 'decido_usage';
+
+function enforceImperative(text: string): string {
+  return text
+    .replace(/^(falar)\b/i, 'Fale')
+    .replace(/^(esperar)\b/i, 'Espere')
+    .replace(/^(revisar)\b/i, 'Revise')
+    .replace(/^(enviar)\b/i, 'Envie')
+    .replace(/^(ligar)\b/i, 'Ligue')
+    .replace(/^(ir)\b/i, 'Vá')
+    .replace(/^(voltar)\b/i, 'Volte')
+    .replace(/^(responder)\b/i, 'Responda')
+    .replace(/^(tentar)\b/i, '')
+    .trim()
+}
+
+function makeMoreDecisive(text: string): string {
+  return enforceImperative(
+    text
+      .replace(/\b(você pode|talvez|considere|poderia|tente)\b/gi, '')
+      .replace(/\b(um pouco|pode ser|acho que|provavelmente)\b/gi, '')
+      .replace(/\b(mais tarde|depois|em breve|logo)\b/gi, 'hoje')
+      .replace(/^(uma boa ideia seria|vale a pena)\s+/i, '')
+      .replace(/^(é melhor|seria bom)\s+/i, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+  )
+}
+
+function ensureCapitalization(text: string): string {
+  if (!text) return text
+  return text.charAt(0).toUpperCase() + text.slice(1)
+}
+
+function enforceDecisionConsistency(primaryAction: string, priorities: Priority[]): string {
+  if (primaryAction) return primaryAction
+  const topPriority = priorities.find(p => p.level === 'alta')
+  return topPriority?.task ?? primaryAction
+}
+
+function enforceSingleHighPriority(priorities: Priority[]): Priority[] {
+  const high = priorities.filter(p => p.level === 'alta')
+  if (high.length <= 1) return priorities
+
+  const [primary, ...demoted] = high
+  const rest = priorities.filter(p => p.level !== 'alta')
+  return [
+    primary,
+    ...demoted.map(p => ({ ...p, level: 'média' as const })),
+    ...rest,
+  ]
+}
+
+function formatDecisionOutput(text: string, plan: 'free' | 'pro'): string {
+  if (plan === 'pro') return makeMoreDecisive(text)
+  return text
+}
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -20,7 +78,8 @@ function getClientIp(req: NextRequest): string {
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
-    const isPro = session?.user?.plan === 'pro';
+    const userEmail = session?.user?.email;
+    const isPro = userEmail ? getUserPlan(userEmail) === 'pro' : false;
 
     const { input, history } = await req.json();
     const isProd = process.env.NODE_ENV === 'production';
@@ -68,7 +127,15 @@ export async function POST(req: NextRequest) {
     }
 
     // Processar análise
-    const result = await aiOrchestrator(input, history);
+    const plan = isPro ? 'pro' : 'free';
+    const result = await aiOrchestrator(input, history, plan);
+    result.priorities = enforceSingleHighPriority(result.priorities);
+    result.primary_action = ensureCapitalization(
+      formatDecisionOutput(
+        enforceDecisionConsistency(result.primary_action, result.priorities),
+        plan
+      )
+    );
 
     // Atualizar contadores (apenas para não-PRO)
     const response = NextResponse.json(result);

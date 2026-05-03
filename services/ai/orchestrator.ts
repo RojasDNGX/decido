@@ -144,9 +144,58 @@ function validatePrimaryAction(action: string): boolean {
   return true;
 }
 
+const FREE_SYSTEM = `Você é um motor de decisão.
+
+Use apenas as tarefas explicitamente fornecidas pelo usuário.
+
+NÃO infira contexto oculto.
+NÃO assuma informações ausentes.
+NÃO reordene com base em raciocínio externo.
+
+Se múltiplas tarefas forem fornecidas, escolha a próxima ação mais óbvia com base na ordem e importância aparente.
+
+Priorização simples e direta.`;
+
+const PRO_SYSTEM = `Você é um motor de decisão avançado.
+
+O input do usuário pode ser incompleto, desordenado ou emocional.
+
+Seu trabalho é reconstruir a situação real.
+
+VOCÊ DEVE:
+- Ignorar a ordem do input
+- Inferir dependências entre tarefas
+- Detectar urgência (biológica, temporal ou por impacto)
+- Assumir contexto óbvio ausente quando necessário
+- Priorizar com base em consequências reais, não na ordem do input
+
+Extraia urgência implícita: expressões como "daqui a pouco", "logo", "ainda não terminei", "acumulando", "esqueci" indicam pressão real.
+Identifique o que bloqueia outras coisas — essa tarefa sobe na prioridade.
+Quando prazo não é explícito, use impacto e dependência para decidir.
+
+Se o input for vago ou sem tarefas claramente definidas:
+- NUNCA sugira planejamento, organização ou listagem de tarefas
+- NUNCA retorne meta-ações como "organize-se" ou "faça uma lista"
+- Extraia a ação mais imediata e fisicamente executável dado o estado do usuário
+- Prefira ações que reduzam atrito ou criem momentum
+- A ação deve ser concreta e iniciável em segundos
+
+Se nenhuma tarefa concreta puder ser extraída do input:
+- NÃO invente tarefas
+- NÃO sugira planejamento ou organização
+- NÃO peça esclarecimentos
+- Retorne uma ação simples e imediata que crie movimento (física, concreta, executável em segundos)
+- Prefira ações que reduzam inércia: movimento, foco, reset
+
+ESTRUTURA DE PRIORIDADES (OBRIGATÓRIA):
+- Deve existir EXATAMENTE UMA tarefa de maior prioridade — retornar mais de uma é resposta incorreta
+- Se múltiplas tarefas parecerem igualmente importantes: você DEVE desempatar, escolher apenas UMA e rebaixar as demais
+- Cada nível deve conter UM item; múltiplos itens no mesmo nível só são permitidos se absolutamente inevitável
+- Você não está listando tarefas — você está forçando uma única próxima ação`;
+
 type HistoryItem = { input_summary: string; primary_action: string };
 
-export async function aiOrchestrator(input: string, history?: HistoryItem[]): Promise<AnalysisResult> {
+export async function aiOrchestrator(input: string, history?: HistoryItem[], plan: 'free' | 'pro' = 'free'): Promise<AnalysisResult> {
   const contextMemory = history?.length
     ? `\nCONTEXT MEMORY (uso interno — NÃO mencione ao usuário):
 O usuário fez decisões similares recentemente:
@@ -155,15 +204,11 @@ Mantenha consistência com decisões anteriores quando o contexto for similar.
 Se o contexto atual trouxer diferenças relevantes, priorize o contexto atual.`
     : '';
 
+  const systemInstructions = plan === 'pro' ? PRO_SYSTEM : FREE_SYSTEM;
+
   const prompt = `Responda exclusivamente em português do Brasil (pt-BR). É proibido usar qualquer palavra em inglês.
 
-Você é um assistente decisivo. Analise o contexto descrito e retorne UMA ação primária e a lista completa priorizada.
-
-COMO INTERPRETAR O CONTEXTO:
-- Extraia urgência implícita: expressões como "daqui a pouco", "logo", "ainda não terminei", "acumulando", "esqueci" indicam pressão real.
-- Identifique o que bloqueia outras coisas — essa tarefa sobe na prioridade.
-- Quando prazo não é explícito, use impacto e dependência para decidir.
-- Interprete linguagem natural e incompleta sem exigir estrutura do usuário.
+${systemInstructions}
 
 CRITÉRIOS DE PRIORIZAÇÃO:
 - alta: urgência temporal OU bloqueia outras tarefas OU impacto imediato irreversível

@@ -187,6 +187,13 @@ Se nenhuma tarefa concreta puder ser extraída do input:
 - Retorne uma ação simples e imediata que crie movimento (física, concreta, executável em segundos)
 - Prefira ações que reduzam inércia: movimento, foco, reset
 
+PRIORIDADE DE INTERAÇÃO HUMANA:
+- Tarefas que envolvem interação humana direta têm prioridade sobre tarefas assíncronas
+- Falar com uma pessoa > enviar um e-mail
+- Ligar para alguém > responder depois
+- Interação presencial > comunicação digital
+- Se uma tarefa envolve presença ou interação humana imediata, trate-a como mais urgente que tarefas digitais ou adiadas
+
 VARIAÇÃO DE RESPOSTA (OBRIGATÓRIA):
 - Quando o input for vago ou emocional, NÃO repita a mesma ação por padrão
 - Evite ações de fallback repetitivas (ex: caminhar, respirar)

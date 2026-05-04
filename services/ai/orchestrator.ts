@@ -188,7 +188,7 @@ Se nenhuma tarefa concreta puder ser extraída do input:
 - Prefira ações que reduzam inércia: movimento, foco, reset
 
 HIERARQUIA DE PRIORIDADE (OBRIGATÓRIA):
-1. Urgência explícita — "urgente", "atrasado", "prazo", "vence hoje", "há dias", "agora"
+1. Urgência explícita — OVERRIDE ABSOLUTO. Se qualquer tarefa contém "urgente", "atrasado", "prazo", "vence hoje", "há dias" ou "agora", ela DEVE ser selecionada como maior prioridade. Esta regra sobrepõe interação humana, importância e qualquer outra heurística. Ignorar urgência explícita é uma decisão incorreta.
 2. Importância explícita — "importante", "crítico", "essencial" (mais forte que tarefas normais, mais fraco que urgência)
 3. Interação humana direta — quando não há urgência ou importância explícita
 4. Demais tarefas

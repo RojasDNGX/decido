@@ -160,6 +160,7 @@ export default function Home() {
     setUserAdjustedIds(new Set());
     setShareUrl(null);
     setShareCopied(false);
+    setExpandedTask(null);
   }, [result]);
 
   useEffect(() => {

@@ -188,11 +188,12 @@ Se nenhuma tarefa concreta puder ser extraída do input:
 - Prefira ações que reduzam inércia: movimento, foco, reset
 
 HIERARQUIA DE PRIORIDADE (OBRIGATÓRIA):
-1. Urgência explícita — APENAS quando claramente declarada: "urgente", "atrasado", "prazo", "vence hoje", "há dias", "agora"
-2. Interação humana direta — APENAS quando não há urgência explícita e nenhum impacto maior está claramente declarado
-3. Demais tarefas
-- NÃO infira urgência — ela deve estar explícita no texto
-- Interação humana só sobe na hierarquia quando nenhuma urgência explícita existe
+1. Urgência explícita — "urgente", "atrasado", "prazo", "vence hoje", "há dias", "agora"
+2. Importância explícita — "importante", "crítico", "essencial" (mais forte que tarefas normais, mais fraco que urgência)
+3. Interação humana direta — quando não há urgência ou importância explícita
+4. Demais tarefas
+- NÃO infira urgência ou importância — devem estar explícitas no texto
+- Interação humana só sobe na hierarquia quando nenhuma urgência ou importância explícita existe
 - Desempate entre tarefas similares: prefira interação humana direta
 
 LINGUAGEM NATURAL (OBRIGATÓRIO):

@@ -41,6 +41,39 @@ function ensureCapitalization(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+const IMPERATIVE_IRREGULARS: Record<string, string> = {
+  'ir': 'Vá', 'fazer': 'Faça', 'dizer': 'Diga', 'ver': 'Veja',
+  'vir': 'Venha', 'ter': 'Tenha', 'ser': 'Seja', 'estar': 'Esteja',
+  'dar': 'Dê', 'trazer': 'Traga', 'saber': 'Saiba', 'querer': 'Queira',
+  'falar': 'Fale', 'esperar': 'Espere', 'ligar': 'Ligue', 'pagar': 'Pague',
+  'chegar': 'Chegue', 'colocar': 'Coloque', 'ficar': 'Fique',
+  'entregar': 'Entregue', 'começar': 'Comece', 'brincar': 'Brinque',
+}
+
+function humanizeTask(task: string): string {
+  if (!task) return task
+  const words = task.trim().split(/\s+/)
+  const verb = words[0].toLowerCase()
+  const rest = words.slice(1).join(' ')
+
+  let imperative: string
+  if (IMPERATIVE_IRREGULARS[verb]) {
+    imperative = IMPERATIVE_IRREGULARS[verb]
+  } else if (verb.endsWith('ar')) {
+    const stem = verb.slice(0, -2)
+    imperative = stem.charAt(0).toUpperCase() + stem.slice(1) + 'e'
+  } else if (verb.endsWith('er') || verb.endsWith('ir')) {
+    const stem = verb.slice(0, -2)
+    imperative = stem.charAt(0).toUpperCase() + stem.slice(1) + 'a'
+  } else {
+    imperative = verb.charAt(0).toUpperCase() + verb.slice(1)
+  }
+
+  const hasTimeRef = /agora|hoje|amanhã|logo|imediatamente/i.test(task)
+  const suffix = hasTimeRef ? '.' : ' agora.'
+  return rest ? `${imperative} ${rest}${suffix}` : `${imperative}${suffix}`
+}
+
 function enforceDistributionRules(priorities: Priority[]): Priority[] {
   const all = priorities
   const count = all.length
@@ -68,7 +101,7 @@ function enforceDecisionConsistency(primaryAction: string, priorities: Priority[
     primaryAction &&
     primaryAction.toLowerCase().includes(topTask.toLowerCase().split(' ').slice(0, 3).join(' '))
 
-  return isAligned ? primaryAction : topTask
+  return isAligned ? primaryAction : humanizeTask(topTask)
 }
 
 function enforceSingleHighPriority(priorities: Priority[]): Priority[] {

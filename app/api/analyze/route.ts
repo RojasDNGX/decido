@@ -41,6 +41,15 @@ function ensureCapitalization(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
+function enforceThreeItemDistribution(priorities: Priority[]): Priority[] {
+  if (priorities.length !== 3) return priorities
+  return [
+    { ...priorities[0], level: 'alta' as const },
+    { ...priorities[1], level: 'média' as const },
+    { ...priorities[2], level: 'baixa' as const },
+  ]
+}
+
 function enforceDecisionConsistency(primaryAction: string, priorities: Priority[]): string {
   if (primaryAction) return primaryAction
   const topPriority = priorities.find(p => p.level === 'alta')
@@ -129,7 +138,7 @@ export async function POST(req: NextRequest) {
     // Processar análise
     const plan = isPro ? 'pro' : 'free';
     const result = await aiOrchestrator(input, history, plan);
-    result.priorities = enforceSingleHighPriority(result.priorities);
+    result.priorities = enforceThreeItemDistribution(enforceSingleHighPriority(result.priorities));
     result.primary_action = ensureCapitalization(
       formatDecisionOutput(
         enforceDecisionConsistency(result.primary_action, result.priorities),

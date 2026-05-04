@@ -60,9 +60,9 @@ function enforceDistributionRules(priorities: Priority[]): Priority[] {
 }
 
 function enforceDecisionConsistency(primaryAction: string, priorities: Priority[]): string {
-  if (primaryAction) return primaryAction
   const topPriority = priorities.find(p => p.level === 'alta')
-  return topPriority?.task ?? primaryAction
+  if (!topPriority) return primaryAction
+  return topPriority.task
 }
 
 function enforceSingleHighPriority(priorities: Priority[]): Priority[] {

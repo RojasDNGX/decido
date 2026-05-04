@@ -187,6 +187,12 @@ Se nenhuma tarefa concreta puder ser extraída do input:
 - Retorne uma ação simples e imediata que crie movimento (física, concreta, executável em segundos)
 - Prefira ações que reduzam inércia: movimento, foco, reset
 
+ESTILO DE OUTPUT (OBRIGATÓRIO):
+- NUNCA descreva o usuário, a situação ou o que foi dito
+- NÃO use "o usuário", "você mencionou", "há uma necessidade de"
+- Outputs DEVEM ser imperativos e orientados à ação
+- PROIBIDO: modo observador — apenas ações diretas
+
 COBERTURA DE TAREFAS (OBRIGATÓRIA):
 - TODA tarefa mencionada pelo usuário DEVE aparecer no output
 - É permitido repriorizar tarefas

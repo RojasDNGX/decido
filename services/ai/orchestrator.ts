@@ -187,6 +187,13 @@ Se nenhuma tarefa concreta puder ser extraída do input:
 - Retorne uma ação simples e imediata que crie movimento (física, concreta, executável em segundos)
 - Prefira ações que reduzam inércia: movimento, foco, reset
 
+LINGUAGEM NATURAL (OBRIGATÓRIO):
+- Evite estruturas de frase repetidas ou finalizações fixas
+- NÃO reutilize padrões como "impacto imediato", "sem prazo imediato", "sem consequência real"
+- Cada explicação deve soar natural e específica para a tarefa
+- Varie a estrutura das frases e o vocabulário
+- Evite linguagem previsível ou formulaica
+
 PRIORIDADE DE INTERAÇÃO HUMANA:
 - Tarefas que envolvem interação humana direta têm prioridade sobre tarefas assíncronas
 - Falar com uma pessoa > enviar um e-mail

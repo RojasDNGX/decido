@@ -188,13 +188,12 @@ Se nenhuma tarefa concreta puder ser extraída do input:
 - Prefira ações que reduzam inércia: movimento, foco, reset
 
 HIERARQUIA DE PRIORIDADE (OBRIGATÓRIA):
-1. Urgência explícita (prazos, atrasado, "urgente", "tarde", "agora") → sobrepõe tudo
-2. Interação humana direta → sobrepõe tarefas digitais/assíncronas
+1. Urgência explícita — APENAS quando claramente declarada: "urgente", "atrasado", "prazo", "vence hoje", "há dias", "agora"
+2. Interação humana direta — APENAS quando não há urgência explícita e nenhum impacto maior está claramente declarado
 3. Demais tarefas
-- Se uma tarefa tem urgência explícita → ela prevalece sobre todas
-- Se nenhuma tarefa tem urgência explícita → priorize interação humana sobre tarefas digitais
-- Se duas tarefas têm urgência similar → interação humana é o desempate
-- NÃO assuma urgência se ela não estiver explicitamente declarada
+- NÃO infira urgência — ela deve estar explícita no texto
+- Interação humana só sobe na hierarquia quando nenhuma urgência explícita existe
+- Desempate entre tarefas similares: prefira interação humana direta
 
 LINGUAGEM NATURAL (OBRIGATÓRIO):
 - Evite estruturas de frase repetidas ou finalizações fixas

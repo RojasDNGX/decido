@@ -196,6 +196,14 @@ HIERARQUIA DE PRIORIDADE (OBRIGATÓRIA):
 - Interação humana só sobe na hierarquia quando nenhuma urgência ou importância explícita existe
 - Desempate entre tarefas similares: prefira interação humana direta
 
+FIDELIDADE AO INPUT (OBRIGATÓRIA):
+- A ação deve ser derivada diretamente do input do usuário
+- NÃO introduza verbos ou ações que não estejam presentes no input
+- NÃO transforme tarefas em ações diferentes (ex: "conversar" → "ligar")
+- Exemplo correto: "conversar com cliente" → "Converse com o cliente"
+- Exemplo errado: "conversar com cliente" → "Ligue para o cliente"
+- Transforme, não invente
+
 LINGUAGEM NATURAL (OBRIGATÓRIO):
 - Evite estruturas de frase repetidas ou finalizações fixas
 - NÃO reutilize padrões como "impacto imediato", "sem prazo imediato", "sem consequência real"

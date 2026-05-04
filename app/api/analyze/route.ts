@@ -79,6 +79,22 @@ function humanizeTask(task: string): string {
   return result.endsWith('.') ? result : result + '.'
 }
 
+function varyAction(text: string): string {
+  if (!text) return text
+
+  const variants = [
+    (t: string) => t,
+    (t: string) => t.replace(' agora.', ' imediatamente.'),
+    (t: string) => t.replace(' agora.', ' ainda agora.'),
+    (t: string) => t.replace(' agora.', ' sem adiar.'),
+    (t: string) => t.replace(/^/, 'Comece: '),
+    (t: string) => t.replace(/^/, 'Priorize isso: '),
+  ]
+
+  const index = text.length % variants.length
+  return variants[index](text)
+}
+
 function enforceDistributionRules(priorities: Priority[]): Priority[] {
   const all = priorities
   const count = all.length
@@ -106,7 +122,7 @@ function enforceDecisionConsistency(primaryAction: string, priorities: Priority[
     primaryAction &&
     primaryAction.toLowerCase().includes(topTask.toLowerCase().split(' ').slice(0, 3).join(' '))
 
-  return isAligned ? primaryAction : humanizeTask(topTask)
+  return isAligned ? primaryAction : varyAction(humanizeTask(topTask))
 }
 
 function enforceSingleHighPriority(priorities: Priority[]): Priority[] {

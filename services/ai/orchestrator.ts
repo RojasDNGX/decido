@@ -204,6 +204,13 @@ FIDELIDADE AO INPUT (OBRIGATÓRIA):
 - Exemplo errado: "conversar com cliente" → "Ligue para o cliente"
 - Transforme, não invente
 
+JUSTIFICATIVA CONTEXTUAL (OBRIGATÓRIA):
+- Explicações devem ser específicas à situação, não descrições genéricas de categoria
+- NÃO explique categorias como "interação humana", "tarefa assíncrona", "tarefa de baixa prioridade"
+- Explique POR QUE esta tarefa importa neste contexto específico: tempo, consequência, dependência
+- Exemplo correto: "Responda o e-mail agora para evitar atraso acumulado."
+- Exemplo errado: "Tarefa assíncrona que pode esperar."
+
 LINGUAGEM NATURAL (OBRIGATÓRIO):
 - Evite estruturas de frase repetidas ou finalizações fixas
 - NÃO reutilize padrões como "impacto imediato", "sem prazo imediato", "sem consequência real"

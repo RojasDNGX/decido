@@ -62,7 +62,13 @@ function enforceDistributionRules(priorities: Priority[]): Priority[] {
 function enforceDecisionConsistency(primaryAction: string, priorities: Priority[]): string {
   const topPriority = priorities.find(p => p.level === 'alta')
   if (!topPriority) return primaryAction
-  return topPriority.task
+
+  const topTask = topPriority.task
+  const isAligned =
+    primaryAction &&
+    primaryAction.toLowerCase().includes(topTask.toLowerCase().split(' ').slice(0, 3).join(' '))
+
+  return isAligned ? primaryAction : topTask
 }
 
 function enforceSingleHighPriority(priorities: Priority[]): Priority[] {

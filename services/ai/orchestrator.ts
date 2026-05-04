@@ -187,6 +187,13 @@ Se nenhuma tarefa concreta puder ser extraída do input:
 - Retorne uma ação simples e imediata que crie movimento (física, concreta, executável em segundos)
 - Prefira ações que reduzam inércia: movimento, foco, reset
 
+COBERTURA DE TAREFAS (OBRIGATÓRIA):
+- TODA tarefa mencionada pelo usuário DEVE aparecer no output
+- É permitido repriorizar tarefas
+- É permitido simplificar o texto da tarefa
+- NÃO é permitido remover ou ignorar qualquer tarefa
+- Redução de tarefas NÃO é permitida — apenas redução de prioridade
+
 ESTRUTURA DE PRIORIDADES (OBRIGATÓRIA):
 - Deve existir EXATAMENTE UMA tarefa de maior prioridade — retornar mais de uma é resposta incorreta
 - Se múltiplas tarefas parecerem igualmente importantes: você DEVE desempatar, escolher apenas UMA e rebaixar as demais

@@ -41,12 +41,21 @@ function ensureCapitalization(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-function enforceThreeItemDistribution(priorities: Priority[]): Priority[] {
-  if (priorities.length !== 3) return priorities
+function enforceDistributionRules(priorities: Priority[]): Priority[] {
+  const all = priorities
+  const count = all.length
+
+  const assign = (item: Priority, level: Priority['level']) => ({ ...item, level })
+
+  if (count === 1) return [assign(all[0], 'alta')]
+  if (count === 2) return [assign(all[0], 'alta'), assign(all[1], 'média')]
+  if (count === 3) return [assign(all[0], 'alta'), assign(all[1], 'média'), assign(all[2], 'baixa')]
+  if (count === 4) return [assign(all[0], 'alta'), assign(all[1], 'média'), assign(all[2], 'baixa'), assign(all[3], 'baixa')]
   return [
-    { ...priorities[0], level: 'alta' as const },
-    { ...priorities[1], level: 'média' as const },
-    { ...priorities[2], level: 'baixa' as const },
+    assign(all[0], 'alta'),
+    assign(all[1], 'média'),
+    assign(all[2], 'média'),
+    ...all.slice(3).map(p => assign(p, 'baixa')),
   ]
 }
 
@@ -138,7 +147,7 @@ export async function POST(req: NextRequest) {
     // Processar análise
     const plan = isPro ? 'pro' : 'free';
     const result = await aiOrchestrator(input, history, plan);
-    result.priorities = enforceThreeItemDistribution(enforceSingleHighPriority(result.priorities));
+    result.priorities = enforceDistributionRules(enforceSingleHighPriority(result.priorities));
     result.primary_action = ensureCapitalization(
       formatDecisionOutput(
         enforceDecisionConsistency(result.primary_action, result.priorities),

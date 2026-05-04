@@ -41,37 +41,42 @@ function ensureCapitalization(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-const IMPERATIVE_IRREGULARS: Record<string, string> = {
-  'ir': 'Vá', 'fazer': 'Faça', 'dizer': 'Diga', 'ver': 'Veja',
-  'vir': 'Venha', 'ter': 'Tenha', 'ser': 'Seja', 'estar': 'Esteja',
-  'dar': 'Dê', 'trazer': 'Traga', 'saber': 'Saiba', 'querer': 'Queira',
-  'falar': 'Fale', 'esperar': 'Espere', 'ligar': 'Ligue', 'pagar': 'Pague',
-  'chegar': 'Chegue', 'colocar': 'Coloque', 'ficar': 'Fique',
-  'entregar': 'Entregue', 'começar': 'Comece', 'brincar': 'Brinque',
-}
-
 function humanizeTask(task: string): string {
-  if (!task) return task
-  const words = task.trim().split(/\s+/)
-  const verb = words[0].toLowerCase()
-  const rest = words.slice(1).join(' ')
+  if (!task) return ''
 
-  let imperative: string
-  if (IMPERATIVE_IRREGULARS[verb]) {
-    imperative = IMPERATIVE_IRREGULARS[verb]
-  } else if (verb.endsWith('ar')) {
-    const stem = verb.slice(0, -2)
-    imperative = stem.charAt(0).toUpperCase() + stem.slice(1) + 'e'
-  } else if (verb.endsWith('er') || verb.endsWith('ir')) {
-    const stem = verb.slice(0, -2)
-    imperative = stem.charAt(0).toUpperCase() + stem.slice(1) + 'a'
-  } else {
-    imperative = verb.charAt(0).toUpperCase() + verb.slice(1)
+  const clean = task.trim().toLowerCase()
+  const [verb, ...rest] = clean.split(' ')
+  const restText = rest.join(' ')
+
+  const irregulars: Record<string, string> = {
+    ir: 'Vá', fazer: 'Faça', dizer: 'Diga', trazer: 'Traga',
+    sair: 'Saia', pôr: 'Coloque', ver: 'Veja', dar: 'Dê',
+    vir: 'Venha', ter: 'Tenha', ser: 'Seja', estar: 'Esteja',
+    saber: 'Saiba', pedir: 'Peça', ouvir: 'Ouça', seguir: 'Siga',
+    conseguir: 'Consiga', medir: 'Meça',
   }
 
-  const hasTimeRef = /agora|hoje|amanhã|logo|imediatamente/i.test(task)
-  const suffix = hasTimeRef ? '.' : ' agora.'
-  return rest ? `${imperative} ${rest}${suffix}` : `${imperative}${suffix}`
+  let imperative = ''
+
+  if (irregulars[verb]) {
+    imperative = irregulars[verb]
+  } else if (verb.endsWith('ar')) {
+    imperative = verb.slice(0, -2) + 'e'
+  } else if (verb.endsWith('er') || verb.endsWith('ir')) {
+    imperative = verb.slice(0, -2) + 'a'
+  } else {
+    return `Comece por isso agora: ${task}.`
+  }
+
+  let result = `${imperative}${restText ? ' ' + restText : ''}`
+
+  if (!/(agora|hoje|já|imediatamente)/i.test(result)) {
+    result += ' agora'
+  }
+
+  result = result.charAt(0).toUpperCase() + result.slice(1)
+
+  return result.endsWith('.') ? result : result + '.'
 }
 
 function enforceDistributionRules(priorities: Priority[]): Priority[] {

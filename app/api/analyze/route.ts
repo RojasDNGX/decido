@@ -113,6 +113,26 @@ function enforceDistributionRules(priorities: Priority[]): Priority[] {
   ]
 }
 
+function enforceCoverage(input: string, priorities: Priority[]): Priority[] {
+  const inputTasks = input
+    .split(/,|;| e também | e /i)
+    .map(s => s.trim().toLowerCase())
+    .filter(s => s.length > 3)
+
+  const outputTasks = priorities.map(p => p.task.toLowerCase())
+
+  const missing = inputTasks.filter(
+    task => !outputTasks.some(out => out.includes(task) || task.includes(out.split(' ').slice(0, 2).join(' ')))
+  )
+
+  if (missing.length === 0) return priorities
+
+  return [
+    ...priorities,
+    ...missing.map(task => ({ task, level: 'baixa' as const, reason: '' })),
+  ]
+}
+
 function enforceDecisionConsistency(primaryAction: string, priorities: Priority[]): string {
   const topPriority = priorities.find(p => p.level === 'alta')
   if (!topPriority) return primaryAction
@@ -207,7 +227,7 @@ export async function POST(req: NextRequest) {
     // Processar análise
     const plan = isPro ? 'pro' : 'free';
     const result = await aiOrchestrator(input, history, plan);
-    result.priorities = enforceDistributionRules(enforceSingleHighPriority(result.priorities));
+    result.priorities = enforceDistributionRules(enforceSingleHighPriority(enforceCoverage(input, result.priorities)));
     result.primary_action = ensureCapitalization(
       formatDecisionOutput(
         enforceDecisionConsistency(result.primary_action, result.priorities),

@@ -187,6 +187,15 @@ Se nenhuma tarefa concreta puder ser extraída do input:
 - Retorne uma ação simples e imediata que crie movimento (física, concreta, executável em segundos)
 - Prefira ações que reduzam inércia: movimento, foco, reset
 
+HIERARQUIA DE PRIORIDADE (OBRIGATÓRIA):
+1. Urgência explícita (prazos, atrasado, "urgente", "tarde", "agora") → sobrepõe tudo
+2. Interação humana direta → sobrepõe tarefas digitais/assíncronas
+3. Demais tarefas
+- Se uma tarefa tem urgência explícita → ela prevalece sobre todas
+- Se nenhuma tarefa tem urgência explícita → priorize interação humana sobre tarefas digitais
+- Se duas tarefas têm urgência similar → interação humana é o desempate
+- NÃO assuma urgência se ela não estiver explicitamente declarada
+
 LINGUAGEM NATURAL (OBRIGATÓRIO):
 - Evite estruturas de frase repetidas ou finalizações fixas
 - NÃO reutilize padrões como "impacto imediato", "sem prazo imediato", "sem consequência real"

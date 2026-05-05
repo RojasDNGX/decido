@@ -30,7 +30,7 @@ interface UserRow {
   email: string;
   name: string | null;
   image: string | null;
-  plan: 'free' | 'pro';
+  plan: 'free' | 'pro' | 'enterprise';
   created_at: string;
 }
 
@@ -46,11 +46,11 @@ export function getOrCreateUser(email: string, name?: string, image?: string): U
   return db.prepare('SELECT * FROM users WHERE email = ?').get(email) as UserRow;
 }
 
-export function getUserPlan(email: string): 'free' | 'pro' {
+export function getUserPlan(email: string): 'free' | 'pro' | 'enterprise' {
   const row = db.prepare('SELECT plan FROM users WHERE email = ?').get(email) as Pick<UserRow, 'plan'> | undefined;
   return row?.plan ?? 'free';
 }
 
-export function setUserPlan(email: string, plan: 'free' | 'pro') {
+export function setUserPlan(email: string, plan: 'free' | 'pro' | 'enterprise') {
   db.prepare(`UPDATE users SET plan = ? WHERE email = ?`).run(plan, email);
 }

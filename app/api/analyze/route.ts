@@ -4,6 +4,8 @@ import { aiOrchestrator } from '@/services/ai/orchestrator';
 import { checkIpLimit, incrementIpCount } from '@/services/security/rate-limiter';
 import { auth } from '@/auth';
 import { getUserPlan } from '@/lib/users-db';
+import { sanitizeTasks, recoverCoverage } from '@/services/ai/sanitize';
+import { isOverloadInput } from '@/services/ai/overload';
 import type { Priority } from '@/types';
 
 const USAGE_LIMIT = 3;
@@ -54,6 +56,8 @@ function humanizeTask(task: string): string {
     vir: 'Venha', ter: 'Tenha', ser: 'Seja', estar: 'Esteja',
     saber: 'Saiba', pedir: 'Peça', ouvir: 'Ouça', seguir: 'Siga',
     conseguir: 'Consiga', medir: 'Meça',
+    pagar: 'Pague', chegar: 'Chegue', jogar: 'Jogue', ligar: 'Ligue',
+    ficar: 'Fique', entregar: 'Entregue', negar: 'Negue',
   }
 
   let imperative = ''
@@ -65,7 +69,8 @@ function humanizeTask(task: string): string {
   } else if (verb.endsWith('er') || verb.endsWith('ir')) {
     imperative = verb.slice(0, -2) + 'a'
   } else {
-    return `Comece por isso agora: ${task}.`
+    const capitalized = task.charAt(0).toUpperCase() + task.slice(1).trim()
+    return (capitalized.endsWith('.') ? capitalized : capitalized + ' agora.')
   }
 
   let result = `${imperative}${restText ? ' ' + restText : ''}`
@@ -81,18 +86,128 @@ function humanizeTask(task: string): string {
 
 function varyAction(text: string): string {
   if (!text) return text
+  // PRIMARY ACTION always ends with "agora" — no variation allowed
+  return text
+}
 
-  const variants = [
-    (t: string) => t,
-    (t: string) => t.replace(' agora.', ' imediatamente.'),
-    (t: string) => t.replace(' agora.', ' ainda agora.'),
-    (t: string) => t.replace(' agora.', ' sem adiar.'),
-    (t: string) => t.replace(/^/, 'Comece: '),
-    (t: string) => t.replace(/^/, 'Priorize isso: '),
-  ]
+function normalizeTitle(task: string): string {
+  if (!task) return task
+  const clean = stripFillers(task).trim()
+  return ensureCapitalization(clean)
+}
 
-  const index = text.length % variants.length
-  return variants[index](text)
+function stripFillers(text: string): string {
+  return text
+    .replace(/\b(preciso|tenho que|tenho de|ainda|devo|vou|quero)\b/gi, '')
+    .replace(/\b(tenho \d+ (minutos?|horas?|segundos?))\b/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function normalizeForMatch(text: string): string {
+  return text.normalize('NFD').replace(/[̀-ͯ�]/g, '').toLowerCase()
+}
+
+function sharedKeywords(a: string, b: string): number {
+  const stopWords = new Set(['um', 'uma', 'o', 'a', 'de', 'do', 'da', 'no', 'na', 'para', 'pro', 'com', 'por', 'ao', 'ha', 'dias', 'dia'])
+  const normA = normalizeForMatch(a)
+  const normB = normalizeForMatch(b)
+  const wordsA = new Set(normA.split(' ').filter(w => w.length > 2 && !stopWords.has(w)))
+  return normB.split(' ').filter(w => w.length > 2 && !stopWords.has(w) && wordsA.has(w)).length
+}
+
+function deduplicatePriorities(priorities: Priority[]): Priority[] {
+  const result: Priority[] = []
+  for (const p of priorities) {
+    const norm = normalizeForMatch(stripFillers(p.task))
+    const isDuplicate = result.some(existing => {
+      const existingNorm = normalizeForMatch(stripFillers(existing.task))
+      return existingNorm.includes(norm) || norm.includes(existingNorm) || sharedKeywords(norm, existingNorm) >= 2
+    })
+    if (!isDuplicate) result.push(p)
+  }
+  return result
+}
+
+const IMPACT_LEVEL_3 = ['remédio', 'medicamento', 'medicina', 'saúde', 'médico', 'hospital', 'dor', 'febre', 'injeção', 'comprimido', 'dose', 'tratamento', 'vacina', 'cirurgia', 'emergência']
+const IMPACT_LEVEL_2 = ['fatura', 'conta', 'pagamento', 'vence', 'boleto', 'débito', 'cobrança', 'multa', 'cliente', 'prazo', 'entrega', 'reunião', 'atrasado', 'projeto']
+
+function getImpactLevel(task: string): 3 | 2 | 1 {
+  const norm = normalizeForMatch(task)
+  const matchWord = (k: string) => new RegExp(`\\b${normalizeForMatch(k)}\\b`).test(norm)
+  if (IMPACT_LEVEL_3.some(matchWord)) return 3
+  if (IMPACT_LEVEL_2.some(matchWord)) return 2
+  return 1
+}
+
+function extractTasksFromVerbs(input: string): string[] {
+  const stripped = stripFillers(input.toLowerCase())
+  const words = stripped.split(/\s+/).filter(Boolean)
+  const verbIndices: number[] = []
+
+  for (let i = 0; i < words.length; i++) {
+    const w = words[i]
+    if (w.length > 3 && (w.endsWith('ar') || w.endsWith('er') || w.endsWith('ir'))) {
+      verbIndices.push(i)
+    }
+  }
+
+  if (verbIndices.length === 0) return []
+
+  return verbIndices.map((verbIdx, i) => {
+    const nextVerb = verbIndices[i + 1] ?? words.length
+    const end = Math.min(nextVerb, verbIdx + 5)
+    return words.slice(verbIdx, end).join(' ').replace(/\be\b$/, '').trim()
+  }).filter(t => t.length > 3)
+}
+
+function splitMergedTasks(priorities: Priority[]): Priority[] {
+  return priorities.flatMap(p => {
+    const verbsInTitle = extractTasksFromVerbs(p.task)
+    if (verbsInTitle.length <= 1) return [p]
+    return verbsInTitle.map((t, i) => ({
+      task: ensureCapitalization(t),
+      level: (i === 0 ? p.level : 'média') as Priority['level'],
+      reason: i === 0 ? p.reason : '',
+    }))
+  })
+}
+
+const WEAK_REASON_PATTERNS = [
+  /não há prazo/i, /não possui prazo/i, /sem prazo imediato/i,
+  /nenhum prazo/i, /não há urgência/i, /não há consequência/i,
+  /não há impacto/i, /não mencionado/i, /mencionada para/i,
+  /não possui urgência/i, /não possui consequência/i,
+  /nível \d/i, /é uma tarefa de/i, /é um nível/i,
+  /pode ser feito depois/i, /pode ser realizado depois/i,
+  // Patch 4: anti-abstraction
+  /é importante/i, /fator crítico/i, /exige atenção/i, /deve ser feito/i,
+  /\bimpacto\b/i, /pode afetar/i, /pode causar problema/i,
+  /não há menção/i, /condição para/i, /necessário para/i,
+  /\bcategoria\b/i, /baseado em/i, /sugere que/i, /insatisfa/i, /especificad/i,
+]
+
+function enforceReasonQuality(priorities: Priority[]): Priority[] {
+  const fallbacks: Record<Priority['level'], string> = {
+    alta: 'Pode causar efeito imediato se atrasar.',
+    média: 'Pode atrasar o que vem depois.',
+    baixa: 'Não afeta agora.',
+  }
+  return priorities.map(p => {
+    const reason = p.reason?.trim() ?? ''
+    const wordCount = reason.split(/\s+/).length
+    const isWeak = wordCount < 4 || WEAK_REASON_PATTERNS.some(r => r.test(reason))
+    if (isWeak) return { ...p, reason: fallbacks[p.level] }
+    return p
+  })
+}
+
+function reorderByImpact(priorities: Priority[]): Priority[] {
+  const level3 = priorities.filter(p => getImpactLevel(p.task) === 3)
+  const level2 = priorities.filter(p => getImpactLevel(p.task) === 2)
+  const level1 = priorities.filter(p => getImpactLevel(p.task) === 1)
+  if (level3.length === 0 && level2.length === 0) return priorities
+  return [...level3, ...level2, ...level1]
 }
 
 function enforceDistributionRules(priorities: Priority[]): Priority[] {
@@ -114,35 +229,62 @@ function enforceDistributionRules(priorities: Priority[]): Priority[] {
 }
 
 function enforceCoverage(input: string, priorities: Priority[]): Priority[] {
-  const inputTasks = input
-    .split(/,|;| e também | e /i)
-    .map(s => s.trim().toLowerCase())
+  const splitSegments = input
+    .split(/,|;|\be também\b/i)
+    .flatMap(s => s.split(/\be\b/i))
+    .map(s => stripFillers(s.trim()))
     .filter(s => s.length > 3)
+    .filter(s => !/^\d+\s+(minutos?|horas?|segundos?)$/.test(s))
 
-  const outputTasks = priorities.map(p => p.task.toLowerCase())
+  const verbSegments = extractTasksFromVerbs(input)
 
-  const missing = inputTasks.filter(
-    task => !outputTasks.some(out => out.includes(task) || task.includes(out.split(' ').slice(0, 2).join(' ')))
-  )
+  const allSegments = [...new Set([...splitSegments, ...verbSegments])]
+    .filter(s => !s.includes('�'))
+
+  const outputNorms = priorities.map(p => normalizeForMatch(stripFillers(p.task)))
+
+  const missing = allSegments.filter(seg => {
+    const segNorm = normalizeForMatch(seg)
+    return !outputNorms.some(out =>
+      out.includes(segNorm) ||
+      segNorm.includes(out) ||
+      sharedKeywords(segNorm, out) >= 2
+    )
+  })
 
   if (missing.length === 0) return priorities
 
   return [
     ...priorities,
-    ...missing.map(task => ({ task, level: 'baixa' as const, reason: '' })),
+    ...missing.map(task => ({
+      task: ensureCapitalization(task),
+      level: 'baixa' as const,
+      reason: 'Pode ser resolvido após as prioridades imediatas.',
+    })),
   ]
 }
 
-function enforceDecisionConsistency(primaryAction: string, priorities: Priority[]): string {
+function enforceDecisionConsistency(_primaryAction: string, priorities: Priority[]): string {
+  const topPriority = priorities.find(p => p.level === 'alta')
+  if (!topPriority) return _primaryAction
+  // FREE: rebuild from task title to guarantee imperative form and "agora"
+  return humanizeTask(topPriority.task)
+}
+
+// PRO/ENTERPRISE: preserve AI-generated primary_action richness.
+// Only enforces "agora." termination without rebuilding from task title.
+function enforceProAction(primaryAction: string, priorities: Priority[]): string {
   const topPriority = priorities.find(p => p.level === 'alta')
   if (!topPriority) return primaryAction
 
-  const topTask = topPriority.task
-  const isAligned =
-    primaryAction &&
-    primaryAction.toLowerCase().includes(topTask.toLowerCase().split(' ').slice(0, 3).join(' '))
-
-  return isAligned ? primaryAction : varyAction(humanizeTask(topTask))
+  let action = primaryAction.trim()
+  // Ensure the action ends with "agora."
+  if (!/(agora)/i.test(action)) {
+    action = action.replace(/[.!?]+$/, '') + ' agora.'
+  } else if (!action.endsWith('.')) {
+    action = action.replace(/[.!?]+$/, '') + '.'
+  }
+  return action
 }
 
 function enforceSingleHighPriority(priorities: Priority[]): Priority[] {
@@ -158,10 +300,6 @@ function enforceSingleHighPriority(priorities: Priority[]): Priority[] {
   ]
 }
 
-function formatDecisionOutput(text: string, plan: 'free' | 'pro'): string {
-  if (plan === 'pro') return makeMoreDecisive(text)
-  return text
-}
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -177,7 +315,8 @@ export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     const userEmail = session?.user?.email;
-    const isPro = userEmail ? getUserPlan(userEmail) === 'pro' : false;
+    const userPlan = userEmail ? getUserPlan(userEmail) : 'free';
+    const isPro = userPlan !== 'free'; // covers pro + enterprise
 
     const { input, history } = await req.json();
     const isProd = process.env.NODE_ENV === 'production';
@@ -225,15 +364,44 @@ export async function POST(req: NextRequest) {
     }
 
     // Processar análise
-    const plan = isPro ? 'pro' : 'free';
+    const plan = userPlan;
     const result = await aiOrchestrator(input, history, plan);
-    result.priorities = enforceDistributionRules(enforceSingleHighPriority(enforceCoverage(input, result.priorities)));
-    result.primary_action = ensureCapitalization(
-      formatDecisionOutput(
-        enforceDecisionConsistency(result.primary_action, result.priorities),
-        plan
-      )
-    );
+
+    if (isOverloadInput(input)) {
+      // OVERLOAD MODE: bypass complex pipeline for all plans
+      // result already contains the built overload response from orchestrator
+      result.priorities = result.priorities.map(p => ({ ...p, task: normalizeTitle(p.task) }));
+    } else if (plan === 'free') {
+      // FREE: simplified pipeline
+      // PRO / ENTERPRISE: full pipeline + preserve AI primary_action richness
+      const preSanitized = enforceCoverage(input, reorderByImpact(splitMergedTasks(deduplicatePriorities(result.priorities))));
+      
+      // Apply deterministic sanitization
+      const sanitized = sanitizeTasks(preSanitized);
+      
+      // Recover coverage if too many tasks were removed
+      const recovered = recoverCoverage(input, sanitized);
+      
+      const pipeline = deduplicatePriorities(recovered);
+
+      result.priorities = enforceReasonQuality(enforceDistributionRules(enforceSingleHighPriority(pipeline)))
+        .map(p => ({ ...p, task: normalizeTitle(p.task) }));
+
+      // Guarantee High Priority: if all high tasks were filtered, rebuild from primary_action
+      if (!result.priorities.some(p => p.level === 'alta') && result.primary_action) {
+        const fallback: Priority = {
+          task: normalizeTitle(result.primary_action.replace(/\s+agora\.?$/i, '').replace(/[.!?]+$/, '')),
+          level: 'alta',
+          reason: 'Ação crítica identificada como prioridade imediata.'
+        };
+        result.priorities = [fallback, ...result.priorities];
+      }
+
+      // Do NOT rebuild via humanizeTask — keep contextual richness from AI output
+      result.primary_action = ensureCapitalization(
+        makeMoreDecisive(enforceProAction(result.primary_action, result.priorities))
+      );
+    }
 
     // Atualizar contadores (apenas para não-PRO)
     const response = NextResponse.json(result);

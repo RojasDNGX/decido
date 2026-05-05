@@ -1,4 +1,21 @@
+/**
+ * orchestrator.ts — AI routing only.
+ *
+ * Responsibilities:
+ * - Select the correct plan prompt (free / pro / enterprise)
+ * - Gate history server-side (FREE receives no history regardless of client input)
+ * - Route request through local models (Ollama) with Groq as fallback
+ * - Validate basic structural integrity of model output
+ *
+ * This file contains NO decision logic.
+ * All intelligence lives in services/ai/prompts/{plan}.ts
+ */
+
 import { AnalysisResult } from '@/types';
+import { buildPrompt as buildFreePrompt } from './prompts/free';
+import { buildPrompt as buildProPrompt } from './prompts/pro';
+import { buildPrompt as buildEnterprisePrompt } from './prompts/enterprise';
+import { isOverloadInput, buildOverloadResponse, buildOverloadResponseFree } from './overload';
 
 const OLLAMA_URL = 'http://10.10.0.9:11434/api/generate';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
@@ -8,6 +25,9 @@ const LOCAL_MODELS = [
   'gemma3:4b',
   'phi4:14b'
 ];
+
+type Plan = 'free' | 'pro' | 'enterprise';
+type HistoryItem = { input_summary: string; primary_action: string };
 
 async function tryOllama(model: string, prompt: string): Promise<AnalysisResult> {
   const isFastModel = model.includes('gemma');
@@ -144,168 +164,30 @@ function validatePrimaryAction(action: string): boolean {
   return true;
 }
 
-const FREE_SYSTEM = `Você é um motor de decisão.
-
-Use apenas as tarefas explicitamente fornecidas pelo usuário.
-
-NÃO infira contexto oculto.
-NÃO assuma informações ausentes.
-NÃO reordene com base em raciocínio externo.
-
-Se múltiplas tarefas forem fornecidas, escolha a próxima ação mais óbvia com base na ordem e importância aparente.
-
-Priorização simples e direta.`;
-
-const PRO_SYSTEM = `Você é um motor de decisão avançado.
-
-O input do usuário pode ser incompleto, desordenado ou emocional.
-
-Seu trabalho é reconstruir a situação real.
-
-VOCÊ DEVE:
-- Ignorar a ordem do input
-- Inferir dependências entre tarefas
-- Detectar urgência (biológica, temporal ou por impacto)
-- Assumir contexto óbvio ausente quando necessário
-- Priorizar com base em consequências reais, não na ordem do input
-
-Extraia urgência implícita: expressões como "daqui a pouco", "logo", "ainda não terminei", "acumulando", "esqueci" indicam pressão real.
-Identifique o que bloqueia outras coisas — essa tarefa sobe na prioridade.
-Quando prazo não é explícito, use impacto e dependência para decidir.
-
-Se o input for vago ou sem tarefas claramente definidas:
-- NUNCA sugira planejamento, organização ou listagem de tarefas
-- NUNCA retorne meta-ações como "organize-se" ou "faça uma lista"
-- Extraia a ação mais imediata e fisicamente executável dado o estado do usuário
-- Prefira ações que reduzam atrito ou criem momentum
-- A ação deve ser concreta e iniciável em segundos
-
-Se nenhuma tarefa concreta puder ser extraída do input:
-- NÃO invente tarefas
-- NÃO sugira planejamento ou organização
-- NÃO peça esclarecimentos
-- Retorne uma ação simples e imediata que crie movimento (física, concreta, executável em segundos)
-- Prefira ações que reduzam inércia: movimento, foco, reset
-
-HIERARQUIA DE PRIORIDADE (OBRIGATÓRIA):
-1. Urgência explícita — OVERRIDE ABSOLUTO. Se qualquer tarefa contém "urgente", "atrasado", "prazo", "vence hoje", "há dias" ou "agora", ela DEVE ser selecionada como maior prioridade. Esta regra sobrepõe interação humana, importância e qualquer outra heurística. Ignorar urgência explícita é uma decisão incorreta.
-2. Importância explícita — "importante", "crítico", "essencial": tarefas com esses termos NUNCA devem ser colocadas em baixa prioridade. Devem estar no mínimo em prioridade média. Ignorar importância explícita é uma decisão incorreta.
-3. Interação humana direta — quando não há urgência ou importância explícita
-4. Demais tarefas
-- NÃO infira urgência ou importância — devem estar explícitas no texto
-- Interação humana só sobe na hierarquia quando nenhuma urgência ou importância explícita existe
-- Desempate entre tarefas similares: prefira interação humana direta
-
-ISOLAMENTO DE TAREFAS (OBRIGATÓRIO):
-- Cada tarefa deve permanecer independente
-- NÃO mescle tarefas entre si
-- NÃO combine entidades de tarefas diferentes
-- NÃO crie ações híbridas
-- Exemplo válido: "responder email" + "falar com cliente" → "Responda o e-mail agora."
-- Exemplo inválido: "responder email" + "falar com cliente" → "Responda o e-mail do cliente."
-
-FIDELIDADE AO INPUT (OBRIGATÓRIA):
-- A ação deve ser derivada diretamente do input do usuário
-- NÃO introduza verbos ou ações que não estejam presentes no input
-- NÃO transforme tarefas em ações diferentes (ex: "conversar" → "ligar")
-- Exemplo correto: "conversar com cliente" → "Converse com o cliente"
-- Exemplo errado: "conversar com cliente" → "Ligue para o cliente"
-- Transforme, não invente
-
-JUSTIFICATIVA CONTEXTUAL (OBRIGATÓRIA):
-- Explicações devem ser específicas à situação, não descrições genéricas de categoria
-- NÃO explique categorias como "interação humana", "tarefa assíncrona", "tarefa de baixa prioridade"
-- Explique POR QUE esta tarefa importa neste contexto específico: tempo, consequência, dependência
-- Exemplo correto: "Responda o e-mail agora para evitar atraso acumulado."
-- Exemplo errado: "Tarefa assíncrona que pode esperar."
-
-LINGUAGEM NATURAL (OBRIGATÓRIO):
-- Evite estruturas de frase repetidas ou finalizações fixas
-- NÃO reutilize padrões como "impacto imediato", "sem prazo imediato", "sem consequência real"
-- Cada explicação deve soar natural e específica para a tarefa
-- Varie a estrutura das frases e o vocabulário
-- Evite linguagem previsível ou formulaica
-
-PRIORIDADE DE INTERAÇÃO HUMANA:
-- Tarefas que envolvem interação humana direta têm prioridade sobre tarefas assíncronas
-- Falar com uma pessoa > enviar um e-mail
-- Ligar para alguém > responder depois
-- Interação presencial > comunicação digital
-- Se uma tarefa envolve presença ou interação humana imediata, trate-a como mais urgente que tarefas digitais ou adiadas
-
-VARIAÇÃO DE RESPOSTA (OBRIGATÓRIA):
-- Quando o input for vago ou emocional, NÃO repita a mesma ação por padrão
-- Evite ações de fallback repetitivas (ex: caminhar, respirar)
-- Varie o tipo de ação — escolha a mais relevante para o contexto específico
-- Contextos similares NÃO exigem respostas idênticas
-
-ESTILO DE OUTPUT (OBRIGATÓRIO):
-- NUNCA descreva o usuário, a situação ou o que foi dito
-- NÃO use "o usuário", "você mencionou", "há uma necessidade de"
-- Outputs DEVEM ser imperativos e orientados à ação
-- PROIBIDO: modo observador — apenas ações diretas
-
-COBERTURA DE TAREFAS (OBRIGATÓRIA):
-- TODA tarefa mencionada pelo usuário DEVE aparecer no output
-- É permitido repriorizar tarefas
-- É permitido simplificar o texto da tarefa
-- NÃO é permitido remover ou ignorar qualquer tarefa
-- Redução de tarefas NÃO é permitida — apenas redução de prioridade
-
-ESTRUTURA DE PRIORIDADES (OBRIGATÓRIA):
-- Deve existir EXATAMENTE UMA tarefa de maior prioridade — retornar mais de uma é resposta incorreta
-- Se múltiplas tarefas parecerem igualmente importantes: você DEVE desempatar, escolher apenas UMA e rebaixar as demais
-- Cada nível deve conter UM item; múltiplos itens no mesmo nível só são permitidos se absolutamente inevitável
-- Você não está listando tarefas — você está forçando uma única próxima ação`;
-
-type HistoryItem = { input_summary: string; primary_action: string };
-
-export async function aiOrchestrator(input: string, history?: HistoryItem[], plan: 'free' | 'pro' = 'free'): Promise<AnalysisResult> {
-  const contextMemory = history?.length
-    ? `\nCONTEXT MEMORY (uso interno — NÃO mencione ao usuário):
-O usuário fez decisões similares recentemente:
-${history.map(h => `* "${h.input_summary}" → ${h.primary_action}`).join('\n')}
-Mantenha consistência com decisões anteriores quando o contexto for similar.
-Se o contexto atual trouxer diferenças relevantes, priorize o contexto atual.`
-    : '';
-
-  const systemInstructions = plan === 'pro' ? PRO_SYSTEM : FREE_SYSTEM;
-
-  const prompt = `Responda exclusivamente em português do Brasil (pt-BR). É proibido usar qualquer palavra em inglês.
-
-${systemInstructions}
-
-CRITÉRIOS DE PRIORIZAÇÃO:
-- alta: urgência temporal OU bloqueia outras tarefas OU impacto imediato irreversível
-- média: importante mas sem prazo imediato
-- baixa: pode esperar sem consequência real
-
-REGRAS OBRIGATÓRIAS:
-1. priorities: liste TODAS as tarefas analisadas, ordenadas por nível (alta → média → baixa).
-2. primary_action: derive SEMPRE de priorities[0].task — a tarefa de maior prioridade.
-3. primary_action deve ser uma frase imperativa, direta e concisa com ação clara E razão contextual embutida.
-   - Formato: "[verbo imperativo] [tarefa] [motivo contextual breve]"
-   - Exemplo correto: "Pague a fatura do cartão agora pois vence hoje e evita multa."
-   - Exemplo errado: "Pague a fatura do cartão"
-4. NÃO inclua sequências como "depois", "em seguida" ou vírgulas separando ações em primary_action.
-5. Tom: assertivo e decisivo. Use verbos no imperativo. Proibido: "talvez", "pode ser", "recomendo", "considere", "seria ideal". Nunca hesite.
-6. Seja estritamente objetivo. NÃO invente consequências específicas que não estejam no texto do usuário. Toda justificativa deve derivar apenas do que foi dito.
-
-FORMATO DE SAÍDA (JSON ESTRITO):
-{
-"primary_action": "string",
-"reason": "string",
-"priorities": [
-  {
-    "task": "string",
-    "level": "alta | média | baixa",
-    "reason": "string"
+function selectPromptBuilder(plan: Plan) {
+  switch (plan) {
+    case 'pro':        return buildProPrompt;
+    case 'enterprise': return buildEnterprisePrompt;
+    case 'free':
+    default:           return buildFreePrompt;
   }
-]
 }
 
-ENTRADA DO USUÁRIO:
-${input}${contextMemory}`;
+export async function aiOrchestrator(
+  input: string,
+  history?: HistoryItem[],
+  plan: Plan = 'free'
+): Promise<AnalysisResult> {
+  // Overload Mode
+  if (isOverloadInput(input)) {
+    return plan === 'free' ? buildOverloadResponseFree() : buildOverloadResponse();
+  }
+
+  // Gate history server-side: FREE never receives context memory
+  const safeHistory = plan === 'free' ? undefined : history;
+
+  const buildPrompt = selectPromptBuilder(plan);
+  const prompt = buildPrompt(input, safeHistory);
 
   for (const model of LOCAL_MODELS) {
     try {

@@ -95,13 +95,27 @@ export default function ProfileMenu({ activeContext, onContextChange }: ProfileM
 
       {open && (
         <div className="context-switcher-menu">
+          <div className="context-switcher-item" style={{ pointerEvents: 'none', paddingBottom: '0.25rem' }}>
+            <span style={{ fontSize: '0.75rem', opacity: 0.5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Plano atual</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+              <span style={{ fontWeight: 700, color: isPro ? '#818cf8' : 'white' }}>{isPro ? 'PRO' : 'FREE'}</span>
+              {!isPro && (
+                <Link href="/limite" style={{ fontSize: '0.75rem', color: 'var(--primary)', textDecoration: 'none', fontWeight: 600 }}>
+                  Upgrade
+                </Link>
+              )}
+            </div>
+          </div>
+          
+          <div className="context-switcher-divider" />
+
           <Link
             href="/minha-conta"
             className="context-switcher-item"
             style={{ textDecoration: 'none' }}
             onClick={() => setOpen(false)}
           >
-            Minha conta
+            Configurações da conta
           </Link>
 
           <div className="context-switcher-divider" />

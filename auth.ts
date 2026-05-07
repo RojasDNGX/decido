@@ -1,6 +1,6 @@
 import NextAuth from 'next-auth';
 import Google from 'next-auth/providers/google';
-import { getOrCreateUser } from '@/lib/users-db';
+import { getOrCreateUser, getUserPlan } from '@/lib/users-db';
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
@@ -9,16 +9,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     }),
   ],
+  trustHost: true,
+  debug: true,
   callbacks: {
     async jwt({ token, user }) {
       const email = user?.email ?? (token.email as string | undefined);
       if (email) {
-        const dbUser = getOrCreateUser(
+        getOrCreateUser(
           email,
           user?.name ?? undefined,
           user?.image ?? undefined
         );
-        token.plan = dbUser.plan;
+        token.plan = getUserPlan(email);
       }
       return token;
     },

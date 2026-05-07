@@ -248,7 +248,41 @@ export default function LandingClient() {
           </div>
         </section>
 
-        {/* 5. Differentiation Section */}
+        {/* 5. PRO Comparison Section */}
+        <section className="landing-section" style={{ background: 'rgba(99, 102, 241, 0.02)', borderTop: '1px solid var(--glass-border)', borderBottom: '1px solid var(--glass-border)' }}>
+          <div className="landing-container" style={{ maxWidth: '1000px', textAlign: 'center' }}>
+            <h2 className="landing-h1" style={{ fontSize: '3rem', marginBottom: '1.5rem' }}>Pare de decidir tudo do zero.</h2>
+            <p className="landing-p" style={{ fontSize: '1.2rem', maxWidth: '730px', margin: '0 auto 4rem', opacity: 0.8 }}>
+              O Decido PRO acompanha seu dia. Ele não apenas organiza — ele continua com você ao longo do dia.
+            </p>
+
+            <div className="mobile-stack" style={{ display: 'flex', gap: '2rem', justifyContent: 'center', alignItems: 'stretch' }}>
+              <div className="feature-card" style={{ flex: 1, textAlign: 'left', padding: '2.5rem', background: 'rgba(255,255,255,0.03)' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.1em' }}>FREE</span>
+                <h3 className="landing-h3" style={{ margin: '1rem 0', fontSize: '1.75rem' }}>Decisões baseadas no agora</h3>
+                <p className="landing-p" style={{ opacity: 0.6 }}>O assistente ajuda você a resolver o que é prioridade neste momento.</p>
+                <div style={{ marginTop: '2rem', fontSize: '2rem' }}>📋</div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', fontSize: '1.5rem', opacity: 0.2 }} className="mobile-hide">→</div>
+
+              <div className="feature-card" style={{ flex: 1, textAlign: 'left', padding: '2.5rem', background: 'rgba(99, 102, 241, 0.05)', border: '1px solid rgba(99, 102, 241, 0.2)' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#818cf8', textTransform: 'uppercase', letterSpacing: '0.1em' }}>PRO</span>
+                <h3 className="landing-h3" style={{ margin: '1rem 0', fontSize: '1.75rem', color: 'white' }}>Você decide com contexto</h3>
+                <p className="landing-p" style={{ color: '#94a3b8' }}>O Decido acompanha seu progresso e continua de onde parou.</p>
+                <div style={{ marginTop: '2rem', fontSize: '2rem' }}>✨</div>
+              </div>
+            </div>
+
+            <div style={{ marginTop: '4rem' }}>
+              <Link href="/limite" style={{ display: 'inline-block', padding: '1.2rem 3.5rem', background: 'var(--primary)', color: 'white', borderRadius: '1rem', textDecoration: 'none', fontWeight: '800', fontSize: '1.1rem', boxShadow: '0 10px 25px rgba(59, 130, 246, 0.3)' }}>
+                Começar com PRO
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* 6. Differentiation Section */}
         <section className="landing-section" style={{ textAlign: 'center' }}>
           <div className="landing-container" style={{ maxWidth: '1000px' }}>
             <h2 className="landing-h1" style={{ fontSize: 'clamp(2rem, 6vw, 3.5rem)' }}>Não é mais um App de Tarefas.</h2>
@@ -259,7 +293,7 @@ export default function LandingClient() {
           </div>
         </section>
 
-        {/* 6. Final CTA */}
+        {/* 7. Final CTA */}
         <section className="landing-section" style={{ paddingBottom: '8rem' }}>
           <div style={{ background: 'linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%)', padding: '4rem 2rem', borderRadius: '3rem', maxWidth: '1000px', width: '100%', textAlign: 'center', boxShadow: '0 30px 60px rgba(37, 99, 235, 0.2)' }}>
             <h2 className="landing-h2" style={{ color: 'white', marginBottom: '2rem' }}>Chega de perder tempo decidindo.<br/>Comece a fazer.</h2>

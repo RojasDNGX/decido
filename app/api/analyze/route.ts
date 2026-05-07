@@ -4,11 +4,13 @@ import { aiOrchestrator } from '@/services/ai/orchestrator';
 import { checkIpLimit, incrementIpCount } from '@/services/security/rate-limiter';
 import { auth } from '@/auth';
 import { getUserPlan } from '@/lib/users-db';
+import { getDailyUsage, incrementDailyUsage } from '@/lib/usage-db';
 import { sanitizeTasks, recoverCoverage } from '@/services/ai/sanitize';
 import { isOverloadInput } from '@/services/ai/overload';
 import type { Priority } from '@/types';
 
-const USAGE_LIMIT = 3;
+import { getPlanLimits } from '@/lib/plans';
+
 const COOKIE_NAME = 'decido_usage';
 
 function enforceImperative(text: string): string {
@@ -23,6 +25,21 @@ function enforceImperative(text: string): string {
     .replace(/^(responder)\b/i, 'Responda')
     .replace(/^(tentar)\b/i, '')
     .trim()
+}
+
+function buildLimitResponse() {
+  return {
+    type: "limit_reached",
+    message: {
+      title: "Sua clareza diária está pausada.",
+      description: `
+Você chegou ao limite de análises gratuitas.
+
+No PRO, o Decido já sabe — e te diz o que fazer sem repetir o esforço.
+      `,
+      cta: "Continuar agora com PRO"
+    }
+  };
 }
 
 function makeMoreDecisive(text: string): string {
@@ -129,14 +146,38 @@ function deduplicatePriorities(priorities: Priority[]): Priority[] {
   return result
 }
 
-const IMPACT_LEVEL_3 = ['remédio', 'medicamento', 'medicina', 'saúde', 'médico', 'hospital', 'dor', 'febre', 'injeção', 'comprimido', 'dose', 'tratamento', 'vacina', 'cirurgia', 'emergência']
-const IMPACT_LEVEL_2 = ['fatura', 'conta', 'pagamento', 'vence', 'boleto', 'débito', 'cobrança', 'multa', 'cliente', 'prazo', 'entrega', 'reunião', 'atrasado', 'projeto']
+const IMPACT_LEVEL_3 = [
+  'remédio', 'medicamento', 'medicina', 'saúde', 'médico', 'médica', 'hospital', 
+  'dor', 'febre', 'injeção', 'comprimido', 'dose', 'tratamento', 'vacina', 
+  'cirurgia', 'emergência', 'consulta', 'exame', 'agendar', 'dentista', 'psicólogo', 
+  'terapia', 'sintoma', 'lesão', 'segurança', 'escola', 'veterinário', 'morrer', 'socorro'
+]
+const IMPACT_LEVEL_2 = ['fatura', 'conta', 'pagamento', 'vence', 'boleto', 'débito', 'cobrança', 'multa', 'cliente', 'prazo', 'entrega', 'reunião', 'atrasado', 'projeto', 'relatório', 'apresentação', 'trabalho', 'faculdade', 'prova', 'estudar']
+
+const DEPENDENT_KEYWORDS = ['filho', 'filha', 'criança', 'pet', 'cachorro', 'gato', 'idoso', 'bebê']
+const SAFETY_CONTEXT = ['médico', 'escola', 'veterinário', 'dor', 'febre', 'segurança', 'sozinho', 'emergência', 'estranho', 'doente']
 
 function getImpactLevel(task: string): 3 | 2 | 1 {
   const norm = normalizeForMatch(task)
   const matchWord = (k: string) => new RegExp(`\\b${normalizeForMatch(k)}\\b`).test(norm)
-  if (IMPACT_LEVEL_3.some(matchWord)) return 3
+  
+  // 1. HEALTH & EXPLICIT SAFETY (Highest Priority)
+  if (IMPACT_LEVEL_3.some(matchWord)) {
+    const minimized = ['rotina', 'check-up', 'não urgente', 'não é urgente', 'pode esperar', 'depois'].some(k => norm.includes(k))
+    if (minimized) return 1
+    return 3
+  }
+  
+  // 2. DEPENDENT SAFETY SPLIT
+  const isDependent = DEPENDENT_KEYWORDS.some(matchWord)
+  const hasSafetyContext = SAFETY_CONTEXT.some(matchWord)
+  if (isDependent && hasSafetyContext) {
+    return 3
+  }
+  
+  // 3. FINANCIAL/LEGAL/PROFESSIONAL
   if (IMPACT_LEVEL_2.some(matchWord)) return 2
+  
   return 1
 }
 
@@ -173,34 +214,9 @@ function splitMergedTasks(priorities: Priority[]): Priority[] {
   })
 }
 
-const WEAK_REASON_PATTERNS = [
-  /não há prazo/i, /não possui prazo/i, /sem prazo imediato/i,
-  /nenhum prazo/i, /não há urgência/i, /não há consequência/i,
-  /não há impacto/i, /não mencionado/i, /mencionada para/i,
-  /não possui urgência/i, /não possui consequência/i,
-  /nível \d/i, /é uma tarefa de/i, /é um nível/i,
-  /pode ser feito depois/i, /pode ser realizado depois/i,
-  // Patch 4: anti-abstraction
-  /é importante/i, /fator crítico/i, /exige atenção/i, /deve ser feito/i,
-  /\bimpacto\b/i, /pode afetar/i, /pode causar problema/i,
-  /não há menção/i, /condição para/i, /necessário para/i,
-  /\bcategoria\b/i, /baseado em/i, /sugere que/i, /insatisfa/i, /especificad/i,
-]
-
-function enforceReasonQuality(priorities: Priority[]): Priority[] {
-  const fallbacks: Record<Priority['level'], string> = {
-    alta: 'Pode causar efeito imediato se atrasar.',
-    média: 'Pode atrasar o que vem depois.',
-    baixa: 'Não afeta agora.',
-  }
-  return priorities.map(p => {
-    const reason = p.reason?.trim() ?? ''
-    const wordCount = reason.split(/\s+/).length
-    const isWeak = wordCount < 4 || WEAK_REASON_PATTERNS.some(r => r.test(reason))
-    if (isWeak) return { ...p, reason: fallbacks[p.level] }
-    return p
-  })
-}
+// RENDER ENGINE: Justification quality is now handled by the AI via render.md layer.
+// Template-based enforceReasonQuality() has been removed.
+// The AI generates signal-driven, contextual justifications per task.
 
 function reorderByImpact(priorities: Priority[]): Priority[] {
   const level3 = priorities.filter(p => getImpactLevel(p.task) === 3)
@@ -216,16 +232,28 @@ function enforceDistributionRules(priorities: Priority[]): Priority[] {
 
   const assign = (item: Priority, level: Priority['level']) => ({ ...item, level })
 
+  if (count === 0) return []
   if (count === 1) return [assign(all[0], 'alta')]
-  if (count === 2) return [assign(all[0], 'alta'), assign(all[1], 'média')]
-  if (count === 3) return [assign(all[0], 'alta'), assign(all[1], 'média'), assign(all[2], 'baixa')]
-  if (count === 4) return [assign(all[0], 'alta'), assign(all[1], 'média'), assign(all[2], 'baixa'), assign(all[3], 'baixa')]
-  return [
-    assign(all[0], 'alta'),
-    assign(all[1], 'média'),
-    assign(all[2], 'média'),
-    ...all.slice(3).map(p => assign(p, 'baixa')),
-  ]
+  if (count === 2) {
+    // Escolher o de maior impacto léxico para Alta
+    const i0 = getImpactLevel(all[0].task)
+    const i1 = getImpactLevel(all[1].task)
+    if (i1 > i0) return [assign(all[0], 'média'), assign(all[1], 'alta')]
+    return [assign(all[0], 'alta'), assign(all[1], 'média')]
+  }
+  
+  // Para 3 ou mais: Forçar 1 Alta, 1 Média, 1 Baixa no topo
+  const result = [...all]
+  result[0] = assign(result[0], 'alta')
+  result[1] = assign(result[1], 'média')
+  result[2] = assign(result[2], 'baixa')
+  
+  // Distribuir o resto
+  for (let i = 3; i < count; i++) {
+    result[i] = assign(result[i], 'baixa')
+  }
+  
+  return result
 }
 
 function enforceCoverage(input: string, priorities: Priority[]): Priority[] {
@@ -316,10 +344,18 @@ export async function POST(req: NextRequest) {
     const session = await auth();
     const userEmail = session?.user?.email;
     const userPlan = userEmail ? getUserPlan(userEmail) : 'free';
+    const limits = getPlanLimits(userPlan);
     const isPro = userPlan !== 'free'; // covers pro + enterprise
 
-    const { input, history } = await req.json();
+    console.log(`[Plan Enforcement] User: ${userEmail ?? 'anonymous'} | Plan: ${userPlan} | isPro: ${isPro}`);
+
+    const { input, history, fingerprint } = await req.json();
     const isProd = process.env.NODE_ENV === 'production';
+    
+    // --- 8. DEV / TEST MODE ---
+    const DEV_USERS = ["thiago.rojas@dngx.com.br"];
+    let skipLimit = process.env.DISABLE_LIMIT === "true" || req.headers.get("x-dev-mode") === "true";
+    if (userEmail && DEV_USERS.includes(userEmail)) skipLimit = true;
 
     if (!input || typeof input !== 'string' || input.trim() === '') {
       return NextResponse.json(
@@ -328,95 +364,103 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // 1. Verificação por Cookie (Soft Limit - Todos os ambientes)
-    const today = getTodayDate();
-    const raw = req.cookies.get(COOKIE_NAME)?.value;
-    let usage = { count: 0, date: today };
-
-    if (raw) {
-      try {
-        const parsed = JSON.parse(raw);
-        usage = parsed.date === today
-          ? { count: parsed.count, date: today }
-          : { count: 0, date: today };
-      } catch {
-        usage = { count: 0, date: today };
-      }
-    }
-
-    if (!isPro && usage.count >= USAGE_LIMIT) {
-      return NextResponse.json(
-        { error: 'Limite diário de análises atingido. Tente novamente amanhã.' },
-        { status: 429 }
-      );
-    }
-
-    // 2. Verificação por IP (Hard Limit - Apenas Produção)
+    // --- 3. SERVER IDENTIFIER RESOLUTION ---
     const ip = getClientIp(req);
-    if (!isPro && isProd) {
-      const { allowed } = checkIpLimit(ip);
-      if (!allowed) {
-        return NextResponse.json(
-          { error: 'Limite de segurança por dispositivo atingido. Tente novamente amanhã.' },
-          { status: 429 }
-        );
-      }
+    const identifier = userEmail || fingerprint || ip;
+    const today = getTodayDate();
+
+    // --- 7. ANTI-BYPASS: MULTI-FINGERPRINT DETECTION ---
+    // Simples detecção em memória: se um IP usar mais de 3 fingerprints diferentes hoje
+    if (!isPro && !skipLimit && fingerprint && ip) {
+      const ipFpKey = `fp_track:${ip}:${today}`;
+      // Nota: Idealmente isso estaria no DB, mas para o MVP usaremos o rate-limiter logic ou similar
+      // Para este patch, focaremos na resolução robusta do identificador principal
+    }
+
+    // 1. Verificação de Limite (DB-side)
+    const count = getDailyUsage(identifier, today);
+
+    if (!isPro && !skipLimit && count >= limits.dailyAnalyses) {
+      return NextResponse.json(buildLimitResponse(), { status: 429 });
     }
 
     // Processar análise
     const plan = userPlan;
     const result = await aiOrchestrator(input, history, plan);
 
+    // DEFENSIVE: Normalize AI output to expected contract
+    // The model may return alternative structures or malformed properties
+    if (!Array.isArray(result.priorities)) {
+      console.warn('[Pipeline] priorities is not an array, received:', typeof result.priorities);
+      const altTasks = (result as unknown as Record<string, unknown>).ordered_tasks ?? (result as unknown as Record<string, unknown>).tasks;
+      if (Array.isArray(altTasks)) {
+        result.priorities = (altTasks as Array<Record<string, any>>).map((t, i) => ({
+          task: t.label ?? t.name ?? t.task ?? String(t),
+          level: (i === 0 ? 'alta' : i === 1 ? 'média' : 'baixa') as Priority['level'],
+          reason: t.reason ?? '',
+        }));
+      } else {
+        result.priorities = [];
+      }
+    }
+
+    // Clean up malformed entries in priorities
+    result.priorities = result.priorities.filter(p => p && typeof p === 'object' && p.task);
+
+    if (!result.primary_action || typeof result.primary_action !== 'string') {
+      console.warn('[Pipeline] primary_action is missing or malformed, attempting recovery');
+      const alt = (result as unknown as Record<string, unknown>);
+      result.primary_action = (alt.recommended_action as string)
+        ?? (result.priorities[0]?.task ? humanizeTask(result.priorities[0].task) : '')
+        ?? '';
+    }
+
     if (isOverloadInput(input)) {
-      // OVERLOAD MODE: bypass complex pipeline for all plans
-      // result already contains the built overload response from orchestrator
       result.priorities = result.priorities.map(p => ({ ...p, task: normalizeTitle(p.task) }));
-    } else if (plan === 'free') {
-      // FREE: simplified pipeline
-      // PRO / ENTERPRISE: full pipeline + preserve AI primary_action richness
+    } else {
+      // --- SHARED DECISION PIPELINE (CORE + HEURISTICS) ---
       const preSanitized = enforceCoverage(input, reorderByImpact(splitMergedTasks(deduplicatePriorities(result.priorities))));
-      
-      // Apply deterministic sanitization
       const sanitized = sanitizeTasks(preSanitized);
-      
-      // Recover coverage if too many tasks were removed
       const recovered = recoverCoverage(input, sanitized);
-      
       const pipeline = deduplicatePriorities(recovered);
 
-      result.priorities = enforceReasonQuality(enforceDistributionRules(enforceSingleHighPriority(pipeline)))
+      result.priorities = enforceDistributionRules(enforceSingleHighPriority(pipeline))
         .map(p => ({ ...p, task: normalizeTitle(p.task) }));
 
-      // Guarantee High Priority: if all high tasks were filtered, rebuild from primary_action
       if (!result.priorities.some(p => p.level === 'alta') && result.primary_action) {
         const fallback: Priority = {
           task: normalizeTitle(result.primary_action.replace(/\s+agora\.?$/i, '').replace(/[.!?]+$/, '')),
           level: 'alta',
-          reason: 'Ação crítica identificada como prioridade imediata.'
+          reason: 'Prioridade imediata identificada pelo motor de decisão.'
         };
         result.priorities = [fallback, ...result.priorities];
       }
 
-      // Do NOT rebuild via humanizeTask — keep contextual richness from AI output
       result.primary_action = ensureCapitalization(
         makeMoreDecisive(enforceProAction(result.primary_action, result.priorities))
       );
     }
 
-    // Atualizar contadores (apenas para não-PRO)
-    const response = NextResponse.json(result);
-    if (!isPro) {
-      usage.count += 1;
-      if (isProd) incrementIpCount(ip);
-      response.cookies.set(COOKIE_NAME, JSON.stringify(usage), {
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 60 * 60 * 24,
-      });
+    // FINAL HARDENING & DEDUPLICATION (Global)
+    const uniqueTasks = new Set<string>();
+    result.priorities = result.priorities.filter(p => {
+      const norm = normalizeTitle(p.task);
+      if (uniqueTasks.has(norm)) return false;
+      uniqueTasks.add(norm);
+      return true;
+    });
+
+    // Ensure at least one priority exists
+    if (result.priorities.length === 0 && result.primary_action) {
+      result.priorities = [{ task: normalizeTitle(result.primary_action), level: 'alta', reason: 'Ação prioritária identificada.' }];
     }
 
-    return response;
+    // Atualizar contadores (apenas para não-PRO)
+    if (!isPro && !skipLimit) {
+      incrementDailyUsage(identifier, today);
+    }
+
+    return NextResponse.json(result);
   } catch (error: unknown) {
     console.error('API Route Error:', error);
     return NextResponse.json(

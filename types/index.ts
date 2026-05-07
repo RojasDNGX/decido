@@ -1,4 +1,6 @@
 
+export type Plan = 'free' | 'pro' | 'enterprise';
+
 export interface Task {
   name: string;
   priority: 'high' | 'medium' | 'low';

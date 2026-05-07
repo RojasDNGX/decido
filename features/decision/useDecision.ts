@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnalysisResult } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
-import { isLimitReached, incrementUsageCount, saveDecision, getCompactHistory } from '@/services/storage/storage';
+import { isLimitReached, incrementUsageCount, saveDecision, getCompactHistory, getOrCreateFingerprint } from '@/services/storage/storage';
 
 export function useDecision(userId: string) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState<any | null>(null);
 
   const analyze = async (
     input: string,
     isRefinementMode: boolean,
+    isPro: boolean,
     onSuccess?: () => void,
   ): Promise<void> => {
     if (!input.trim()) {
@@ -25,8 +27,11 @@ export function useDecision(userId: string) {
     }
     setLoading(true);
     setError(null);
+    setLimitReached(null);
 
     const attemptId = `${userId}-${Date.now()}`;
+    const fingerprint = getOrCreateFingerprint();
+    
     logEvent('analyze_started', userId, {
       attempt_id: attemptId,
       input_length: input.length,
@@ -38,11 +43,27 @@ export function useDecision(userId: string) {
       const response = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input, ...(history.length ? { history } : {}) }),
+        body: JSON.stringify({ 
+          input, 
+          fingerprint,
+          ...(history.length ? { history } : {}) 
+        }),
       });
 
-      if (response.status === 429 || response.status === 403) {
-        logEvent('limit_reached', userId, { attempt_id: attemptId });
+      if (response.status === 429) {
+        const data = await response.json();
+        if (data.type === 'limit_reached') {
+          setLimitReached(data.message);
+          logEvent('limit_reached_screen', userId, { attempt_id: attemptId });
+          return;
+        }
+        logEvent('limit_reached_generic', userId, { attempt_id: attemptId });
+        router.push('/limite');
+        return;
+      }
+
+      if (response.status === 403) {
+        logEvent('access_denied', userId, { attempt_id: attemptId });
         router.push('/limite');
         return;
       }
@@ -54,7 +75,9 @@ export function useDecision(userId: string) {
 
       const data: AnalysisResult = await response.json();
       setResult(data);
-      saveDecision({ input, output: data });
+      if (isPro) {
+        saveDecision({ input, output: data });
+      }
 
       let usageCount: number | undefined;
       if (!isRefinementMode) {
@@ -80,5 +103,5 @@ export function useDecision(userId: string) {
     }
   };
 
-  return { analyze, loading, result, setResult, error, setError };
+  return { analyze, loading, result, setResult, error, setError, limitReached, setLimitReached };
 }

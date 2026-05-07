@@ -11,10 +11,8 @@
  * All intelligence lives in services/ai/prompts/{plan}.ts
  */
 
-import { AnalysisResult } from '@/types';
-import { buildPrompt as buildFreePrompt } from './prompts/free';
-import { buildPrompt as buildProPrompt } from './prompts/pro';
-import { buildPrompt as buildEnterprisePrompt } from './prompts/enterprise';
+import { AnalysisResult, Plan } from '@/types';
+import { buildLayeredPrompt } from './prompts/builder';
 import { isOverloadInput, buildOverloadResponse, buildOverloadResponseFree } from './overload';
 
 const OLLAMA_URL = 'http://10.10.0.9:11434/api/generate';
@@ -26,7 +24,6 @@ const LOCAL_MODELS = [
   'phi4:14b'
 ];
 
-type Plan = 'free' | 'pro' | 'enterprise';
 type HistoryItem = { input_summary: string; primary_action: string };
 
 async function tryOllama(model: string, prompt: string): Promise<AnalysisResult> {
@@ -164,30 +161,17 @@ function validatePrimaryAction(action: string): boolean {
   return true;
 }
 
-function selectPromptBuilder(plan: Plan) {
-  switch (plan) {
-    case 'pro':        return buildProPrompt;
-    case 'enterprise': return buildEnterprisePrompt;
-    case 'free':
-    default:           return buildFreePrompt;
-  }
-}
+
 
 export async function aiOrchestrator(
   input: string,
   history?: HistoryItem[],
   plan: Plan = 'free'
 ): Promise<AnalysisResult> {
-  // Overload Mode
-  if (isOverloadInput(input)) {
-    return plan === 'free' ? buildOverloadResponseFree() : buildOverloadResponse();
-  }
-
   // Gate history server-side: FREE never receives context memory
   const safeHistory = plan === 'free' ? undefined : history;
 
-  const buildPrompt = selectPromptBuilder(plan);
-  const prompt = buildPrompt(input, safeHistory);
+  const prompt = buildLayeredPrompt(plan, input, safeHistory);
 
   for (const model of LOCAL_MODELS) {
     try {

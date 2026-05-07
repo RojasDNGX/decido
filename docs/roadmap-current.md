@@ -1,53 +1,97 @@
-# ROADMAP CURRENT (DECIDO)
+# DECIDO — ROADMAP WEEK 15 (PRO PLAN & MONETIZATION)
 
 Status: [ ]
 
+## 🧱 PHASE 1 — PLAN STRUCTURE
 
-## ⚠️ EXECUTION MODEL
-
-This roadmap is NOT a task list.
-
-It is a **decision and validation guide**.
-
-Execution happens through:
-
-* small, targeted implementations
-* direct user instructions
-* runtime validation
-
-The agent MUST NOT:
-
-* execute phases autonomously
-* assume linear progression
-
-The agent MAY:
-
-* assist when explicitly requested
-* implement isolated steps
-* support validation and analysis
+* [x] Define plan types:
+  * FREE
+  * PRO
+* [x] Ensure plan detection is consistent across app
+* [x] Validate feature gating (history, intelligence layers)
 
 ---
 
-## ✅ VALIDATION CHECKPOINT
+## 🟣 PHASE 2 — LANDING PAGE (CORE CONVERSION)
 
-This sprint is only complete if:
+* [x] Create PRO section on landing page
 
-* [ ] Insight Layer is implemented
-* [ ] `decidoInsights()` returns valid data
-* [ ] Metrics reflect real usage behavior
-* [ ] No inconsistencies detected in event flow
+### Content:
 
-If any item fails:
-
-→ Sprint is NOT complete
+* headline
+* value proposition
+* experience comparison (FREE vs PRO)
+* CTA
 
 ---
 
-## 🧭 EXECUTION RULE
+## 🔴 PHASE 3 — LIMIT TRIGGER (CRITICAL)
 
-If resuming after pause:
+* [x] Implement limit detection for FREE usage
+* [x] Create conversion screen (NOT generic)
 
-1. Run `decidoInsights()`
-2. Observe metrics
-3. Identify anomalies or patterns
-4. Decide next action BEFORE implementing anything
+### Must include:
+
+* contextual value explanation
+* friction awareness
+* clear upgrade CTA
+
+---
+
+## 🟡 PHASE 4 — IN-PRODUCT UPSELL
+
+* [x] Add subtle PRO signals inside experience
+
+Examples:
+
+* context hints
+* memory hints
+* intelligence hints
+
+---
+
+## 🧠 PHASE 5 — VALUE EXPOSURE
+
+* [x] Ensure PRO value appears BEFORE paywall
+* [x] Highlight difference in behavior (not features)
+
+---
+
+## ⚙️ PHASE 6 — ACCOUNT & PLAN UI
+
+* [ ] Display current plan
+* [ ] Add upgrade action
+* [ ] Show PRO benefits summary
+
+---
+
+## 💰 PHASE 7 — PAYWALL STRUCTURE
+
+* [ ] Implement upgrade flow
+* [ ] Define pricing placeholder
+* [ ] Ensure clean UX (no friction)
+
+---
+
+## 🧪 PHASE 8 — CONVERSION VALIDATION
+
+* [ ] Simulate FREE → PRO journey
+* [ ] Validate upgrade clarity
+* [ ] Validate perceived value
+
+---
+
+## 🎯 FINAL GOAL
+
+User must feel:
+
+→ FREE works
+→ PRO is necessary
+
+---
+
+## 🚨 SUCCESS CRITERIA
+
+* [ ] Clear difference perceived
+* [ ] Upgrade moment feels natural
+* [ ] No confusion in plan value

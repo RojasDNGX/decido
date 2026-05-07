@@ -5,9 +5,25 @@ import { useSession, signIn } from 'next-auth/react';
 import { useState } from 'react';
 import ProfileMenu from '@/components/ProfileMenu';
 
+import { useRouter } from 'next/navigation';
+
 export default function LimitePage() {
-  const { data: session } = useSession();
+  const { data: session, update: updateSession } = useSession();
+  const router = useRouter();
   const [activeContext, setActiveContext] = useState('Você > pessoal');
+  const [loading, setLoading] = useState(false);
+  const [upgraded, setUpgraded] = useState(false);
+
+  const handleUpgrade = async () => {
+    setLoading(true);
+    // Simulação de checkout Stripe / Processamento
+    setTimeout(async () => {
+      // No mundo real, aqui chamaríamos uma API para atualizar o plano no DB
+      // Para o MVP, simularemos o sucesso
+      setUpgraded(true);
+      setLoading(false);
+    }, 1500);
+  };
 
   return (
     <main>
@@ -37,38 +53,86 @@ export default function LimitePage() {
           <p>Seu assistente inteligente de decisões</p>
         </header>
 
-        <div className="limit-reached-card" style={{ maxWidth: '100%' }}>
-          <span className="limit-reached-icon">🔒</span>
-          <h2>Limite atingido</h2>
-          <p style={{ maxWidth: '100%' }}>Você usou todas as análises do plano gratuito.</p>
-
-          {!session ? (
+        <div className="limit-reached-card" style={{ maxWidth: '500px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', textAlign: 'center', padding: '2rem', alignItems: 'center' }}>
+          {!upgraded ? (
             <>
-              <p className="limit-reached-sub" style={{ maxWidth: '100%' }}>
-                Entre com sua conta para continuar com acesso completo.
-              </p>
-              <button
-                onClick={() => signIn('google')}
-                style={{
-                  marginTop: '1.25rem',
-                  padding: '0.75rem 1.5rem',
-                  borderRadius: '0.75rem',
-                  border: 'none',
-                  background: 'rgba(99,102,241,0.15)',
-                  color: '#818cf8',
-                  fontWeight: 600,
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  transition: 'opacity 0.2s',
-                }}
-              >
-                Continue com acesso completo
-              </button>
+              <span className="limit-reached-icon">✨</span>
+              <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Continue de onde você parou</h2>
+              <p style={{ maxWidth: '100%', opacity: 0.8 }}>O Decido acompanha você ao longo do dia, sem precisar recomeçar.</p>
+
+              <div className="upgrade-card-experience" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'transparent', border: 'none', padding: 0 }}>
+                <div className="experience-comparison" style={{ marginTop: '1rem' }}>
+                  <div className="comparison-row" style={{ gap: '1rem', width: '100%', display: 'flex' }}>
+                    <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', width: '50%' }}>
+                      <p className="comparison-label">FREE</p>
+                      <ul className="experience-list" style={{ fontSize: '0.85rem' }}>
+                        <li>• decisões baseadas no agora</li>
+                        <li>• cada decisão começa do zero</li>
+                        <li>• limite diário</li>
+                      </ul>
+                    </div>
+                    <div className="comparison-divider" />
+                    <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', width: '50%' }}>
+                      <p className="comparison-label comparison-label--pro">PRO</p>
+                      <ul className="experience-list experience-list--pro" style={{ fontSize: '0.85rem' }}>
+                        <li>• o Decido continua com você</li>
+                        <li>• decisões com contexto acumulado</li>
+                        <li>• sem limite</li>
+                        <li>• menos esforço ao longo do dia</li>
+                      </ul>
+                    </div>
+                  </div>
+                  
+                  <div style={{ marginTop: '2rem', marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '1.5rem', fontWeight: 800 }}>R$19<span style={{ fontSize: '0.9rem', opacity: 0.6 }}>/mês</span></p>
+                  </div>
+
+                  {!session ? (
+                    <button 
+                      className="limit-modal-cta" 
+                      style={{ width: '100%' }}
+                      onClick={() => signIn('google', { callbackUrl: '/limite' })}
+                    >
+                      Entrar e continuar
+                    </button>
+                  ) : (
+                    <button 
+                      className="limit-modal-cta" 
+                      style={{ width: '100%' }}
+                      onClick={handleUpgrade}
+                      disabled={loading}
+                    >
+                      {loading ? 'Processando...' : 'Continuar com contexto'}
+                    </button>
+                  )}
+                  
+                  <button 
+                    className="clear-data-btn" 
+                    style={{ marginTop: '1rem', background: 'transparent', border: 'none', opacity: 0.6 }}
+                    onClick={() => router.push('/decidir')}
+                  >
+                    Voltar para o plano gratuito
+                  </button>
+                  
+                  <p style={{ fontSize: '0.75rem', marginTop: '1.5rem', opacity: 0.5 }}>
+                    Você pode cancelar a qualquer momento.
+                  </p>
+                </div>
+              </div>
             </>
           ) : (
-            <p className="limit-reached-sub" style={{ maxWidth: '100%' }}>
-              Tente novamente amanhã.
-            </p>
+            <div style={{ padding: '2rem 0' }}>
+              <span className="limit-reached-icon">🎉</span>
+              <h2 style={{ fontSize: '1.75rem', marginBottom: '1rem' }}>Agora o Decido continua com você</h2>
+              <p style={{ opacity: 0.8, marginBottom: '2rem' }}>Seu plano PRO está ativo. Suas próximas decisões terão todo o contexto acumulado.</p>
+              <button 
+                className="limit-modal-cta" 
+                onClick={() => window.location.href = '/decidir'}
+                style={{ width: '100%' }}
+              >
+                Começar a decidir
+              </button>
+            </div>
           )}
         </div>
       </div>

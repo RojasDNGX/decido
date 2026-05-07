@@ -24,3 +24,15 @@ export const OUTPUT_FORMAT = `FORMATO DE SAÍDA (JSON ESTRITO):
   }
 ]
 }`;
+
+export const HEALTH_POLICY = `POLÍTICA GLOBAL DE SEGURANÇA E SAÚDE (ESTRITA):
+1. DIVISÃO DE DEPENDENTES:
+   - SEGURANÇA (filho na escola, veterinário por doença/estranheza, emergência): Prioridade ALTA (#1).
+   - MANUTENÇÃO (banho, passear, ração, tosa, rotina): Prioridade NORMAL (conforme urgência real).
+2. PROIBIÇÃO DE ESCALAÇÃO DE DOMÍNIO:
+   - NUNCA invente recomendações médicas, saúde ou segurança a partir de estados emocionais ou cansaço.
+   - "Descansar" é uma pausa, NÃO é uma emergência de saúde.
+   - Interprete o tom, mas não crie novos domínios (médico, hospital, etc) se não citados explicitamente.
+3. LIMITE DE INFERÊNCIA:
+   - Só inferir saúde/vida se for semanticamente explícito. Na dúvida sobre pets/filhos, use MANUTENÇÃO.`;
+

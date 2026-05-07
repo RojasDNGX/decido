@@ -59,25 +59,25 @@ Examples:
 
 ## ⚙️ PHASE 6 — ACCOUNT & PLAN UI
 
-* [ ] Display current plan
-* [ ] Add upgrade action
-* [ ] Show PRO benefits summary
+* [x] Display current plan
+* [x] Add upgrade action
+* [x] Show PRO benefits summary
 
 ---
 
 ## 💰 PHASE 7 — PAYWALL STRUCTURE
 
-* [ ] Implement upgrade flow
-* [ ] Define pricing placeholder
-* [ ] Ensure clean UX (no friction)
+* [x] Implement upgrade flow
+* [x] Define pricing placeholder
+* [x] Ensure clean UX (no friction)
 
 ---
 
 ## 🧪 PHASE 8 — CONVERSION VALIDATION
 
-* [ ] Simulate FREE → PRO journey
-* [ ] Validate upgrade clarity
-* [ ] Validate perceived value
+* [x] Simulate FREE → PRO journey
+* [x] Validate upgrade clarity
+* [x] Validate perceived value
 
 ---
 
@@ -92,6 +92,6 @@ User must feel:
 
 ## 🚨 SUCCESS CRITERIA
 
-* [ ] Clear difference perceived
-* [ ] Upgrade moment feels natural
-* [ ] No confusion in plan value
+* [x] Clear difference perceived
+* [x] Upgrade moment feels natural
+* [x] No confusion in plan value

@@ -16,13 +16,24 @@ export default function LimitePage() {
 
   const handleUpgrade = async () => {
     setLoading(true);
-    // Simulação de checkout Stripe / Processamento
-    setTimeout(async () => {
-      // No mundo real, aqui chamaríamos uma API para atualizar o plano no DB
-      // Para o MVP, simularemos o sucesso
-      setUpgraded(true);
+    try {
+      const res = await fetch('/api/user/plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: 'pro' }),
+      });
+      
+      if (res.ok) {
+        await updateSession();
+        setUpgraded(true);
+      } else {
+        alert('Erro ao processar upgrade. Tente novamente.');
+      }
+    } catch (e) {
+      alert('Falha na conexão.');
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
   };
 
   return (
@@ -42,7 +53,7 @@ export default function LimitePage() {
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
           </Link>
           <Link href="/decidir" className="quick-action-btn" title="Voltar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
           </Link>
         </div>
       </header>
@@ -57,8 +68,8 @@ export default function LimitePage() {
           {!upgraded ? (
             <>
               <span className="limit-reached-icon">✨</span>
-              <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Continue de onde você parou</h2>
-              <p style={{ maxWidth: '100%', opacity: 0.8 }}>O Decido acompanha você ao longo do dia, sem precisar recomeçar.</p>
+              <h2 style={{ fontSize: '1.75rem', marginBottom: '0.5rem' }}>Decida com Inteligência Estratégica</h2>
+              <p style={{ maxWidth: '100%', opacity: 0.8 }}>O Decido PRO entende o porquê de cada tarefa e mantém seu contexto vivo.</p>
 
               <div className="upgrade-card-experience" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'transparent', border: 'none', padding: 0 }}>
                 <div className="experience-comparison" style={{ marginTop: '1rem' }}>
@@ -66,19 +77,19 @@ export default function LimitePage() {
                     <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', width: '50%' }}>
                       <p className="comparison-label">FREE</p>
                       <ul className="experience-list" style={{ fontSize: '0.85rem' }}>
-                        <li>• decisões baseadas no agora</li>
-                        <li>• cada decisão começa do zero</li>
-                        <li>• limite diário</li>
+                        <li>• Decisões isoladas</li>
+                        <li>• Limite diário</li>
+                        <li>• Sem contexto acumulado</li>
                       </ul>
                     </div>
                     <div className="comparison-divider" />
                     <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', width: '50%' }}>
                       <p className="comparison-label comparison-label--pro">PRO</p>
                       <ul className="experience-list experience-list--pro" style={{ fontSize: '0.85rem' }}>
-                        <li>• o Decido continua com você</li>
-                        <li>• decisões com contexto acumulado</li>
-                        <li>• sem limite</li>
-                        <li>• menos esforço ao longo do dia</li>
+                        <li>• Justificativas Estratégicas</li>
+                        <li>• Segurança Automática</li>
+                        <li>• Contexto acumulado</li>
+                        <li>• Sem limite diário</li>
                       </ul>
                     </div>
                   </div>
@@ -93,7 +104,7 @@ export default function LimitePage() {
                       style={{ width: '100%' }}
                       onClick={() => signIn('google', { callbackUrl: '/limite' })}
                     >
-                      Entrar e continuar
+                      Entrar para continuar
                     </button>
                   ) : (
                     <button 
@@ -102,7 +113,7 @@ export default function LimitePage() {
                       onClick={handleUpgrade}
                       disabled={loading}
                     >
-                      {loading ? 'Processando...' : 'Continuar com contexto'}
+                      {loading ? 'Processando...' : 'Fazer Upgrade para PRO'}
                     </button>
                   )}
                   

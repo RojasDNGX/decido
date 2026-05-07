@@ -1,6 +1,6 @@
 # DECIDO — AI LAYER REFACTOR (WEEK-15-REFORM)
 
-You are refactoring the AI architecture of Decido.
+Refactor the AI architecture of Decido.
 
 This is a structural refactor.
 

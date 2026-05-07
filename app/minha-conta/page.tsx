@@ -90,20 +90,21 @@ export default function MinhaContaPage() {
                 <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', width: '50%' }}>
                   <p className="comparison-label comparison-label--pro">PRO</p>
                   <ul className="experience-list experience-list--pro">
-                    <li>• o Decido continua com você</li>
-                    <li>• decisões com contexto acumulado</li>
-                    <li>• sem limite</li>
-                    <li>• menos esforço ao longo do dia</li>
+                    <li>• Estrategista: entenda o "porquê"</li>
+                    <li>• Políticas de Segurança Automáticas</li>
+                    <li>• Decisões com contexto acumulado</li>
+                    <li>• Sem limite diário</li>
+                    <li>• Decisões mais inteligentes e seguras</li>
                   </ul>
                 </div>
               </div>
               {plan === 'free' && (
                 <button 
                   className="limit-modal-cta" 
-                  style={{ marginTop: '1.5rem', width: '100%' }}
+                  style={{ marginTop: '2rem', width: '100%' }}
                   onClick={() => router.push('/limite')}
                 >
-                  Decidir com continuidade
+                  Fazer Upgrade para PRO
                 </button>
               )}
             </div>

@@ -29,10 +29,10 @@ export default function Home() {
   const isPro = session?.user?.plan === 'pro';
   const [userId] = useState<string>(() => typeof window !== 'undefined' ? getUserId() : '');
   const [input, setInput] = useState('');
-  const { analyze, loading, result, setResult, error, setError, limitReached, setLimitReached } = useDecision(userId);
+  const { analyze, loading, result, setResult, error, setError, limitReached, setLimitReached, conversionTrigger, setConversionTrigger } = useDecision(userId);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [usageCount, setUsageCount] = useState<number>(() => typeof window !== 'undefined' ? getUsageCount() : 0);
-  const [history, setHistory] = useState<Decision[]>(() => typeof window !== 'undefined' ? getDecisions() : []);
+  const [history, setHistory] = useState<Decision[]>([]);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
@@ -62,8 +62,41 @@ export default function Home() {
   const [activeContext, setActiveContext] = useState<string>(() =>
     typeof window !== 'undefined' ? (localStorage.getItem('decido_context') || 'Você') : 'Você'
   );
+  const [serverRemainingUsage, setServerRemainingUsage] = useState<number | null>(null);
+
+  useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const fp = getOrCreateFingerprint();
+        const res = await fetch('/api/usage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fingerprint: fp }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setServerRemainingUsage(data.remaining);
+        }
+
+        if (session?.user?.email) {
+          const histRes = await fetch('/api/history');
+          if (histRes.ok) {
+            const histData = await histRes.json();
+            setHistory(histData);
+          }
+        } else {
+          // Unauthenticated users (guests) do not have history as per Phase 2 constraints
+          setHistory([]);
+        }
+      } catch (e) {
+        console.warn('Failed to fetch data from server');
+      }
+    };
+    if (mounted) fetchUsage();
+  }, [mounted, result, userId, session?.user?.email]); // Atualiza no mount e após cada análise
+
   const isDecisionFocus = !!result && !isViewingHistory;
-  const reachedLimit = mounted && !isPro && isLimitReached();
+  const reachedLimit = mounted && !isPro && (serverRemainingUsage !== null ? serverRemainingUsage === 0 : isLimitReached());
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -108,6 +141,7 @@ export default function Home() {
       let url = shareUrl;
       if (!url) {
         const res = await fetch('/api/share', {
+
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result),
@@ -145,9 +179,16 @@ export default function Home() {
     }
   }, [tourStep]);
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     if (window.confirm('Tem certeza que deseja apagar todo o histórico de decisões?')) {
       clearData();
+      if (session?.user) {
+        try {
+          await fetch('/api/history', { method: 'DELETE' });
+        } catch (e) {
+          console.error('Failed to delete history on server', e);
+        }
+      }
       setHistory([]);
       setResult(null);
       setInput('');
@@ -510,15 +551,28 @@ export default function Home() {
 
             {reachedLimit && (
               <div className="error-message">
-                Suas decisões de hoje chegaram ao limite.{' '}
+                {session ? 'Suas decisões de hoje chegaram ao limite.' : 'Limite de convidado atingido.'}{' '}
                 <button
                   className="limit-link"
-                  onClick={() => router.push('/limite')}
+                  onClick={() => {
+                    setLimitReached({
+                      title: session ? "Sua clareza diária está pausada." : "Você atingiu o limite de convidado.",
+                      description: session 
+                        ? "Você chegou ao limite de análises gratuitas. No PRO, o Decido já sabe — e te diz o que fazer sem repetir o esforço."
+                        : "Para continuar decidindo hoje e salvar seu histórico com segurança, crie sua conta gratuita.",
+                      cta: session ? "Continuar agora com PRO" : "Criar conta gratuita",
+                      link: session ? "/limite" : "/auth/signup",
+                      secondary_cta: session ? null : "Ver planos PRO",
+                      secondary_link: session ? null : "/limite"
+                    });
+                    setShowUpgradeModal(true);
+                  }}
                 >
-                  Continuar com contexto
+                  {session ? 'Continuar com contexto' : 'Salvar histórico'}
                 </button>
               </div>
             )}
+
             {error && !reachedLimit && <div className="error-message">{error}</div>}
 
             {mounted && tourStep > 0 && <div className="tour-overlay" />}
@@ -848,21 +902,24 @@ No PRO, o Decido continua com você.
                 {mounted && !isPro && (
                   <div className="free-limit-indicator" onClick={() => {
                     setLimitReached({
-                      title: "Sua clareza diária está pausada.",
-                      description: `
-Você chegou ao limite de análises gratuitas por hoje.
-
-Algumas dessas decisões ainda podem evoluir com continuidade.
-
-No plano gratuito, cada decisão começa do zero.
-No PRO, o Decido continua com você.
-                      `,
-                      cta: "Continuar com contexto",
-                      secondaryCta: "Voltar depois"
+                      title: session ? "Sua clareza diária está pausada." : "Você atingiu o limite de convidado.",
+                      description: session 
+                        ? "Você chegou ao limite de análises gratuitas. No PRO, o Decido já sabe — e te diz o que fazer sem repetir o esforço."
+                        : "Para continuar decidindo hoje e salvar seu histórico com segurança, crie sua conta gratuita.",
+                      cta: session ? "Continuar agora com PRO" : "Criar conta gratuita",
+                      link: session ? "/limite" : "/auth/signup",
+                      secondary_cta: session ? null : "Ver planos PRO",
+                      secondary_link: session ? null : "/limite"
                     });
                     setShowUpgradeModal(true);
                   }}>
-                    <span>{getRemainingUsage() === 0 ? 'Suas decisões de hoje chegaram ao limite' : (getRemainingUsage() === 1 ? 'Você ainda pode decidir 1 vez hoje' : `Você ainda pode decidir ${getRemainingUsage()} vezes hoje`)}</span>
+                    <span>
+                      {serverRemainingUsage !== null 
+                        ? (serverRemainingUsage === 0 ? 'Suas decisões de hoje chegaram ao limite' : (serverRemainingUsage === 1 ? 'Você ainda pode decidir 1 vez hoje' : `Você ainda pode decidir ${serverRemainingUsage} vezes hoje`))
+                        : (getRemainingUsage() === 0 ? 'Suas decisões de hoje chegaram ao limite' : (getRemainingUsage() === 1 ? 'Você ainda pode decidir 1 vez hoje' : `Você ainda pode decidir ${getRemainingUsage()} vezes hoje`))
+                      }
+                    </span>
+
                     <span className="pro-upgrade-link">Ver planos</span>
                   </div>
                 )}
@@ -877,6 +934,7 @@ No PRO, o Decido continua com você.
               </div>
               {tourStep === 4 && renderTourPopover(4)}
             </footer>
+
         </>
 
 
@@ -886,25 +944,83 @@ No PRO, o Decido continua com você.
             <span className="limit-modal-icon">🔒</span>
             <h2>{limitReached.title}</h2>
             <p>{limitReached.description}</p>
-            <button
-              className="limit-modal-cta"
-              onClick={() => {
-                setLimitReached(null);
-                setShowUpgradeModal(false);
-                router.push('/limite');
-              }}
-            >
-              {limitReached.cta}
-            </button>
-            <button
-              className="limit-modal-secondary"
-              onClick={() => {
-                setLimitReached(null);
-                setShowUpgradeModal(false);
-              }}
-            >
-              Voltar depois
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+              <button
+                className="limit-modal-cta"
+                onClick={() => {
+                  const target = limitReached.link || '/limite';
+                  setLimitReached(null);
+                  setShowUpgradeModal(false);
+                  router.push(target);
+                }}
+              >
+                {limitReached.cta}
+              </button>
+              {limitReached.secondary_cta && (
+                <button
+                  className="limit-modal-secondary"
+                  style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'transparent' }}
+                  onClick={() => {
+                    const target = limitReached.secondary_link || '/limite';
+                    setLimitReached(null);
+                    setShowUpgradeModal(false);
+                    router.push(target);
+                  }}
+                >
+                  {limitReached.secondary_cta}
+                </button>
+              )}
+              <button
+                className="limit-modal-secondary"
+                onClick={() => {
+                  setLimitReached(null);
+                  setShowUpgradeModal(false);
+                }}
+              >
+                Voltar depois
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {conversionTrigger && (
+        <div className="limit-modal-overlay">
+          <div className="limit-modal">
+            <span className="limit-modal-icon">🎁</span>
+            <h2>{conversionTrigger.title}</h2>
+            <p>{conversionTrigger.description}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+              <button
+                className="limit-modal-cta"
+                onClick={() => {
+                  setConversionTrigger(null);
+                  router.push(conversionTrigger.link || '/auth/signup');
+                }}
+              >
+                {conversionTrigger.cta}
+              </button>
+              {conversionTrigger.secondary_cta && (
+                <button
+                  className="limit-modal-secondary"
+                  style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'transparent' }}
+                  onClick={() => {
+                    setConversionTrigger(null);
+                    router.push(conversionTrigger.secondary_link || '/limite');
+                  }}
+                >
+                  {conversionTrigger.secondary_cta}
+                </button>
+              )}
+              <button
+                className="limit-modal-secondary"
+                style={{ opacity: 0.6, fontSize: '0.85rem' }}
+                onClick={() => setConversionTrigger(null)}
+              >
+                Quero continuar Free
+              </button>
+
+            </div>
           </div>
         </div>
       )}

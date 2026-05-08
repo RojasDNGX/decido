@@ -1,97 +1,108 @@
-# DECIDO — ROADMAP WEEK 15 (PRO PLAN & MONETIZATION)
+# DECIDO — ROADMAP WEEK 16 (AUTH & IDENTITY HARDENING)
 
-Status: [ ]
+Status: [x]
 
-## 🧱 PHASE 1 — PLAN STRUCTURE
+## 🧱 PHASE 1 — IDENTITY ARCHITECTURE REFACTOR
 
-* [x] Define plan types:
-  * FREE
-  * PRO
-* [x] Ensure plan detection is consistent across app
-* [x] Validate feature gating (history, intelligence layers)
+* [x] Separate authentication from monetization logic
+* [x] Implement structured user roles: Guest, Authenticated FREE, Authenticated PRO
+* [x] Decouple login from automatic PRO status (Login = identity, Subscription = PRO)
 
 ---
 
-## 🟣 PHASE 2 — LANDING PAGE (CORE CONVERSION)
+## 🟣 PHASE 2 — GUEST EXPERIENCE GOVERNANCE
 
-* [x] Create PRO section on landing page
-
-### Content:
-
-* headline
-* value proposition
-* experience comparison (FREE vs PRO)
-* CTA
+* [x] Implement official Guest user flow with limited experience
+* [x] Set strict Guest limitations (no history, no easy resets)
+* [x] Implement server-side Guest quota (IP/Fingerprint based)
+* [x] Add clear CTA for free account creation
 
 ---
 
-## 🔴 PHASE 3 — LIMIT TRIGGER (CRITICAL)
+## 🟢 PHASE 3 — AUTHENTICATED FREE PLAN
 
-* [x] Implement limit detection for FREE usage
-* [x] Create conversion screen (NOT generic)
-
-### Must include:
-
-* contextual value explanation
-* friction awareness
-* clear upgrade CTA
+* [x] Create real server-side persistence for FREE users
+* [x] Implement basic history for authenticated FREE
+* [x] Link usage quotas to user ID instead of browser storage
 
 ---
 
-## 🟡 PHASE 4 — IN-PRODUCT UPSELL
+## 🔐 PHASE 4 — TRADITIONAL AUTHENTICATION
 
-* [x] Add subtle PRO signals inside experience
-
-Examples:
-
-* context hints
-* memory hints
-* intelligence hints
+* [x] Implement Email/Password registration and login
+* [x] Add secure logout, password reset, and email verification
+* [x] Set up account recovery flow
 
 ---
 
-## 🧠 PHASE 5 — VALUE EXPOSURE
+## 🤝 PHASE 5 — SOCIAL LOGIN CONSOLIDATION
 
-* [x] Ensure PRO value appears BEFORE paywall
-* [x] Highlight difference in behavior (not features)
-
----
-
-## ⚙️ PHASE 6 — ACCOUNT & PLAN UI
-
-* [x] Display current plan
-* [x] Add upgrade action
-* [x] Show PRO benefits summary
+* [x] Consolidate existing social providers (Google)
+* [x] Ensure correct persistence and session synchronization
+* [x] Validate consistency across different providers
 
 ---
 
-## 💰 PHASE 7 — PAYWALL STRUCTURE
+## 🔗 PHASE 6 — IDENTITY LINKING
 
-* [x] Implement upgrade flow
-* [x] Define pricing placeholder
-* [x] Ensure clean UX (no friction)
-
----
-
-## 🧪 PHASE 8 — CONVERSION VALIDATION
-
-* [x] Simulate FREE → PRO journey
-* [x] Validate upgrade clarity
-* [x] Validate perceived value
+* [x] Implement logic to link multiple providers to the same email
+* [x] Handle conflicts (Google login + Email/Password)
+* [x] Ensure identity uniqueness and safe account merging
 
 ---
 
-## 🎯 FINAL GOAL
+## 🛡️ PHASE 7 — SERVER-SIDE USAGE ENFORCEMENT
 
-User must feel:
+* [x] Migrate all limits, quotas, and locks to server-side authority
+* [x] Remove dependencies on cookies/localStorage for critical gating
+* [x] Prevent limit resets through browser cleaning
 
-→ FREE works
-→ PRO is necessary
+---
+
+## 📊 PHASE 8 — DATABASE AUDIT & HARDENING
+
+* [x] Audit and refine database schema (Users, Providers, Subs, Quotas, Sessions)
+* [x] Ensure relational integrity and email uniqueness
+* [x] Prepare schema for future billing integration
+
+---
+
+## 🔒 PHASE 9 — SECURITY HARDENING
+
+* [x] Implement strong password hashing and secure sessions (httpOnly)
+* [x] Add CSRF, brute-force protection, and rate limiting
+* [x] Configure session expiration and token invalidation
+
+---
+
+## ⚖️ PHASE 10 — LGPD MINIMAL READINESS
+
+* [x] Add basic consent flow and privacy policy
+* [x] Implement opt-in for communications
+* [x] Prepare infrastructure for "Right to be Forgotten" (account deletion)
+
+---
+
+## 🎨 PHASE 11 — AUTH UX REFINEMENT
+
+* [x] Simplify login and registration interfaces
+* [x] Clearly differentiate FREE vs PRO value during auth
+* [x] Ensure auth feels like "continuity/trust" rather than a block
+
+---
+
+## 🧪 PHASE 12 — VALIDATION & STRESS TESTS
+
+* [x] Test limit resets, provider switching, and account recovery
+* [x] Validate session expiration and multi-device persistence
+* [x] Verify FREE quotas and abuse prevention
 
 ---
 
 ## 🚨 SUCCESS CRITERIA
 
-* [x] Clear difference perceived
-* [x] Upgrade moment feels natural
-* [x] No confusion in plan value
+* [x] Authenticated FREE plan operational with server-side history
+* [x] 100% server-authoritative quotas (no browser-only bypass)
+* [x] Functional traditional and social authentication
+* [x] Stable identity linking and audited database
+* [x] System ready for real-world production monetization

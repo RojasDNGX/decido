@@ -10,6 +10,7 @@ export function useDecision(userId: string) {
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [limitReached, setLimitReached] = useState<any | null>(null);
+  const [conversionTrigger, setConversionTrigger] = useState<any | null>(null);
 
   const analyze = async (
     input: string,
@@ -28,6 +29,7 @@ export function useDecision(userId: string) {
     setLoading(true);
     setError(null);
     setLimitReached(null);
+    setConversionTrigger(null);
 
     const attemptId = `${userId}-${Date.now()}`;
     const fingerprint = getOrCreateFingerprint();
@@ -73,12 +75,20 @@ export function useDecision(userId: string) {
         throw new Error(errorData.error || 'Falha na análise das tarefas.');
       }
 
-      const data: AnalysisResult = await response.json();
-      setResult(data);
-      if (isPro) {
-        saveDecision({ input, output: data });
+      const data = await response.json();
+      
+      // Extract conversion_trigger before setting result
+      const { conversion_trigger, ...analysisResult } = data;
+      setResult(analysisResult as AnalysisResult);
+      
+      if (conversion_trigger) {
+        // Delay the modal so the user sees the result first
+        setTimeout(() => {
+          setConversionTrigger(conversion_trigger);
+        }, 3000);
       }
 
+      // History is now automatically managed by the server for authenticated users
       let usageCount: number | undefined;
       if (!isRefinementMode) {
         usageCount = incrementUsageCount();
@@ -86,7 +96,7 @@ export function useDecision(userId: string) {
       logEvent('analyze_success', userId, {
         attempt_id: attemptId,
         usage_count: usageCount,
-        task_count: data.priorities.length || data.tasks?.length || 0,
+        task_count: analysisResult.priorities?.length || analysisResult.tasks?.length || 0,
         is_refinement: isRefinementMode,
       });
 
@@ -103,5 +113,6 @@ export function useDecision(userId: string) {
     }
   };
 
-  return { analyze, loading, result, setResult, error, setError, limitReached, setLimitReached };
+  return { analyze, loading, result, setResult, error, setError, limitReached, setLimitReached, conversionTrigger, setConversionTrigger };
 }
+

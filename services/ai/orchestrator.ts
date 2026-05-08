@@ -17,6 +17,7 @@ import { isOverloadInput, buildOverloadResponse, buildOverloadResponseFree } fro
 
 const OLLAMA_URL = 'http://10.10.0.9:11434/api/generate';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
 
 const LOCAL_MODELS = [
   'gemma4:e4b',
@@ -26,9 +27,49 @@ const LOCAL_MODELS = [
 
 type HistoryItem = { input_summary: string; primary_action: string };
 
+async function tryOpenRouter(prompt: string): Promise<AnalysisResult> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 20000);
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://decido.app',
+        'X-Title': 'Decido',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-lite-001',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) throw new Error(`OpenRouter error: ${response.status}`);
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+
+    if (!content) throw new Error('OpenRouter returned empty response');
+
+    return JSON.parse(content) as AnalysisResult;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 async function tryOllama(model: string, prompt: string): Promise<AnalysisResult> {
-  const isFastModel = model.includes('gemma');
-  const timeoutLimit = isFastModel ? 6000 : 12000;
+  const timeoutLimit = 6000; // Retornado para 6s conforme solicitado
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutLimit);
@@ -82,40 +123,54 @@ async function tryGroq(prompt: string): Promise<AnalysisResult> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY not configured');
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
 
-  try {
-    const response = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-        max_tokens: 250
-      }),
-      signal: controller.signal,
-    });
+  let lastError: any = null;
 
-    clearTimeout(timeoutId);
+  for (const model of models) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000);
 
-    if (!response.ok) throw new Error(`Groq error: ${response.status}`);
+    try {
+      const response = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.1,
+          response_format: { type: 'json_object' },
+          max_tokens: 250
+        }),
+        signal: controller.signal,
+      });
 
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+      clearTimeout(timeoutId);
 
-    if (!content) throw new Error('Groq returned empty response');
+      if (response.status === 429) {
+        console.warn(`[Orchestrator] Groq model ${model} rate limited (429). Trying next...`);
+        continue;
+      }
 
-    return JSON.parse(content) as AnalysisResult;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
+      if (!response.ok) throw new Error(`Groq ${model} error: ${response.status}`);
+
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) throw new Error(`Groq ${model} returned empty response`);
+
+      return JSON.parse(content) as AnalysisResult;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      console.warn(`[Orchestrator] Groq model ${model} failed:`, error instanceof Error ? error.message : error);
+    }
   }
+
+  throw lastError || new Error('All Groq models failed');
 }
 
 function validateLanguage(text: string): boolean {
@@ -161,33 +216,36 @@ function validatePrimaryAction(action: string): boolean {
   return true;
 }
 
-
-
 export async function aiOrchestrator(
   input: string,
   history?: HistoryItem[],
   plan: Plan = 'free'
 ): Promise<AnalysisResult> {
-  // Gate history server-side: FREE never receives context memory
   const safeHistory = plan === 'free' ? undefined : history;
-
   const prompt = buildLayeredPrompt(plan, input, safeHistory);
 
-  for (const model of LOCAL_MODELS) {
-    try {
-      const result = await tryOllama(model, prompt);
-
-      const contentString = JSON.stringify(result);
-      if (!validateLanguage(contentString)) continue;
-      if (result.primary_action && !validatePrimaryAction(result.primary_action)) continue;
-      if (!result.priorities || result.priorities.length < 2) continue;
-
+  // 1. Tentativa Local (Ollama) - Timeout 6s
+  const primaryModel = LOCAL_MODELS[0]; 
+  try {
+    const result = await tryOllama(primaryModel, prompt);
+    const contentString = JSON.stringify(result);
+    if (validateLanguage(contentString) && 
+        (!result.primary_action || validatePrimaryAction(result.primary_action)) &&
+        (result.priorities && result.priorities.length >= 2)) {
       return result;
-    } catch {
-      // Model unavailable, try next
     }
+  } catch (error) {
+    console.warn(`[Orchestrator] Ollama ${primaryModel} failed. Falling back to Cloud.`);
   }
 
+  // 2. Fallback Principal Cloud (OpenRouter)
+  try {
+    return await tryOpenRouter(prompt);
+  } catch (error) {
+    console.warn(`[Orchestrator] OpenRouter failed. Falling back to Groq:`, error);
+  }
+
+  // 3. Fallback de Segurança (Groq)
   try {
     return await tryGroq(prompt);
   } catch (error: unknown) {
@@ -195,6 +253,9 @@ export async function aiOrchestrator(
     throw new Error('Não foi possível processar a análise no momento.');
   }
 }
+
+
+
 
 // Model Warm-up
 if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {

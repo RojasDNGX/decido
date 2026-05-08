@@ -8,14 +8,22 @@ export interface PlanLimits {
 }
 
 export const PLANS: Record<Plan, PlanLimits> = {
+  guest: {
+    dailyAnalyses: 3,
+
+    hasHistoryContext: false,
+    hasRichAnalysis: false,
+    maxTasksPerAnalysis: 8,
+  },
   free: {
     dailyAnalyses: 3,
     hasHistoryContext: false,
     hasRichAnalysis: false,
-    maxTasksPerAnalysis: 10,
+    maxTasksPerAnalysis: 12,
   },
+
   pro: {
-    dailyAnalyses: Infinity,
+    dailyAnalyses: 100,
     hasHistoryContext: true,
     hasRichAnalysis: true,
     maxTasksPerAnalysis: 50,
@@ -31,16 +39,16 @@ export const PLANS: Record<Plan, PlanLimits> = {
 /**
  * Helpers para verificação de planos
  */
+export function isGuest(plan: Plan): boolean {
+  return plan === 'guest';
+}
+
 export function isFree(plan: Plan): boolean {
   return plan === 'free';
 }
 
 export function isPro(plan: Plan): boolean {
-  return plan === 'pro';
-}
-
-export function isEnterprise(plan: Plan): boolean {
-  return plan === 'enterprise';
+  return plan === 'pro' || plan === 'enterprise';
 }
 
 /**
@@ -49,5 +57,7 @@ export function isEnterprise(plan: Plan): boolean {
 export function getPlanLimits(plan: string | undefined): PlanLimits {
   if (plan === 'pro') return PLANS.pro;
   if (plan === 'enterprise') return PLANS.enterprise;
-  return PLANS.free;
+  if (plan === 'free') return PLANS.free;
+  return PLANS.guest;
 }
+

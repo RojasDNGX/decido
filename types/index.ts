@@ -1,5 +1,8 @@
 
-export type Plan = 'free' | 'pro' | 'enterprise';
+export type Plan = 'guest' | 'free' | 'pro' | 'enterprise';
+
+export type UserRole = 'guest' | 'free' | 'pro' | 'admin';
+
 
 export interface Task {
   name: string;

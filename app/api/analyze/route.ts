@@ -3,7 +3,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { aiOrchestrator } from '@/services/ai/orchestrator';
 import { checkIpLimit, incrementIpCount } from '@/services/security/rate-limiter';
 import { auth } from '@/auth';
-import { getUserPlan } from '@/lib/users-db';
+import { getUserPlan, hasUsedProTasting, markProTastingUsed } from '@/lib/users-db';
+import { saveUserDecision } from '@/lib/history-db';
+import crypto from 'crypto';
 import { getDailyUsage, incrementDailyUsage } from '@/lib/usage-db';
 import { sanitizeTasks, recoverCoverage } from '@/services/ai/sanitize';
 import { isOverloadInput } from '@/services/ai/overload';
@@ -27,20 +29,7 @@ function enforceImperative(text: string): string {
     .trim()
 }
 
-function buildLimitResponse() {
-  return {
-    type: "limit_reached",
-    message: {
-      title: "Sua clareza diária está pausada.",
-      description: `
-Você chegou ao limite de análises gratuitas.
 
-No PRO, o Decido já sabe — e te diz o que fazer sem repetir o esforço.
-      `,
-      cta: "Continuar agora com PRO"
-    }
-  };
-}
 
 function makeMoreDecisive(text: string): string {
   return enforceImperative(
@@ -339,13 +328,31 @@ function getClientIp(req: NextRequest): string {
   return '127.0.0.1';
 }
 
+function buildLimitResponse(isAuthenticated: boolean) {
+  return {
+    type: "limit_reached",
+    message: {
+      title: isAuthenticated ? "Suas análises de hoje acabaram." : "Limite de convidado atingido.",
+      description: isAuthenticated 
+        ? "Desbloqueie análises ilimitadas com o PRO — ou aguarde 24h para utilizar suas 3 análises diárias gratuitas."
+        : "Cadastre-se para continuar decidindo com clareza — ou aguarde 24h para novas análises.",
+      cta: isAuthenticated ? "Continuar com PRO" : "Criar conta gratuita",
+      link: isAuthenticated ? "/limite" : "/auth/signup", 
+      secondary_cta: isAuthenticated ? null : "Entrar com Google",
+      secondary_link: isAuthenticated ? null : "/auth/signin"
+    }
+  };
+}
+
+
+
 export async function POST(req: NextRequest) {
   try {
     const session = await auth();
     const userEmail = session?.user?.email;
-    const userPlan = userEmail ? getUserPlan(userEmail) : 'free';
+    const userPlan = userEmail ? getUserPlan(userEmail) : 'guest';
     const limits = getPlanLimits(userPlan);
-    const isPro = userPlan !== 'free'; // covers pro + enterprise
+    const isPro = userPlan === 'pro' || userPlan === 'enterprise';
 
     console.log(`[Plan Enforcement] User: ${userEmail ?? 'anonymous'} | Plan: ${userPlan} | isPro: ${isPro}`);
 
@@ -366,26 +373,22 @@ export async function POST(req: NextRequest) {
 
     // --- 3. SERVER IDENTIFIER RESOLUTION ---
     const ip = getClientIp(req);
-    const identifier = userEmail || fingerprint || ip;
+    // Para convidados, usamos IP como âncora principal se o fingerprint falhar ou for resetado
+    const identifier = userEmail || (fingerprint ? `fp:${fingerprint}` : `ip:${ip}`);
     const today = getTodayDate();
-
-    // --- 7. ANTI-BYPASS: MULTI-FINGERPRINT DETECTION ---
-    // Simples detecção em memória: se um IP usar mais de 3 fingerprints diferentes hoje
-    if (!isPro && !skipLimit && fingerprint && ip) {
-      const ipFpKey = `fp_track:${ip}:${today}`;
-      // Nota: Idealmente isso estaria no DB, mas para o MVP usaremos o rate-limiter logic ou similar
-      // Para este patch, focaremos na resolução robusta do identificador principal
-    }
 
     // 1. Verificação de Limite (DB-side)
     const count = getDailyUsage(identifier, today);
 
     if (!isPro && !skipLimit && count >= limits.dailyAnalyses) {
-      return NextResponse.json(buildLimitResponse(), { status: 429 });
+      return NextResponse.json(buildLimitResponse(!!userEmail), { status: 429 });
     }
 
-    // Processar análise
-    const plan = userPlan;
+
+    // PRO Tasting: Free user na última análise (3ª), APENAS se nunca usou antes
+    const isProTasting = userEmail && userPlan === 'free' && count === (limits.dailyAnalyses - 1) && !hasUsedProTasting(userEmail);
+    const plan = isProTasting ? 'pro' : userPlan;
+    console.log(`[Plan Enforcement] Analysis #${count + 1} | Effective Plan: ${plan}${isProTasting ? ' (PRO TASTING - FIRST TIME)' : ''}`);
     const result = await aiOrchestrator(input, history, plan);
 
     // DEFENSIVE: Normalize AI output to expected contract
@@ -460,12 +463,55 @@ export async function POST(req: NextRequest) {
       incrementDailyUsage(identifier, today);
     }
 
+    const newCount = count + 1;
+    const isGuestUser = !userEmail;
+
+    // Save history for ALL authenticated users (FREE and PRO)
+    if (userEmail) {
+      try {
+        saveUserDecision(userEmail, {
+          id: crypto.randomUUID(),
+          input,
+          output: result,
+          timestamp: Date.now()
+        });
+      } catch (dbErr) {
+        console.error('[API Analyze] Error saving decision to DB:', dbErr);
+      }
+    }
+
+    // Gatilho de conversão: convidado após a 2ª análise (ainda tem 1 restante)
+    if (isGuestUser && !skipLimit && newCount === 2) {
+      return NextResponse.json({
+        ...result,
+        conversion_trigger: {
+          title: "Gostou? Sua próxima análise pode ser no modo PRO.",
+          description: "Cadastre-se agora e experimente o Decido PRO gratuitamente na sua última análise — com contexto estratégico e insights avançados.",
+          cta: "Cadastrar e experimentar o PRO",
+          link: "/auth/signup",
+          secondary_cta: "Entrar com Google",
+          secondary_link: "/auth/signin"
+        }
+      });
+    }
+
+    // Marcar degustação PRO como utilizada (nunca mais repete)
+    if (isProTasting && userEmail) {
+      markProTastingUsed(userEmail);
+      return NextResponse.json({
+        ...result,
+        pro_tasting: true
+      });
+    }
+
     return NextResponse.json(result);
+
   } catch (error: unknown) {
-    console.error('API Route Error:', error);
+    console.error('[API Analyze Error]:', error);
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Não foi possível processar a análise no momento.' },
       { status: 500 }
     );
   }
 }
+

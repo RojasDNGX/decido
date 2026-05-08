@@ -1,7 +1,8 @@
 'use client';
 
-import { useSession, signIn, signOut } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 const PERSON_ICON = (
@@ -23,6 +24,7 @@ const CONTEXTS = [
 
 export default function ProfileMenu({ activeContext, onContextChange }: ProfileMenuProps) {
   const { data: session } = useSession();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -40,14 +42,16 @@ export default function ProfileMenu({ activeContext, onContextChange }: ProfileM
       <button
         className="quick-action-btn"
         title="Entrar"
-        onClick={() => signIn('google')}
+        onClick={() => router.push('/auth/signin')}
       >
         {PERSON_ICON}
       </button>
     );
   }
 
-  const isPro = (session.user as { plan?: string })?.plan === 'pro';
+  const plan = (session.user as { plan?: string })?.plan ?? 'free';
+  const isPro = plan === 'pro' || plan === 'enterprise';
+  const isEnterprise = plan === 'enterprise';
 
   return (
     <div
@@ -115,26 +119,43 @@ export default function ProfileMenu({ activeContext, onContextChange }: ProfileM
             style={{ textDecoration: 'none' }}
             onClick={() => setOpen(false)}
           >
-            Configurações da conta
+            Meu Perfil
           </Link>
 
           <div className="context-switcher-divider" />
 
-          {CONTEXTS.map(({ label, main, sub }) => (
-            <button
-              key={label}
-              className={`context-switcher-item${activeContext === label ? ' context-switcher-item--active' : ''}`}
-              onClick={() => {
-                onContextChange(label);
-                setOpen(false);
-              }}
-            >
-              {main} <span style={{ opacity: 0.45 }}>{`- ${sub}`}</span>
-            </button>
-          ))}
+          {CONTEXTS.map(({ label, main, sub }) => {
+            const isWorkspaceItem = label.includes('Time > workspace');
+            const disabled = isWorkspaceItem && !isEnterprise;
+
+            return (
+              <button
+                key={label}
+                className={`context-switcher-item${activeContext === label ? ' context-switcher-item--active' : ''}`}
+                style={{
+                  cursor: disabled ? 'not-allowed' : 'pointer'
+                }}
+                onClick={() => {
+                  if (disabled) return;
+                  onContextChange(label);
+                  setOpen(false);
+                }}
+                title={disabled ? 'Recurso exclusivo do plano Enterprise' : ''}
+              >
+                {main} <span style={{ opacity: 0.45 }}>{`- ${sub}`}</span>
+              </button>
+            );
+          })}
           <button
             className="context-switcher-item context-switcher-item--muted"
-            onClick={() => setOpen(false)}
+            style={{
+              cursor: !isEnterprise ? 'not-allowed' : 'pointer'
+            }}
+            onClick={() => {
+              if (!isEnterprise) return;
+              setOpen(false);
+            }}
+            title={!isEnterprise ? 'Recurso exclusivo do plano Enterprise' : ''}
           >
             + Criar workspace
           </button>

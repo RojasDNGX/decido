@@ -98,7 +98,7 @@ Placeholder only
 
 ---
 
-# 🧱 PHASE 3 — REBUILD FREE AS SUBSET
+# 🧱 PHASE 3 — REBUILD FREE AS SUBSET [x]
 
 FREE must use:
 

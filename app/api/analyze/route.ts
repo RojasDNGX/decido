@@ -336,9 +336,10 @@ function buildLimitResponse(isAuthenticated: boolean) {
 
 
 export async function POST(req: NextRequest) {
+  let userEmail: string | undefined | null = null;
   try {
     const session = await auth();
-    const userEmail = session?.user?.email;
+    userEmail = session?.user?.email;
     const userPlan = userEmail ? getUserPlan(userEmail) : 'guest';
     const limits = getPlanLimits(userPlan);
     const isPro = userPlan === 'pro' || userPlan === 'enterprise';

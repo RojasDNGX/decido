@@ -1,0 +1,25 @@
+﻿
+C:\Users\Thiago.Rojas\.gemini\antigravity\scratch\decido\auth.ts
+  50:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  50:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  51:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  52:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  55:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  56:31  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  59:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  60:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  62:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  64:19  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  69:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  70:46  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  71:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  71:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  72:48  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+Ô£û 20 problems (20 errors, 0 warnings)
+

@@ -11,9 +11,11 @@ import { sanitizeTasks, recoverCoverage } from '@/services/ai/sanitize';
 import { isOverloadInput } from '@/services/ai/overload';
 import type { Priority } from '@/types';
 
-import { getPlanLimits } from '@/lib/plans';
+import { getPlanLimits } from '@/plans';
+import { logger } from '@/lib/logger';
+import { analytics } from '@/lib/analytics';
 
-const COOKIE_NAME = 'decido_usage';
+// analytics and logger imported above
 
 function enforceImperative(text: string): string {
   return text
@@ -90,12 +92,6 @@ function humanizeTask(task: string): string {
   return result.endsWith('.') ? result : result + '.'
 }
 
-function varyAction(text: string): string {
-  if (!text) return text
-  // PRIMARY ACTION always ends with "agora" — no variation allowed
-  return text
-}
-
 function normalizeTitle(task: string): string {
   if (!task) return task
   const clean = stripFillers(task).trim()
@@ -111,7 +107,7 @@ function stripFillers(text: string): string {
 }
 
 function normalizeForMatch(text: string): string {
-  return text.normalize('NFD').replace(/[̀-ͯ�]/g, '').toLowerCase()
+  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
 function sharedKeywords(a: string, b: string): number {
@@ -256,7 +252,7 @@ function enforceCoverage(input: string, priorities: Priority[]): Priority[] {
   const verbSegments = extractTasksFromVerbs(input)
 
   const allSegments = [...new Set([...splitSegments, ...verbSegments])]
-    .filter(s => !s.includes('�'))
+    .filter(s => !s.includes(''))
 
   const outputNorms = priorities.map(p => normalizeForMatch(stripFillers(p.task)))
 
@@ -279,13 +275,6 @@ function enforceCoverage(input: string, priorities: Priority[]): Priority[] {
       reason: 'Pode ser resolvido após as prioridades imediatas.',
     })),
   ]
-}
-
-function enforceDecisionConsistency(_primaryAction: string, priorities: Priority[]): string {
-  const topPriority = priorities.find(p => p.level === 'alta')
-  if (!topPriority) return _primaryAction
-  // FREE: rebuild from task title to guarantee imperative form and "agora"
-  return humanizeTask(topPriority.task)
 }
 
 // PRO/ENTERPRISE: preserve AI-generated primary_action richness.
@@ -354,10 +343,9 @@ export async function POST(req: NextRequest) {
     const limits = getPlanLimits(userPlan);
     const isPro = userPlan === 'pro' || userPlan === 'enterprise';
 
-    console.log(`[Plan Enforcement] User: ${userEmail ?? 'anonymous'} | Plan: ${userPlan} | isPro: ${isPro}`);
+    logger.info('Analysis request received', { user: userEmail ?? 'anonymous', plan: userPlan, isPro });
 
     const { input, history, fingerprint } = await req.json();
-    const isProd = process.env.NODE_ENV === 'production';
     
     // --- 8. DEV / TEST MODE ---
     const DEV_USERS = ["thiago.rojas@dngx.com.br"];
@@ -373,6 +361,14 @@ export async function POST(req: NextRequest) {
 
     // --- 3. SERVER IDENTIFIER RESOLUTION ---
     const ip = getClientIp(req);
+
+    // --- 3.1 TECHNICAL RATE LIMITING (Burst Protection) ---
+    const rateLimit = checkIpLimit(ip);
+    if (!rateLimit.allowed) {
+      return NextResponse.json({ error: rateLimit.message }, { status: 429 });
+    }
+    incrementIpCount(ip);
+
     // Para convidados, usamos IP como âncora principal se o fingerprint falhar ou for resetado
     const identifier = userEmail || (fingerprint ? `fp:${fingerprint}` : `ip:${ip}`);
     const today = getTodayDate();
@@ -381,6 +377,7 @@ export async function POST(req: NextRequest) {
     const count = getDailyUsage(identifier, today);
 
     if (!isPro && !skipLimit && count >= limits.dailyAnalyses) {
+      analytics.trackQuotaExhausted(userEmail || `anon:${identifier}`, userPlan);
       return NextResponse.json(buildLimitResponse(!!userEmail), { status: 429 });
     }
 
@@ -388,7 +385,9 @@ export async function POST(req: NextRequest) {
     // PRO Tasting: Free user na última análise (3ª), APENAS se nunca usou antes
     const isProTasting = userEmail && userPlan === 'free' && count === (limits.dailyAnalyses - 1) && !hasUsedProTasting(userEmail);
     const plan = isProTasting ? 'pro' : userPlan;
-    console.log(`[Plan Enforcement] Analysis #${count + 1} | Effective Plan: ${plan}${isProTasting ? ' (PRO TASTING - FIRST TIME)' : ''}`);
+    
+    if (isProTasting) logger.info('PRO Tasting activated', { user: userEmail });
+    
     const result = await aiOrchestrator(input, history, plan);
 
     // DEFENSIVE: Normalize AI output to expected contract
@@ -397,10 +396,10 @@ export async function POST(req: NextRequest) {
       console.warn('[Pipeline] priorities is not an array, received:', typeof result.priorities);
       const altTasks = (result as unknown as Record<string, unknown>).ordered_tasks ?? (result as unknown as Record<string, unknown>).tasks;
       if (Array.isArray(altTasks)) {
-        result.priorities = (altTasks as Array<Record<string, any>>).map((t, i) => ({
-          task: t.label ?? t.name ?? t.task ?? String(t),
+        result.priorities = (altTasks as Array<Record<string, unknown>>).map((t: Record<string, unknown>, i) => ({
+          task: String(t.label ?? t.name ?? t.task ?? t),
           level: (i === 0 ? 'alta' : i === 1 ? 'média' : 'baixa') as Priority['level'],
-          reason: t.reason ?? '',
+          reason: String(t.reason ?? ''),
         }));
       } else {
         result.priorities = [];
@@ -411,7 +410,7 @@ export async function POST(req: NextRequest) {
     result.priorities = result.priorities.filter(p => p && typeof p === 'object' && p.task);
 
     if (!result.primary_action || typeof result.primary_action !== 'string') {
-      console.warn('[Pipeline] primary_action is missing or malformed, attempting recovery');
+      logger.warn('AI returned malformed primary_action, attempting recovery', { user: userEmail });
       const alt = (result as unknown as Record<string, unknown>);
       result.primary_action = (alt.recommended_action as string)
         ?? (result.priorities[0]?.task ? humanizeTask(result.priorities[0].task) : '')
@@ -476,7 +475,7 @@ export async function POST(req: NextRequest) {
           timestamp: Date.now()
         });
       } catch (dbErr) {
-        console.error('[API Analyze] Error saving decision to DB:', dbErr);
+        logger.error('Failed to save decision history', dbErr, { user: userEmail });
       }
     }
 
@@ -504,10 +503,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    analytics.trackDecisionCreated(userEmail || `anon:${identifier}`, userPlan);
+
     return NextResponse.json(result);
 
   } catch (error: unknown) {
-    console.error('[API Analyze Error]:', error);
+    logger.error('API Analyze internal error', error, { user: userEmail });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Não foi possível processar a análise no momento.' },
       { status: 500 }

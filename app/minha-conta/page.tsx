@@ -4,12 +4,15 @@ import { useSession, signOut } from 'next-auth/react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { getOrCreateFingerprint } from '@/services/storage/storage';
 
 export default function MinhaContaPage() {
   const { data: session, status } = useSession();
   const router = useRouter();
   const [usageCount, setUsageCount] = useState<number | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const _usage = usageCount; // Keep for possible future UI display
   const [activeTab, setActiveTab] = useState<'perfil' | 'seguranca' | 'planos'>('perfil');
 
   // Profile Form States
@@ -35,7 +38,7 @@ export default function MinhaContaPage() {
   const [billingLoading, setBillingLoading] = useState(false);
 
   useEffect(() => {
-    if (status === 'unauthenticated') router.replace('/decidir');
+    if (status === 'unauthenticated') router.replace('/auth/signin');
     
     if (status === 'authenticated') {
       const fetchUsage = async () => {
@@ -44,7 +47,7 @@ export default function MinhaContaPage() {
           const res = await fetch(`/api/usage/sync?fingerprint=${fp}`);
           const data = await res.json();
           setUsageCount(data.count);
-        } catch (e) {
+        } catch (_e) {
           // fallback
         }
       };
@@ -65,7 +68,7 @@ export default function MinhaContaPage() {
             setPeriodEnd(data.periodEnd);
             setCancelAtPeriodEnd(data.cancelAtPeriodEnd);
           }
-        } catch (e) {
+        } catch (_e) {
           console.error("Failed to load profile");
         }
       };
@@ -73,7 +76,20 @@ export default function MinhaContaPage() {
     }
   }, [status, router]);
 
-  if (status === 'loading' || !session) return null;
+  if (status === 'loading' || !session) {
+    return (
+      <main className="account-main">
+        <header className="account-header">
+          <div style={{ width: '52px', height: '52px', borderRadius: '12px', background: 'rgba(255,255,255,0.05)', animation: 'pulse-glow 2s infinite' }} />
+        </header>
+        <div className="container account-container">
+          <div className="account-card" style={{ height: '500px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="spinner-tiny" style={{ width: '32px', height: '32px', border: '3px solid rgba(255,255,255,0.05)', borderTopColor: '#3b82f6', borderRadius: '50%', animation: 'spin 1s linear infinite' }}></div>
+          </div>
+        </div>
+      </main>
+    );
+  }
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
@@ -91,8 +107,9 @@ export default function MinhaContaPage() {
       setCurrentPassword('');
       setNewPassword('');
       setHasPassword(true); // Now they have a password!
-    } catch (err: any) {
-      setSecMessage({ type: 'error', text: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao alterar senha';
+      setSecMessage({ type: 'error', text: message });
     } finally {
       setSecLoading(false);
     }
@@ -116,8 +133,9 @@ export default function MinhaContaPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setProfMessage({ type: 'success', text: data.message });
-    } catch (err: any) {
-      setProfMessage({ type: 'error', text: err.message });
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Erro ao salvar perfil';
+      setProfMessage({ type: 'error', text: message });
     } finally {
       setProfLoading(false);
     }
@@ -133,7 +151,7 @@ export default function MinhaContaPage() {
       } else {
         alert(data.error || 'Erro ao acessar portal de cobrança');
       }
-    } catch (e) {
+    } catch (_e) {
       alert('Erro de conexão');
     } finally {
       setBillingLoading(false);
@@ -150,8 +168,8 @@ export default function MinhaContaPage() {
       } else {
         alert(data.error || 'Erro ao iniciar checkout. Verifique se o STRIPE_PRO_PRICE_ID está configurado.');
       }
-    } catch (e) {
-      console.error('Checkout error:', e);
+    } catch (_e) {
+      console.error('Checkout error:', _e);
       alert('Falha na conexão ao iniciar checkout. Verifique o terminal do servidor.');
     } finally {
       setBillingLoading(false);
@@ -162,7 +180,7 @@ export default function MinhaContaPage() {
     <main className="account-main">
       <header className="account-header">
         <Link href="/" className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'opacity 0.2s' }}>
-          <img src="/images/app-icon.png" alt="Decido Logo" style={{ width: '52px', height: '52px', borderRadius: '12px', objectFit: 'cover' }} />
+          <Image src="/images/app-icon.png" alt="Decido Logo" width={52} height={52} style={{ borderRadius: '12px', objectFit: 'cover' }} />
         </Link>
         <div className="quick-actions" style={{ display: 'flex', gap: '0.75rem' }}>
           <Link href="/decidir" className="quick-action-btn" title="Voltar" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -178,7 +196,7 @@ export default function MinhaContaPage() {
           
           <div className="account-profile-header">
             {session.user?.image ? (
-              <img src={session.user.image} alt="avatar" className="account-avatar" />
+              <Image src={session.user.image} alt="avatar" width={80} height={80} className="account-avatar" />
             ) : (
               <div className="account-avatar-placeholder">
                 {session.user?.name?.charAt(0).toUpperCase() || 'U'}
@@ -383,10 +401,10 @@ export default function MinhaContaPage() {
                       <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', minWidth: '250px' }}>
                         <p className="comparison-label comparison-label--pro">PRO</p>
                         <ul className="experience-list experience-list--pro">
-                          <li>• Estrategista: entenda o "porquê"</li>
-                          <li>• Políticas de Segurança Automáticas</li>
-                          <li>• Decisões com contexto acumulado</li>
-                          <li>• Sem limite diário</li>
+                          <li>&bull; Estrategista: entenda o &ldquo;porquê&rdquo;</li>
+                          <li>&bull; Políticas de Segurança Automáticas</li>
+                          <li>&bull; Decisões com contexto acumulado</li>
+                          <li>&bull; Sem limite diário</li>
                         </ul>
                       </div>
                     </div>

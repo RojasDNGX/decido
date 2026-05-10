@@ -13,11 +13,35 @@
 
 import { AnalysisResult, Plan } from '@/types';
 import { buildLayeredPrompt } from './prompts/builder';
-import { isOverloadInput, buildOverloadResponse, buildOverloadResponseFree } from './overload';
 
 const OLLAMA_URL = 'http://10.10.0.9:11434/api/generate';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+/**
+ * MODO DEGRADADO: Resposta simplificada caso toda a infraestrutura de IA falhe.
+ * Usa lógica local de processamento de texto.
+ */
+function getDegradedResponse(input: string): AnalysisResult {
+  const words = input.split(/\s+/).filter(w => w.length > 3);
+  const mainTask = words.slice(0, 5).join(' ') || 'Organizar tarefas';
+  
+  return {
+    primary_action: `${mainTask.charAt(0).toUpperCase() + mainTask.slice(1)} agora. (Modo de Segurança Ativo)`,
+    priorities: [
+      { 
+        task: mainTask, 
+        level: 'alta', 
+        reason: 'O sistema está em modo de segurança. Esta foi identificada como sua tarefa principal.' 
+      },
+      { 
+        task: 'Revisar outras pendências', 
+        level: 'baixa', 
+        reason: 'O motor de IA está instável no momento. Tente novamente em alguns minutos para insights avançados.' 
+      }
+    ]
+  };
+}
 
 const LOCAL_MODELS = [
   'gemma4:e4b',
@@ -32,7 +56,7 @@ async function tryOpenRouter(prompt: string): Promise<AnalysisResult> {
   if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
 
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 20000);
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // Reduzido de 20s para 12s
 
   try {
     const response = await fetch(OPENROUTER_URL, {
@@ -124,12 +148,11 @@ async function tryGroq(prompt: string): Promise<AnalysisResult> {
   if (!apiKey) throw new Error('GROQ_API_KEY not configured');
 
   const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
-
-  let lastError: any = null;
+  let lastError: unknown = null;
 
   for (const model of models) {
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000);
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduzido de 20s para 8s por modelo
 
     try {
       const response = await fetch(GROQ_URL, {
@@ -163,14 +186,14 @@ async function tryGroq(prompt: string): Promise<AnalysisResult> {
       if (!content) throw new Error(`Groq ${model} returned empty response`);
 
       return JSON.parse(content) as AnalysisResult;
-    } catch (error) {
+    } catch (error: unknown) {
       clearTimeout(timeoutId);
       lastError = error;
       console.warn(`[Orchestrator] Groq model ${model} failed:`, error instanceof Error ? error.message : error);
     }
   }
 
-  throw lastError || new Error('All Groq models failed');
+  throw (lastError as Error) || new Error('All Groq models failed');
 }
 
 function validateLanguage(text: string): boolean {
@@ -234,23 +257,24 @@ export async function aiOrchestrator(
         (result.priorities && result.priorities.length >= 2)) {
       return result;
     }
-  } catch (error) {
+  } catch (_error) {
     console.warn(`[Orchestrator] Ollama ${primaryModel} failed. Falling back to Cloud.`);
   }
 
   // 2. Fallback Principal Cloud (OpenRouter)
   try {
     return await tryOpenRouter(prompt);
-  } catch (error) {
-    console.warn(`[Orchestrator] OpenRouter failed. Falling back to Groq:`, error);
+  } catch (_error) {
+    console.warn(`[Orchestrator] OpenRouter failed. Falling back to Groq:`, _error);
   }
 
   // 3. Fallback de Segurança (Groq)
   try {
     return await tryGroq(prompt);
   } catch (error: unknown) {
-    console.error(`[Orchestrator] All providers failed:`, error instanceof Error ? error.message : error);
-    throw new Error('Não foi possível processar a análise no momento.');
+    console.error(`[Orchestrator] All providers failed. Activating Degraded Mode:`, error instanceof Error ? error.message : error);
+    // ÚLTIMO RECURSO: Modo Degradado (Heurística Local)
+    return getDegradedResponse(input);
   }
 }
 

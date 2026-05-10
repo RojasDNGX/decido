@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useSession, signIn, signOut } from 'next-auth/react';
@@ -63,6 +64,26 @@ export default function Home() {
     typeof window !== 'undefined' ? (localStorage.getItem('decido_context') || 'Você') : 'Você'
   );
   const [serverRemainingUsage, setServerRemainingUsage] = useState<number | null>(null);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const LOADING_MESSAGES = [
+    "Entendendo o contexto...",
+    "Analisando urgências...",
+    "Priorizando impactos...",
+    "Gerando sua próxima ação...",
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep(prev => (prev + 1) % LOADING_MESSAGES.length);
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [loading, LOADING_MESSAGES.length]);
 
   useEffect(() => {
     const fetchUsage = async () => {
@@ -88,7 +109,7 @@ export default function Home() {
           // Unauthenticated users (guests) do not have history as per Phase 2 constraints
           setHistory([]);
         }
-      } catch (e) {
+      } catch (_e) {
         console.warn('Failed to fetch data from server');
       }
     };
@@ -199,6 +220,7 @@ export default function Home() {
   };
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
     const syncUsage = async () => {
       try {
@@ -207,7 +229,7 @@ export default function Home() {
         const data = await res.json();
         setUsageCount(data.count);
         localStorage.setItem('decido_usage_count', String(data.count));
-      } catch (e) {
+      } catch (_e) {
         // silent fail, fallback to LS
       }
     };
@@ -365,10 +387,12 @@ export default function Home() {
     <main>
       <header style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/" className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'opacity 0.2s' }}>
-            <img 
+            <Image 
               src="/images/app-icon.png" 
               alt="Decido Logo" 
-              style={{ width: '52px', height: '52px', borderRadius: '12px', objectFit: 'cover' }} 
+              width={52}
+              height={52}
+              style={{ borderRadius: '12px', objectFit: 'cover' }} 
             />
           </Link>
           
@@ -535,14 +559,10 @@ export default function Home() {
                   disabled={loading || !input || input.trim().length === 0}
                 >
                   {loading ? (
-                    <>
-                      <span>Analisando</span>
-                      <span className="loading-dots">
-                        <span>.</span>
-                        <span>.</span>
-                        <span>.</span>
-                      </span>
-                    </>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                      <div className="spinner-tiny" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+                      <span style={{ minWidth: '180px', textAlign: 'left' }}>{LOADING_MESSAGES[loadingStep]}</span>
+                    </div>
                   ) : (result ? 'Rever decisão' : 'Analisar')}
                 </button>
                 {tourStep === 2 && renderTourPopover(2)}

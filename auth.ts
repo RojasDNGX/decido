@@ -45,35 +45,34 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/auth/signin',
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: Record<string, unknown>; user: Record<string, unknown> | null }) {
       if (user) {
-        // First login or credentials login
         token.id = user.id;
-        token.plan = (user as any).plan;
-        token.role = (user as any).role;
+        token.plan = (user.plan as string) || 'free';
+        token.role = user.role;
       }
       
       const email = token.email as string | undefined;
       if (email && !token.plan) {
-        // Social login consolidation & Identity linking
         const userRow = getOrCreateUser(
           email, 
-          (token.name as string) || undefined, 
-          (token.picture as string) || undefined
+          token.name as string || undefined, 
+          token.picture as string || undefined
         );
         token.plan = userRow.plan;
         token.role = userRow.role;
-        token.id = String(userRow.id); // VITAL: Override OAuth ID with our internal SQLite ID
+        token.id = String(userRow.id);
       }
       return token;
     },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.plan = token.plan as any;
-        session.user.role = token.role as any;
+    async session({ session, token }: { session: Record<string, unknown>; token: Record<string, unknown> }) {
+      const user = session.user as Record<string, unknown> | undefined;
+      if (user) {
+        user.id = token.id;
+        user.plan = token.plan;
+        user.role = token.role;
       }
       return session;
     },
   },
 });
-

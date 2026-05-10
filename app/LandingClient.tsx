@@ -75,6 +75,7 @@ export default function LandingClient() {
             muted
             loop
             playsInline
+            preload="metadata"
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: 0.08, pointerEvents: 'none', zIndex: 0 }}
           />
           <div className="landing-container" style={{ maxWidth: '1400px', position: 'relative', zIndex: 10 }}>

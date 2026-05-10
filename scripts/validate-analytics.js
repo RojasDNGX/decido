@@ -1,3 +1,5 @@
+/* eslint-disable */
+const fs = require('fs');
 /* eslint-disable @typescript-eslint/no-require-imports */
 const { chromium } = require('@playwright/test');
 

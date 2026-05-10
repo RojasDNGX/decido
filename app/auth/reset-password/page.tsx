@@ -49,8 +49,8 @@ function ResetPasswordForm() {
       setTimeout(() => {
         router.push('/auth/signin');
       }, 3000);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Erro ao redefinir senha.');
     } finally {
       setLoading(false);
     }

@@ -36,7 +36,7 @@ export const incrementUsageCount = (): number => {
 export const isLimitReached = (): boolean => {
   try {
     return getUsageCount() >= MAX_FREE_ANALYSES;
-  } catch {
+  } catch (_e) {
     return false;
   }
 };

@@ -25,22 +25,16 @@ function getDb(): Database.Database {
     `);
   }
   
-  // Garantir migração mesmo se o banco já estiver inicializado no global
   try {
-    const tableInfo = global.__DECIDO_USERS_DB__.prepare("PRAGMA table_info(users)").all() as any[];
+    const tableInfo = global.__DECIDO_USERS_DB__.prepare("PRAGMA table_info(users)").all() as Array<{ name: string }>;
     
     if (!tableInfo.some(col => col.name === 'role')) {
-      console.log("[DB] Migrating: Adding 'role' column");
       global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'");
     }
-    
     if (!tableInfo.some(col => col.name === 'password')) {
-      console.log("[DB] Migrating: Adding 'password' column");
       global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN password TEXT");
     }
-    
     if (!tableInfo.some(col => col.name === 'pro_tasted')) {
-      console.log("[DB] Migrating: Adding 'pro_tasted' column");
       global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN pro_tasted INTEGER NOT NULL DEFAULT 0");
     }
     if (!tableInfo.some(col => col.name === 'phone')) {
@@ -74,7 +68,6 @@ function getDb(): Database.Database {
       global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN stripe_cancel_at_period_end INTEGER DEFAULT 0");
     }
 
-    // Tabela de Logs de Auditoria de Faturamento (Observabilidade)
     global.__DECIDO_USERS_DB__.exec(`
       CREATE TABLE IF NOT EXISTS billing_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -86,7 +79,6 @@ function getDb(): Database.Database {
       )
     `);
 
-    // Tabela de tokens para reset de senha
     global.__DECIDO_USERS_DB__.exec(`
       CREATE TABLE IF NOT EXISTS password_resets (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -120,6 +112,7 @@ export interface UserRow {
   stripe_price_id?: string | null;
   stripe_current_period_end?: string | null;
   stripe_subscription_status?: string | null;
+  stripe_cancel_at_period_end?: number;
   marketing_opt_in: number;
   created_at: string;
 }
@@ -128,9 +121,7 @@ export function getOrCreateUser(email: string, name?: string, image?: string): U
   const db = getDb();
   const existing = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as UserRow | undefined;
   
-  if (existing) {
-    return existing;
-  }
+  if (existing) return existing;
 
   db.prepare('INSERT INTO users (email, name, image, role, plan) VALUES (?, ?, ?, ?, ?)').run(
     email,
@@ -160,7 +151,6 @@ export function getUserByEmail(email: string): UserRow | undefined {
 }
 
 export function getUserPlan(email: string): 'free' | 'pro' | 'enterprise' {
-
   const row = getDb().prepare('SELECT plan FROM users WHERE email = ?').get(email) as Pick<UserRow, 'plan'> | undefined;
   return row?.plan ?? 'free';
 }
@@ -189,13 +179,12 @@ export function markProTastingUsed(email: string): void {
 
 export function createPasswordResetToken(userId: number, tokenHash: string, expiresAt: number) {
   const db = getDb();
-  // Invalidar tokens antigos desse usuário
   db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(userId);
   db.prepare('INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?, ?, ?)').run(userId, tokenHash, expiresAt);
 }
 
 export function getUserIdByResetToken(tokenHash: string): { user_id: number, expires_at: number } | undefined {
-  return getDb().prepare('SELECT user_id, expires_at FROM password_resets WHERE token_hash = ?').get(tokenHash) as any;
+  return getDb().prepare('SELECT user_id, expires_at FROM password_resets WHERE token_hash = ?').get(tokenHash) as { user_id: number, expires_at: number } | undefined;
 }
 
 export function deletePasswordResetToken(tokenHash: string) {
@@ -216,13 +205,8 @@ export function updateUserProfile(userId: number, data: { name: string, phone: s
 
 export function deleteAccountData(email: string, userId: number) {
   const db = getDb();
-  
-  // Como usamos tabelas/bancos diferentes, excluímos da base de usuários
   db.prepare('DELETE FROM password_resets WHERE user_id = ?').run(userId);
   db.prepare('DELETE FROM users WHERE id = ?').run(userId);
-  
-  // Nota: Para excluir de history.db e usage.db precisaremos chamar suas funções correspondentes 
-  // caso essa função seja chamada em uma rota principal que importe as 3 bases de dados.
 }
 
 export function updateUserStripeInfo(userId: number, data: { 
@@ -235,10 +219,9 @@ export function updateUserStripeInfo(userId: number, data: {
   plan?: 'free' | 'pro' | 'enterprise'
 }) {
   const db = getDb();
-  // Converter boolean para integer para o SQLite
-  const processedData = { ...data };
+  const processedData: Record<string, unknown> = { ...data };
   if (data.stripe_cancel_at_period_end !== undefined) {
-    (processedData as any).stripe_cancel_at_period_end = data.stripe_cancel_at_period_end ? 1 : 0;
+    processedData.stripe_cancel_at_period_end = data.stripe_cancel_at_period_end ? 1 : 0;
   }
 
   const fields = Object.keys(processedData).map(key => `${key} = ?`).join(', ');
@@ -251,18 +234,12 @@ export function getUserByStripeSubscriptionId(subscriptionId: string): UserRow |
   return getDb().prepare('SELECT * FROM users WHERE stripe_subscription_id = ?').get(subscriptionId) as UserRow | undefined;
 }
 
-export function getUserByStripeCustomerId(customerId: string): UserRow | undefined {
-  return getDb().prepare('SELECT * FROM users WHERE stripe_customer_id = ?').get(customerId) as UserRow | undefined;
-}
-
-export function logBillingEvent(userId: number | null, eventId: string, eventType: string, payload: string) {
+export function logBillingEvent(userId: number | null, eventId: string, eventType: string, payload: string): boolean {
   const db = getDb();
   try {
     db.prepare('INSERT INTO billing_logs (user_id, event_id, event_type, payload) VALUES (?, ?, ?, ?)').run(userId, eventId, eventType, payload);
     return true;
-  } catch (e) {
-    // Se falhar por UNIQUE constraint, o evento já foi processado (Idempotência)
+  } catch (_e: unknown) {
     return false;
   }
 }
-

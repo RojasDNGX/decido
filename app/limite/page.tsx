@@ -3,16 +3,16 @@
 import Link from 'next/link';
 import { useSession, signIn } from 'next-auth/react';
 import { useState } from 'react';
+import Image from 'next/image';
 import ProfileMenu from '@/components/ProfileMenu';
 
 import { useRouter } from 'next/navigation';
 
 export default function LimitePage() {
-  const { data: session, update: updateSession } = useSession();
+  const { data: session } = useSession();
   const router = useRouter();
   const [activeContext, setActiveContext] = useState('Você > pessoal');
   const [loading, setLoading] = useState(false);
-  const [upgraded, setUpgraded] = useState(false);
 
   const handleUpgrade = async () => {
     setLoading(true);
@@ -27,8 +27,8 @@ export default function LimitePage() {
       } else {
         alert(data.error || 'Erro ao processar upgrade. Tente novamente.');
       }
-    } catch (e) {
-      alert('Falha na conexão.');
+    } catch (_e) {
+      alert('Erro ao iniciar checkout');
     } finally {
       setLoading(false);
     }
@@ -37,12 +37,8 @@ export default function LimitePage() {
   return (
     <main>
       <header style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <Link href="/" className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'opacity 0.2s' }}>
-          <img
-            src="/images/app-icon.png"
-            alt="Decido Logo"
-            style={{ width: '52px', height: '52px', borderRadius: '12px', objectFit: 'cover' }}
-          />
+        <Link href="/decidir" className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'opacity 0.2s' }}>
+          <Image src="/images/app-icon.png" alt="Decido Logo" width={52} height={52} style={{ borderRadius: '12px', objectFit: 'cover' }} />
         </Link>
 
         <div className="quick-actions" style={{ display: 'flex', gap: '0.75rem' }}>

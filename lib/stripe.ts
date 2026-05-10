@@ -1,7 +1,6 @@
 import Stripe from 'stripe';
 
 if (!process.env.STRIPE_SECRET_KEY) {
-  // We'll throw only in production, or log a warning in dev
   if (process.env.NODE_ENV === 'production') {
     throw new Error('STRIPE_SECRET_KEY is missing');
   } else {
@@ -10,7 +9,8 @@ if (!process.env.STRIPE_SECRET_KEY) {
 }
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || '', {
-  apiVersion: '2025-01-27.acacia' as any, // Using latest stable or acacia
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  apiVersion: '2025-01-27.acacia' as any,
   typescript: true,
 });
 

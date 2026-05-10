@@ -13,13 +13,10 @@ interface ValueHintProps {
 }
 
 export default function ValueHint({ onUpgradeClick }: ValueHintProps) {
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    // Escolhe uma mensagem aleatória para rotação
+  const [message, setMessage] = useState<string>(() => {
     const randomIndex = Math.floor(Math.random() * MESSAGES.length);
-    setMessage(MESSAGES[randomIndex]);
-  }, []);
+    return MESSAGES[randomIndex];
+  });
 
   return (
     <div className="upsell-signal-container">

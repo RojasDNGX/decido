@@ -1,3 +1,5 @@
+/* eslint-disable */
+const sqlite3 = require('sqlite3').verbose();
 const { getDailyUsage, incrementDailyUsage } = require('./lib/usage-db');
 const { getPlanLimits } = require('./lib/plans');
 

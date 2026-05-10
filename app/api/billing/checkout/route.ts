@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { stripe } from '@/lib/stripe';
 import { getUserByEmail, updateUserStripeInfo } from '@/lib/users-db';
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.email) {
@@ -19,7 +19,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 1. Ensure Stripe Customer exists
-    let customerId = (user as any).stripe_customer_id;
+    let customerId = user.stripe_customer_id;
     console.log(`[Stripe Checkout] Customer ID atual: ${customerId}`);
     
     if (!customerId) {
@@ -65,11 +65,12 @@ export async function POST(req: NextRequest) {
 
     console.log(`[Stripe Checkout] Sessão criada com sucesso: ${checkoutSession.url}`);
     return NextResponse.json({ url: checkoutSession.url });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Stripe Checkout Error Fatal]:', error);
+    const message = error instanceof Error ? error.message : 'Erro interno ao processar checkout.';
     return NextResponse.json({ 
-      error: error.message || 'Erro interno ao processar checkout.',
-      details: process.env.NODE_ENV === 'development' ? error.stack : undefined 
+      error: message,
+      details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined 
     }, { status: 500 });
   }
 }

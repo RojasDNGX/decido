@@ -29,8 +29,8 @@ export default function ForgotPasswordPage() {
       }
 
       setMessage(data.message);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Ocorreu um erro inesperado.');
     } finally {
       setLoading(false);
     }

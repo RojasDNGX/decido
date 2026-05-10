@@ -2,15 +2,15 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnalysisResult } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
-import { isLimitReached, incrementUsageCount, saveDecision, getCompactHistory, getOrCreateFingerprint } from '@/services/storage/storage';
+import { getUsageCount, incrementUsageCount, getRemainingUsage, getOrCreateFingerprint, getCompactHistory } from '@/services/storage/storage';
 
 export function useDecision(userId: string) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [limitReached, setLimitReached] = useState<any | null>(null);
-  const [conversionTrigger, setConversionTrigger] = useState<any | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+  const [conversionTrigger, setConversionTrigger] = useState<unknown>(null);
 
   const analyze = async (
     input: string,

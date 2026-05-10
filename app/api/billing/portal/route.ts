@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 import { stripe } from '@/lib/stripe';
 import { getUserByEmail } from '@/lib/users-db';
 
-export async function POST(req: NextRequest) {
+export async function POST(_req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.email) {
@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ url: portalSession.url });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('[Stripe Portal Error]:', error);
     return NextResponse.json({ error: 'Erro ao abrir o portal de faturamento.' }, { status: 500 });
   }

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { getUserByEmail, updateUserProfile } from '@/lib/users-db';
 
-export async function GET(req: NextRequest) {
+export async function GET(_req: Request) {
   try {
     const session = await auth();
     if (!session?.user?.email) {
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
       plan: user.plan,
       subscriptionStatus: user.stripe_subscription_status || 'none',
       periodEnd: user.stripe_current_period_end || null,
-      cancelAtPeriodEnd: !!(user as any).stripe_cancel_at_period_end
+      cancelAtPeriodEnd: !!user.stripe_cancel_at_period_end
     });
   } catch (error) {
     console.error('[API User Profile GET Error]:', error);

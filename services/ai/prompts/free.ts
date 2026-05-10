@@ -51,9 +51,7 @@ REGRAS OBRIGATÓRIAS:
 6. Derive apenas do que foi dito. Não invente consequências.
 7. Deve existir EXATAMENTE UMA tarefa de maior prioridade.`;
 
-type HistoryItem = { input_summary: string; primary_action: string };
-
-export function buildPrompt(input: string, _history?: HistoryItem[]): string {
+export function buildFreePrompt(input: string): string {
   // FREE plan does NOT use history — parameter ignored server-side
   return `${LANGUAGE_RULE}
 

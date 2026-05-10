@@ -11,7 +11,7 @@ import { sanitizeTasks, recoverCoverage } from '@/services/ai/sanitize';
 import { isOverloadInput } from '@/services/ai/overload';
 import type { Priority } from '@/types';
 
-import { getPlanLimits } from '@/plans';
+import { getPlanLimits } from '@/lib/plans';
 import { logger } from '@/lib/logger';
 import { analytics } from '@/lib/analytics';
 

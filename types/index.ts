@@ -39,3 +39,12 @@ export interface Decision {
   output: AnalysisResult;
   timestamp: number;
 }
+
+export interface LimitReachedMessage {
+  title: string;
+  description: string;
+  cta: string;
+  link: string;
+  secondary_cta: string | null;
+  secondary_link: string | null;
+}

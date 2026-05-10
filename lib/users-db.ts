@@ -53,10 +53,10 @@ function getDb(): Database.Database {
       global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN company TEXT");
     }
     if (!tableInfo.some(col => col.name === 'stripe_customer_id')) {
-      global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN stripe_customer_id TEXT UNIQUE");
+      global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN stripe_customer_id TEXT");
     }
     if (!tableInfo.some(col => col.name === 'stripe_subscription_id')) {
-      global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT UNIQUE");
+      global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN stripe_subscription_id TEXT");
     }
     if (!tableInfo.some(col => col.name === 'stripe_price_id')) {
       global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN stripe_price_id TEXT");
@@ -67,6 +67,24 @@ function getDb(): Database.Database {
     if (!tableInfo.some(col => col.name === 'marketing_opt_in')) {
       global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN marketing_opt_in INTEGER NOT NULL DEFAULT 0");
     }
+    if (!tableInfo.some(col => col.name === 'stripe_subscription_status')) {
+      global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN stripe_subscription_status TEXT");
+    }
+    if (!tableInfo.some(col => col.name === 'stripe_cancel_at_period_end')) {
+      global.__DECIDO_USERS_DB__.exec("ALTER TABLE users ADD COLUMN stripe_cancel_at_period_end INTEGER DEFAULT 0");
+    }
+
+    // Tabela de Logs de Auditoria de Faturamento (Observabilidade)
+    global.__DECIDO_USERS_DB__.exec(`
+      CREATE TABLE IF NOT EXISTS billing_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        event_id TEXT UNIQUE,
+        event_type TEXT,
+        payload TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
 
     // Tabela de tokens para reset de senha
     global.__DECIDO_USERS_DB__.exec(`
@@ -101,6 +119,7 @@ export interface UserRow {
   stripe_subscription_id?: string | null;
   stripe_price_id?: string | null;
   stripe_current_period_end?: string | null;
+  stripe_subscription_status?: string | null;
   marketing_opt_in: number;
   created_at: string;
 }
@@ -204,5 +223,46 @@ export function deleteAccountData(email: string, userId: number) {
   
   // Nota: Para excluir de history.db e usage.db precisaremos chamar suas funções correspondentes 
   // caso essa função seja chamada em uma rota principal que importe as 3 bases de dados.
+}
+
+export function updateUserStripeInfo(userId: number, data: { 
+  stripe_customer_id?: string, 
+  stripe_subscription_id?: string,
+  stripe_subscription_status?: string,
+  stripe_price_id?: string,
+  stripe_current_period_end?: string,
+  stripe_cancel_at_period_end?: boolean,
+  plan?: 'free' | 'pro' | 'enterprise'
+}) {
+  const db = getDb();
+  // Converter boolean para integer para o SQLite
+  const processedData = { ...data };
+  if (data.stripe_cancel_at_period_end !== undefined) {
+    (processedData as any).stripe_cancel_at_period_end = data.stripe_cancel_at_period_end ? 1 : 0;
+  }
+
+  const fields = Object.keys(processedData).map(key => `${key} = ?`).join(', ');
+  const values = Object.values(processedData);
+  
+  db.prepare(`UPDATE users SET ${fields} WHERE id = ?`).run(...values, userId);
+}
+
+export function getUserByStripeSubscriptionId(subscriptionId: string): UserRow | undefined {
+  return getDb().prepare('SELECT * FROM users WHERE stripe_subscription_id = ?').get(subscriptionId) as UserRow | undefined;
+}
+
+export function getUserByStripeCustomerId(customerId: string): UserRow | undefined {
+  return getDb().prepare('SELECT * FROM users WHERE stripe_customer_id = ?').get(customerId) as UserRow | undefined;
+}
+
+export function logBillingEvent(userId: number | null, eventId: string, eventType: string, payload: string) {
+  const db = getDb();
+  try {
+    db.prepare('INSERT INTO billing_logs (user_id, event_id, event_type, payload) VALUES (?, ?, ?, ?)').run(userId, eventId, eventType, payload);
+    return true;
+  } catch (e) {
+    // Se falhar por UNIQUE constraint, o evento já foi processado (Idempotência)
+    return false;
+  }
 }
 

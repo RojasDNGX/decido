@@ -17,17 +17,15 @@ export default function LimitePage() {
   const handleUpgrade = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/user/plan', {
+      const res = await fetch('/api/billing/checkout', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: 'pro' }),
       });
       
-      if (res.ok) {
-        await updateSession();
-        setUpgraded(true);
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
       } else {
-        alert('Erro ao processar upgrade. Tente novamente.');
+        alert(data.error || 'Erro ao processar upgrade. Tente novamente.');
       }
     } catch (e) {
       alert('Falha na conexão.');

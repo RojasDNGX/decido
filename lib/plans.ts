@@ -52,12 +52,29 @@ export function isPro(plan: Plan): boolean {
 }
 
 /**
- * Resolve os limites do plano garantindo fallbacks seguros
+ * Resolve os limites do plano garantindo fallbacks seguros e considerando o status da Stripe
  */
-export function getPlanLimits(plan: string | undefined): PlanLimits {
-  if (plan === 'pro') return PLANS.pro;
+export function getPlanLimits(plan: string | undefined, status?: string | null): PlanLimits {
+  const isActive = isSubscriptionActive(status);
+  
   if (plan === 'enterprise') return PLANS.enterprise;
-  if (plan === 'free') return PLANS.free;
+  if (plan === 'pro' && isActive) return PLANS.pro;
+  
+  // Fallback para free se pro não estiver ativo (ex: payment failed ou canceled)
+  if (plan === 'free' || (plan === 'pro' && !isActive)) return PLANS.free;
+  
   return PLANS.guest;
+}
+
+/**
+ * Define se uma assinatura é considerada válida para acesso aos recursos
+ */
+export function isSubscriptionActive(status?: string | null): boolean {
+  if (!status) return false;
+  
+  const activeStatuses = ['active', 'trialing', 'past_due']; 
+  // Nota: 'past_due' incluído aqui para permitir o Grace Period (Fase 6)
+  
+  return activeStatuses.includes(status);
 }
 

@@ -21,7 +21,11 @@ export async function GET(req: NextRequest) {
       profession: user.profession || '',
       company: user.company || '',
       id: user.id,
-      hasPassword: !!user.password
+      hasPassword: !!user.password,
+      plan: user.plan,
+      subscriptionStatus: user.stripe_subscription_status || 'none',
+      periodEnd: user.stripe_current_period_end || null,
+      cancelAtPeriodEnd: !!(user as any).stripe_cancel_at_period_end
     });
   } catch (error) {
     console.error('[API User Profile GET Error]:', error);

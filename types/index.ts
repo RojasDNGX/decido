@@ -1,5 +1,13 @@
-
 export type Plan = 'guest' | 'free' | 'pro' | 'enterprise';
+
+export type SubscriptionStatus = 
+  | 'active' 
+  | 'past_due' 
+  | 'canceled' 
+  | 'incomplete' 
+  | 'incomplete_expired' 
+  | 'trialing' 
+  | 'unpaid';
 
 export type UserRole = 'guest' | 'free' | 'pro' | 'admin';
 

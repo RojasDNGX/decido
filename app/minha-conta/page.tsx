@@ -27,6 +27,13 @@ export default function MinhaContaPage() {
   const [hasPassword, setHasPassword] = useState(true);
   const [secMessage, setSecMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
+  // Billing States
+  const [plan, setPlan] = useState<'free' | 'pro' | 'enterprise'>('free');
+  const [subStatus, setSubStatus] = useState<string>('none');
+  const [periodEnd, setPeriodEnd] = useState<string | null>(null);
+  const [cancelAtPeriodEnd, setCancelAtPeriodEnd] = useState(false);
+  const [billingLoading, setBillingLoading] = useState(false);
+
   useEffect(() => {
     if (status === 'unauthenticated') router.replace('/decidir');
     
@@ -53,6 +60,10 @@ export default function MinhaContaPage() {
             setProfileProfession(data.profession || '');
             setProfileCompany(data.company || '');
             setHasPassword(data.hasPassword);
+            setPlan(data.plan);
+            setSubStatus(data.subscriptionStatus);
+            setPeriodEnd(data.periodEnd);
+            setCancelAtPeriodEnd(data.cancelAtPeriodEnd);
           }
         } catch (e) {
           console.error("Failed to load profile");
@@ -63,8 +74,6 @@ export default function MinhaContaPage() {
   }, [status, router]);
 
   if (status === 'loading' || !session) return null;
-
-  const plan = (session.user as { plan?: string })?.plan ?? 'free';
 
   async function handlePasswordChange(e: React.FormEvent) {
     e.preventDefault();
@@ -111,6 +120,41 @@ export default function MinhaContaPage() {
       setProfMessage({ type: 'error', text: err.message });
     } finally {
       setProfLoading(false);
+    }
+  }
+
+  async function handleManageSubscription() {
+    try {
+      setBillingLoading(true);
+      const res = await fetch('/api/billing/portal', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Erro ao acessar portal de cobrança');
+      }
+    } catch (e) {
+      alert('Erro de conexão');
+    } finally {
+      setBillingLoading(false);
+    }
+  }
+
+  async function handleStartCheckout() {
+    try {
+      setBillingLoading(true);
+      const res = await fetch('/api/billing/checkout', { method: 'POST' });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        alert(data.error || 'Erro ao iniciar checkout. Verifique se o STRIPE_PRO_PRICE_ID está configurado.');
+      }
+    } catch (e) {
+      console.error('Checkout error:', e);
+      alert('Falha na conexão ao iniciar checkout. Verifique o terminal do servidor.');
+    } finally {
+      setBillingLoading(false);
     }
   }
 
@@ -263,8 +307,7 @@ export default function MinhaContaPage() {
                   </button>
                 </form>
 
-                <div className="danger-zone">
-                  <h4>Sessão</h4>
+                <div className="danger-zone" style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', borderTop: 'none', paddingTop: 0 }}>
                   <button className="clear-data-btn" onClick={() => signOut({ callbackUrl: '/auth/signin' })}>
                     Sair da conta
                   </button>
@@ -273,41 +316,77 @@ export default function MinhaContaPage() {
             )}
 
             {activeTab === 'planos' && (
-              <div className="tab-pane fade-in">
-                <div className="upgrade-card-experience" style={{ width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <p className="upgrade-card-title" style={{ marginBottom: '0.25rem' }}>Plano atual: <span style={{ color: plan === 'pro' ? '#818cf8' : 'inherit' }}>{plan.toUpperCase()}</span></p>
-                  {plan === 'free' && usageCount !== null && (
-                    <p style={{ fontSize: '0.85rem', opacity: 0.6, marginBottom: '1.25rem' }}>
-                      {usageCount === 0 ? 'Você ainda não decidiu hoje' : (usageCount === 1 ? 'Você decidiu 1 vez hoje' : `Você decidiu ${usageCount} vezes hoje`)}
-                    </p>
-                  )}
-                  
-                  {plan === 'pro' && (
-                    <div style={{ margin: '1.5rem 0', textAlign: 'center' }}>
-                      <p style={{ color: '#818cf8', fontWeight: 600, fontSize: '1.1rem' }}>Você está decidindo com continuidade</p>
-                      <p style={{ fontSize: '0.9rem', opacity: 0.6, marginTop: '0.5rem' }}>O Decido acompanha você ao longo do dia.</p>
-                    </div>
-                  )}
+              <div className="tab-content fade-in">
+                <header className="account-section-header" style={{ marginBottom: '20px' }}>
+                  <h3>Sua Assinatura</h3>
+                  <p>Gerencie seus limites e recursos avançados.</p>
+                </header>
 
-                  <div className="experience-comparison">
-                    <div className="comparison-row" style={{ width: '100%', display: 'flex' }}>
-                      <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', width: '50%' }}>
-                        <p className="comparison-label">FREE</p>
+                {cancelAtPeriodEnd && periodEnd && (
+                  <div style={{ 
+                    padding: '12px 16px', 
+                    background: 'rgba(239, 68, 68, 0.1)', 
+                    borderRadius: '12px', 
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    fontSize: '14px',
+                    color: '#fca5a5',
+                    width: '100%',
+                    textAlign: 'left',
+                    lineHeight: '1.4',
+                    marginBottom: '20px'
+                  }}>
+                    <strong>Assinatura cancelada:</strong> Você ainda tem acesso PRO por mais 
+                    <span style={{ color: 'white', margin: '0 4px', fontWeight: 'bold' }}>
+                      {Math.max(0, Math.ceil((new Date(periodEnd).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)))} dias
+                    </span>. 
+                    Ainda dá tempo de continuar com a gente! Basta clicar em <strong>Gerenciar Cobrança</strong> e reativar.
+                  </div>
+                )}
+
+                <div className="plan-card active-plan" style={{ position: 'relative' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <div>
+                      <p style={{ fontSize: '12px', color: '#818cf8', fontWeight: 600, letterSpacing: '0.05em', margin: 0 }}>PLANO ATUAL</p>
+                      <h4 style={{ margin: '5px 0', fontSize: '20px', color: 'white' }}>
+                        Decido {plan.toUpperCase()} 
+                        {subStatus === 'past_due' && <span style={{ marginLeft: '10px', fontSize: '12px', color: '#ef4444' }}>(Pagamento Pendente)</span>}
+                        {plan === 'free' && <div style={{ marginTop: '4px', fontSize: '14px', color: '#818cf8', fontWeight: 500 }}>Apenas R$ 19/mês no plano PRO</div>}
+                      </h4>
+                    </div>
+                    {plan === 'pro' && (
+                      <button 
+                        className="manage-billing-btn" 
+                        onClick={handleManageSubscription}
+                        disabled={billingLoading}
+                      >
+                        {billingLoading ? '...' : 'Gerenciar Cobrança'}
+                      </button>
+                    )}
+                  </div>
+                  
+                  <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                    <p style={{ fontSize: '14px', opacity: 0.6 }}>Próxima renovação: <strong>{periodEnd ? new Date(periodEnd).toLocaleDateString() : 'N/A'}</strong></p>
+                  </div>
+                </div>
+
+                  <div className="experience-comparison" style={{ border: 'none', background: 'transparent', padding: 0 }}>
+                    <div style={{ display: 'flex', gap: '40px', flexWrap: 'wrap' }}>
+                      <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', minWidth: '250px' }}>
+                        <p className="comparison-label">GRÁTIS</p>
                         <ul className="experience-list">
-                          <li>• decisões baseadas no agora</li>
-                          <li>• cada decisão começa do zero</li>
-                          <li>• limite diário</li>
+                          <li>• 3 análises diárias</li>
+                          <li>• Histórico local básico</li>
+                          <li>• Motor de decisão padrão</li>
                         </ul>
                       </div>
                       <div className="comparison-divider" />
-                      <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', width: '50%' }}>
+                      <div className="comparison-item" style={{ textAlign: 'left', flex: '1 1 0', minWidth: '250px' }}>
                         <p className="comparison-label comparison-label--pro">PRO</p>
                         <ul className="experience-list experience-list--pro">
                           <li>• Estrategista: entenda o "porquê"</li>
                           <li>• Políticas de Segurança Automáticas</li>
                           <li>• Decisões com contexto acumulado</li>
                           <li>• Sem limite diário</li>
-                          <li>• Decisões mais inteligentes e seguras</li>
                         </ul>
                       </div>
                     </div>
@@ -315,14 +394,14 @@ export default function MinhaContaPage() {
                       <button 
                         className="limit-modal-cta" 
                         style={{ marginTop: '2rem', width: '100%' }}
-                        onClick={() => router.push('/limite')}
+                        onClick={handleStartCheckout}
+                        disabled={billingLoading}
                       >
-                        Fazer Upgrade para PRO
+                        {billingLoading ? 'Processando...' : 'Fazer Upgrade para PRO - R$ 19/mês'}
                       </button>
                     )}
                   </div>
                 </div>
-              </div>
             )}
           </div>
         </div>
@@ -561,6 +640,23 @@ export default function MinhaContaPage() {
         .auth-submit-btn:hover {
           transform: translateY(-2px);
           box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+
+        .manage-billing-btn {
+          padding: 10px 20px;
+          border-radius: 12px;
+          background: rgba(255,255,255,0.05);
+          color: white;
+          border: 1px solid rgba(255,255,255,0.1);
+          font-weight: 600;
+          font-size: 14px;
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .manage-billing-btn:hover {
+          background: white;
+          color: #1a365d;
         }
 
         .auth-success, .auth-error {

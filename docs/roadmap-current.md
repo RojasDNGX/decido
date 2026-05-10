@@ -1,108 +1,99 @@
-# DECIDO — ROADMAP WEEK 16 (AUTH & IDENTITY HARDENING)
+# DECIDO — ROADMAP WEEK 18 (PRODUCTION HARDENING & RELEASE)
 
-Status: [x]
+Status: [ ]
 
-## 🧱 PHASE 1 — IDENTITY ARCHITECTURE REFACTOR
+## 🧱 PHASE 1 — ENVIRONMENT AUDIT
 
-* [x] Separate authentication from monetization logic
-* [x] Implement structured user roles: Guest, Authenticated FREE, Authenticated PRO
-* [x] Decouple login from automatic PRO status (Login = identity, Subscription = PRO)
-
----
-
-## 🟣 PHASE 2 — GUEST EXPERIENCE GOVERNANCE
-
-* [x] Implement official Guest user flow with limited experience
-* [x] Set strict Guest limitations (no history, no easy resets)
-* [x] Implement server-side Guest quota (IP/Fingerprint based)
-* [x] Add clear CTA for free account creation
+* [ ] Validate all production Environment Variables and Secrets
+* [ ] Review API keys and Auth Provider configurations for production
+* [ ] Transition Stripe integration to Live mode
 
 ---
 
-## 🟢 PHASE 3 — AUTHENTICATED FREE PLAN
+## 🔐 PHASE 2 — SECURITY AUDIT
 
-* [x] Create real server-side persistence for FREE users
-* [x] Implement basic history for authenticated FREE
-* [x] Link usage quotas to user ID instead of browser storage
-
----
-
-## 🔐 PHASE 4 — TRADITIONAL AUTHENTICATION
-
-* [x] Implement Email/Password registration and login
-* [x] Add secure logout, password reset, and email verification
-* [x] Set up account recovery flow
+* [ ] Perform final audit on Auth, Sessions, and protected API routes
+* [ ] Validate security of AI endpoints and data flows
+* [ ] Ensure robust Rate Limiting is active across all entry points
 
 ---
 
-## 🤝 PHASE 5 — SOCIAL LOGIN CONSOLIDATION
+## 🧠 PHASE 3 — AI RUNTIME HARDENING
 
-* [x] Consolidate existing social providers (Google)
-* [x] Ensure correct persistence and session synchronization
-* [x] Validate consistency across different providers
-
----
-
-## 🔗 PHASE 6 — IDENTITY LINKING
-
-* [x] Implement logic to link multiple providers to the same email
-* [x] Handle conflicts (Google login + Email/Password)
-* [x] Ensure identity uniqueness and safe account merging
+* [ ] Implement timeout protection and retry policies for AI calls
+* [ ] Refine fallback behavior and malformed output handling
+* [ ] Ensure "Degraded Mode" works gracefully during AI outages
 
 ---
 
-## 🛡️ PHASE 7 — SERVER-SIDE USAGE ENFORCEMENT
+## 📊 PHASE 4 — LOGGING & OBSERVABILITY
 
-* [x] Migrate all limits, quotas, and locks to server-side authority
-* [x] Remove dependencies on cookies/localStorage for critical gating
-* [x] Prevent limit resets through browser cleaning
-
----
-
-## 📊 PHASE 8 — DATABASE AUDIT & HARDENING
-
-* [x] Audit and refine database schema (Users, Providers, Subs, Quotas, Sessions)
-* [x] Ensure relational integrity and email uniqueness
-* [x] Prepare schema for future billing integration
+* [ ] Implement structured logging with Request IDs
+* [ ] Set up dedicated tracking for AI errors, Auth, and Billing events
+* [ ] Monitor quota usage and enforcement trends
 
 ---
 
-## 🔒 PHASE 9 — SECURITY HARDENING
+## 📈 PHASE 5 — ANALYTICS FOUNDATION
 
-* [x] Implement strong password hashing and secure sessions (httpOnly)
-* [x] Add CSRF, brute-force protection, and rate limiting
-* [x] Configure session expiration and token invalidation
-
----
-
-## ⚖️ PHASE 10 — LGPD MINIMAL READINESS
-
-* [x] Add basic consent flow and privacy policy
-* [x] Implement opt-in for communications
-* [x] Prepare infrastructure for "Right to be Forgotten" (account deletion)
+* [ ] Track signups, upgrades, and conversion funnel metrics
+* [ ] Implement quota exhaustion and retention visibility tracking
+* [ ] Ensure data privacy compliance in all analytics flows
 
 ---
 
-## 🎨 PHASE 11 — AUTH UX REFINEMENT
+## ⚡ PHASE 6 — PERFORMANCE PASS
 
-* [x] Simplify login and registration interfaces
-* [x] Clearly differentiate FREE vs PRO value during auth
-* [x] Ensure auth feels like "continuity/trust" rather than a block
+* [ ] Optimize page load times and AI latency
+* [ ] Audit hydration and mobile responsiveness
+* [ ] Validate performance of account and billing pages
 
 ---
 
-## 🧪 PHASE 12 — VALIDATION & STRESS TESTS
+## 🎨 PHASE 7 — CONFIDENCE UX FINAL PASS
 
-* [x] Test limit resets, provider switching, and account recovery
-* [x] Validate session expiration and multi-device persistence
-* [x] Verify FREE quotas and abuse prevention
+* [ ] Refine all loading, error, and billing states for maximum clarity
+* [ ] Ensure "Quota Clarity" is maintained throughout the UI
+* [ ] Verify that the overall experience feels stable and trustworthy
+
+---
+
+## 🗄️ PHASE 8 — PRODUCTION DATABASE VALIDATION
+
+* [ ] Configure automated backups and migration validation scripts
+* [ ] Test rollback safety and relational integrity checks
+* [ ] Ensure database performance is adequate for initial launch
+
+---
+
+## 🚀 PHASE 9 — RELEASE INFRASTRUCTURE
+
+* [ ] Set up final production Domain and SSL
+* [ ] Finalize deployment pipeline and monitoring dashboards
+* [ ] Establish a clear rollback strategy for the live environment
+
+---
+
+## 🧪 PHASE 10 — FINAL STRESS TESTS
+
+* [ ] Validate Auth, Quotas, and Stripe flows under load
+* [ ] Test session expiration and concurrent user scenarios
+* [ ] Verify Upgrade/Downgrade flows in the production-like environment
+
+---
+
+## 🏁 PHASE 11 — PRODUCTION LAUNCH
+
+* [ ] Execute official Production Deploy
+* [ ] Perform initial live monitoring and post-release validation
+* [ ] Stabilize Auth and Billing in the real environment
 
 ---
 
 ## 🚨 SUCCESS CRITERIA
 
-* [x] Authenticated FREE plan operational with server-side history
-* [x] 100% server-authoritative quotas (no browser-only bypass)
-* [x] Functional traditional and social authentication
-* [x] Stable identity linking and audited database
-* [x] System ready for real-world production monetization
+* [ ] System fully operational in the production environment
+* [ ] Real-world monetization active and stable
+* [ ] Observability and monitoring functional with alerts
+* [ ] Security and integrity validated for public use
+* [ ] Decido ready for real public users

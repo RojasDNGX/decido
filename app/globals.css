@@ -499,6 +499,20 @@ button:disabled {
   color: #737373 !important;
 }
 
+.pro-limit-indicator {
+  background: rgba(251, 191, 36, 0.08);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  padding: 0.5rem 1.2rem;
+  border-radius: 2rem;
+  animation: fadeIn 0.5s ease-out;
+  cursor: default;
+}
+
+.pro-limit-indicator:hover {
+  background: rgba(251, 191, 36, 0.12);
+  border-color: rgba(251, 191, 36, 0.5);
+}
+
 .example-btn {
   background: transparent;
   border: 1px dashed rgba(255, 255, 255, 0.2);

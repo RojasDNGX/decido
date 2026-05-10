@@ -27,7 +27,7 @@ const EXAMPLES = [
 export default function Home() {
   const router = useRouter();
   const { data: session, update } = useSession();
-  const isPro = session?.user?.plan === 'pro';
+  const isPro = session?.user?.plan === 'pro' || session?.user?.plan === 'enterprise';
   const [userId] = useState<string>(() => typeof window !== 'undefined' ? getUserId() : '');
   const [input, setInput] = useState('');
   const { analyze, loading, result, setResult, error, setError, limitReached, setLimitReached, conversionTrigger, setConversionTrigger } = useDecision(userId);
@@ -941,6 +941,13 @@ No PRO, o Decido continua com você.
                     </span>
 
                     <span className="pro-upgrade-link">Ver planos</span>
+                  </div>
+                )}
+                {mounted && isPro && (
+                  <div className="pro-limit-indicator">
+                    <span style={{ color: '#fbbf24', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '1.1rem' }}>✨</span> Plano PRO — Análises Ilimitadas
+                    </span>
                   </div>
                 )}
                 {mounted && history.length > 0 && (

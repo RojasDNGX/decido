@@ -1,22 +1,30 @@
 # Enterprise Direction — Decido
 
-Status: DRAFT (no implementation yet)
+Status: DRAFT — pending real usage data and retention signals
 
 ---
 
 ## Context
 
-Decido v1.0.0 (MVP) is now stable in production.
+Decido PRO is now stable in production.
 
-This document captures the intended direction for the next phase: Enterprise.
+The behavioral baseline was established in week-18B: the AI consistently returns
+ONE primary action with defensible priority distribution (alta/média/baixa).
+
+This document captures the intended direction for the Enterprise phase.
+
+No implementation begins until a roadmap cycle is opened.
+
+Enterprise roadmaps will live in:
+→ `docs/archive/roadmaps/decido-enterprise/`
 
 ---
 
 ## Core Premise
 
-The MVP validated the core concept:
+PRO validated the monetization model:
 
-→ One input → One clear decision
+→ One input → One clear decision → Paid upgrade for unlimited use
 
 The Enterprise phase must scale this value to teams and organizations,
 without compromising the simplicity that makes Decido work.
@@ -25,29 +33,29 @@ without compromising the simplicity that makes Decido work.
 
 ## Candidate Areas (not a commitment)
 
-### 1. Multi-user Support
-
-- User accounts and authentication
-- Individual decision history
-- Shared team context (optional)
-
-### 2. Decision History
+### 1. Decision History
 
 - Persistent storage per user
 - Review past decisions
-- Track outcomes over time
+- Track patterns and outcomes over time
 
-### 3. API Access
+### 2. API Access
 
 - Allow integrations via API
 - Enable automation for power users
 - Potential for Zapier / n8n / webhooks
 
-### 4. Team / Workspace Mode
+### 3. Team / Workspace Mode
 
 - Shared context across a team
 - Assign decisions to members
 - Centralized decision log
+
+### 4. Multi-user Accounts
+
+- Organization-level accounts
+- Individual seats and permissions
+- Usage visibility per member
 
 ---
 
@@ -71,13 +79,15 @@ Decido decides. It does not manage.
 
 ---
 
-## Next Step
+## When to begin
 
-When enterprise development begins:
+Enterprise development begins only when there is:
 
-1. Create `docs/roadmaps/week-6.md`
-2. Define the first enterprise phase (single feature, minimal scope)
-3. Follow the standard roadmap execution model
+* Real retention data from PRO users
+* A concrete behavioral need that cannot be served by the current product
+* A first phase scoped to a single feature with clear validation criteria
+
+Follow the standard roadmap execution model when ready.
 
 ---
 

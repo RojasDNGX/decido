@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start -H 0.0.0.0",
     "lint": "eslint",
-    "lint:docs": "node scripts/lint-docs.js",
+    "lint:docs": "node scripts/internal/lint-docs.js",
     "test": "playwright test"
   },
   "dependencies": {

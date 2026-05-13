@@ -1,4 +1,13 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
+/**
+ * migrate-billing.js — One-time DB migration for Stripe billing columns.
+ *
+ * Run manually when applying the billing schema to an existing database:
+ *   node scripts/internal/migrate-billing.js
+ *
+ * Adds Stripe billing columns to `users` table and creates `billing_logs` table.
+ * Safe to re-run — skips existing columns.
+ */
 const Database = require('better-sqlite3');
 const path = require('path');
 const fs = require('fs');

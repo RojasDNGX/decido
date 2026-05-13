@@ -1,6 +1,13 @@
 /* eslint-disable */
-const fs = require('fs');
-/* eslint-disable @typescript-eslint/no-require-imports */
+/**
+ * validate-analytics.js — Manual Playwright validation for analytics event firing.
+ *
+ * Run against a local dev server to verify analytics events are emitted correctly:
+ *   node scripts/internal/validate-analytics.js
+ *
+ * Requires: local server running at http://localhost:3001
+ * Not part of the official Playwright test suite — use for manual QA only.
+ */
 const { chromium } = require('@playwright/test');
 
 const MOCK_RESULT = {
@@ -45,7 +52,7 @@ async function mockRoute(page) {
   const page2 = await browser.newPage();
   await mockRoute(page2);
   await page2.goto('http://localhost:3001/decidir');
-  await page2.waitForSelector('.quick-actions', { state: 'visible' }); // wait for full hydration
+  await page2.waitForSelector('.quick-actions', { state: 'visible' });
   await page2.click('button#try-example-btn');
 
   const events2 = await page2.evaluate(() => window.__DECIDO_EVENTS__ || []);

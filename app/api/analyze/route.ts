@@ -134,8 +134,11 @@ function extractTasksFromVerbs(input: string): string[] {
   const words = stripped.split(/\s+/).filter(Boolean)
   const verbIndices: number[] = []
 
+  const infinitivePrepositions = new Set(['para', 'de', 'ao', 'a', 'por'])
   for (let i = 0; i < words.length; i++) {
     const w = words[i]
+    const prev = i > 0 ? words[i - 1] : ''
+    if (infinitivePrepositions.has(prev)) continue
     if (w.length > 3 && (w.endsWith('ar') || w.endsWith('er') || w.endsWith('ir'))) {
       verbIndices.push(i)
     }

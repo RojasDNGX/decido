@@ -13,6 +13,7 @@ export default function LimitePage() {
   const router = useRouter();
   const [activeContext, setActiveContext] = useState('Você > pessoal');
   const [loading, setLoading] = useState(false);
+  const [upgraded, setUpgraded] = useState(false);
 
   const handleUpgrade = async () => {
     setLoading(true);

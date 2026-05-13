@@ -28,8 +28,8 @@ test.describe('Security & Identity Hardening', () => {
     // We will attempt to call the API directly multiple times
     // The limit is 5 per 15 mins.
     
-    const email = 'test-security@decido.com.br';
-    
+    const email = `test-security-${Date.now()}@decido.com.br`;
+
     for (let i = 0; i < 5; i++) {
       const res = await page.request.post('/api/auth/forgot-password', {
         data: { email }
@@ -52,7 +52,7 @@ test.describe('Security & Identity Hardening', () => {
     // Note: To test the actual content, we'd need a logged session.
     // Here we test that the route is protected (redirects if not logged)
     await page.goto('/minha-conta');
-    await expect(page).toHaveURL(/\/decidir/); // Current behavior: redirects to /decidir if unauthenticated
+    await expect(page).toHaveURL(/\/auth\/signin/); // Unauthenticated access redirects to signin
   });
 
 });

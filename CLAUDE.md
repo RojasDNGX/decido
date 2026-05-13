@@ -96,3 +96,54 @@ If something is unclear:
 This is not a system that does more.
 
 This is a system that decides better.
+
+---
+
+## 🚀 Operational Mode — Post-Launch
+
+The product has reached a stable behavioral baseline as of week-18B.
+
+The current phase is:
+
+**OPERATION — not construction.**
+
+### What this means
+
+The priority is no longer adding features.
+The priority is preserving stability and observing real usage.
+
+### What to prioritize
+
+* Observing real user behavior and logs
+* Small, safe, isolated fixes
+* Retention and conversion signals
+* Quality of decisions in production
+* Operational stability
+
+### What to avoid
+
+* Refactoring the AI decision engine without a concrete regression
+* New heuristics, governance layers, or prompt experiments
+* Multiple parallel architectural changes
+* Any change that is not motivated by real production data
+
+### Behavioral baseline is a strategic asset
+
+The AI system is now calibrated and producing defensible, coherent decisions.
+Any future change to the decision engine must be treated as a **critical behavioral change**
+and validated with care — not as a routine code edit.
+
+### Test suite status
+
+`tests/` and `playwright.config.ts` are **permanent infrastructure** in `main`.
+They represent behavioral regression protection, not optional tooling.
+Run before every production merge. Zero failures required.
+
+### When to open a new roadmap
+
+Only when there is:
+
+* Real regression evidence from production
+* Consistent behavioral failure pattern
+* Concrete user data motivating a specific change
+* A structural problem that cannot be fixed with a small isolated fix

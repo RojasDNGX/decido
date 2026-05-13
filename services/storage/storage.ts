@@ -5,9 +5,10 @@ export const STORAGE_KEYS = {
   DECISIONS: 'decido_history',
   USAGE_COUNT: 'decido_usage_count',
   ONBOARDING_DONE: 'decido_onboarding_done',
+  FINGERPRINT: 'decido_fp',
 };
 
-export const MAX_FREE_ANALYSES = 5;
+export const MAX_FREE_ANALYSES = 3;
 
 export const getUsageCount = (): number => {
   if (typeof window === 'undefined') return 0;
@@ -35,7 +36,7 @@ export const incrementUsageCount = (): number => {
 export const isLimitReached = (): boolean => {
   try {
     return getUsageCount() >= MAX_FREE_ANALYSES;
-  } catch {
+  } catch (_e) {
     return false;
   }
 };
@@ -136,5 +137,23 @@ export const clearData = (): void => {
     localStorage.removeItem(STORAGE_KEYS.ONBOARDING_DONE);
   } catch (e) {
     console.warn('Failed to clear localStorage data', e);
+  }
+};
+
+export const getOrCreateFingerprint = (): string => {
+  if (typeof window === 'undefined') return '';
+  try {
+    let id = localStorage.getItem(STORAGE_KEYS.FINGERPRINT);
+    if (!id) {
+      if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        id = crypto.randomUUID();
+      } else {
+        id = 'fp_' + Math.random().toString(36).substring(2, 11) + Date.now().toString(36);
+      }
+      localStorage.setItem(STORAGE_KEYS.FINGERPRINT, id);
+    }
+    return id;
+  } catch (e) {
+    return 'temp_fp_' + Date.now();
   }
 };

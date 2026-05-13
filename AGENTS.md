@@ -254,7 +254,7 @@ while preserving completed work in a structured archive.
 
 # 📁 DOCS/ BRANCH SYNCHRONIZATION RULE
 
-The `docs/` folder and all its contents (roadmaps, archive, etc.)
+The `docs/` folder and all its contents (roadmaps, archive, user-tests, etc.)
 exist ONLY in `dev` and `feature/*` branches.
 
 ---
@@ -279,8 +279,8 @@ the most current state in `dev` — and vice versa.
 
 This includes:
 * `docs/roadmaps/` — active roadmap files
-* `docs/archive/roadmaps/core/` — completed core roadmaps
-* `docs/archive/roadmaps/enterprise/` — completed enterprise roadmaps
+* `docs/archive/roadmaps/` — completed roadmaps
+* `docs/user-tests/` — user research and testing artifacts
 * Any future subfolder created under `docs/`
 
 ---
@@ -298,6 +298,33 @@ This includes:
 * Do NOT leave `docs/` diverged between `dev` and `feature/*` branches
 * Do NOT merge a `feature/*` branch into `dev` with a stale `docs/` state
 * Do NOT push roadmap or planning files into `main` during a merge
+
+---
+
+# 🌲 GIT WORKFLOW & INTEGRATION
+
+Follow this lifecycle for every feature/week completion:
+
+---
+
+## 🛠️ FEATURE COMPLETION FLOW
+
+When a feature branch (`feature/*` or `feat/*`) is fully validated:
+
+1.  **Archive Roadmap:** Move the completed `week-X.md` to `docs/archive/roadmaps/`.
+2.  **Lint Check:** Run `npm run lint:docs` to ensure documentation integrity.
+3.  **Merge to dev:** Switch to `dev` and merge the feature branch.
+4.  **Cleanup:** Delete the local feature branch immediately after successful merge.
+5.  **Preparation:** Read the next roadmap (if exists) or request a new one.
+6.  **New Cycle:** Create a new branch from `dev` named according to the next roadmap.
+
+---
+
+## 🚀 PRODUCTION PROMOTION (dev → main)
+
+1.  **Zero Docs Policy:** The `main` branch must NEVER receive the `docs/` folder or `scripts/lint-docs.js`.
+2.  **Validation:** `run prod` must be executed and PASS before the final merge.
+3.  **Clean Merge:** Use strategies (like sparse-checkout or manual exclusion) to ensure only application code reaches `main`.
 
 ---
 

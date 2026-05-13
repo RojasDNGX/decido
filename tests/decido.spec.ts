@@ -49,18 +49,11 @@ test('example fills input without auto submit', async ({ page }) => {
   await expect(page.locator('.result-section')).not.toBeVisible();
 });
 
-test('limit redirects user', async ({ page }) => {
-  await page.addInitScript(() => {
-    localStorage.setItem('decido_usage_count', '4');
-  });
-
-  await page.goto('/decidir');
+test('limite page renders upgrade offer', async ({ page }) => {
+  await page.goto('/limite');
   await waitForMount(page);
-
-  await page.fill('textarea', 'Teste de limite de uso');
-  await page.click('button:has-text("Analisar")');
-
-  await expect(page).toHaveURL(/\/limite/, { timeout: 10000 });
+  await expect(page.locator('.limit-reached-card')).toBeVisible({ timeout: 5000 });
+  await expect(page.locator('text=Voltar para o plano gratuito')).toBeVisible();
 });
 
 test('user can adjust priority without breaking UI', async ({ page }) => {

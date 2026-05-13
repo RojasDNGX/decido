@@ -1,7 +1,47 @@
-import { AnalysisResult } from '@/types';
+/**
+ * orchestrator.ts — AI routing only.
+ *
+ * Responsibilities:
+ * - Select the correct plan prompt (free / pro / enterprise)
+ * - Gate history server-side (FREE receives no history regardless of client input)
+ * - Route request through local models (Ollama) with Groq as fallback
+ * - Validate basic structural integrity of model output
+ *
+ * This file contains NO decision logic.
+ * All intelligence lives in services/ai/prompts/{plan}.ts
+ */
+
+import { AnalysisResult, Plan } from '@/types';
+import { buildLayeredPrompt } from './prompts/builder';
 
 const OLLAMA_URL = 'http://10.10.0.9:11434/api/generate';
 const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const OPENROUTER_URL = 'https://openrouter.ai/api/v1/chat/completions';
+
+/**
+ * MODO DEGRADADO: Resposta simplificada caso toda a infraestrutura de IA falhe.
+ * Usa lógica local de processamento de texto.
+ */
+function getDegradedResponse(input: string): AnalysisResult {
+  const words = input.split(/\s+/).filter(w => w.length > 3);
+  const mainTask = words.slice(0, 5).join(' ') || 'Organizar tarefas';
+  
+  return {
+    primary_action: `${mainTask.charAt(0).toUpperCase() + mainTask.slice(1)} agora. (Modo de Segurança Ativo)`,
+    priorities: [
+      { 
+        task: mainTask, 
+        level: 'alta', 
+        reason: 'O sistema está em modo de segurança. Esta foi identificada como sua tarefa principal.' 
+      },
+      { 
+        task: 'Revisar outras pendências', 
+        level: 'baixa', 
+        reason: 'O motor de IA está instável no momento. Tente novamente em alguns minutos para insights avançados.' 
+      }
+    ]
+  };
+}
 
 const LOCAL_MODELS = [
   'gemma4:e4b',
@@ -9,9 +49,51 @@ const LOCAL_MODELS = [
   'phi4:14b'
 ];
 
+type HistoryItem = { input_summary: string; primary_action: string };
+
+async function tryOpenRouter(prompt: string): Promise<AnalysisResult> {
+  const apiKey = process.env.OPENROUTER_API_KEY;
+  if (!apiKey) throw new Error('OPENROUTER_API_KEY not configured');
+
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 12000); // Reduzido de 20s para 12s
+
+  try {
+    const response = await fetch(OPENROUTER_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`,
+        'HTTP-Referer': 'https://decido.app',
+        'X-Title': 'Decido',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.0-flash-lite-001',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+      }),
+      signal: controller.signal,
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) throw new Error(`OpenRouter error: ${response.status}`);
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+
+    if (!content) throw new Error('OpenRouter returned empty response');
+
+    return JSON.parse(content) as AnalysisResult;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    throw error;
+  }
+}
+
 async function tryOllama(model: string, prompt: string): Promise<AnalysisResult> {
-  const isFastModel = model.includes('gemma');
-  const timeoutLimit = isFastModel ? 6000 : 12000;
+  const timeoutLimit = 6000; // Retornado para 6s conforme solicitado
 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutLimit);
@@ -65,40 +147,53 @@ async function tryGroq(prompt: string): Promise<AnalysisResult> {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) throw new Error('GROQ_API_KEY not configured');
 
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), 12000);
+  const models = ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768'];
+  let lastError: unknown = null;
 
-  try {
-    const response = await fetch(GROQ_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.1,
-        response_format: { type: 'json_object' },
-        max_tokens: 250
-      }),
-      signal: controller.signal,
-    });
+  for (const model of models) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // Reduzido de 20s para 8s por modelo
 
-    clearTimeout(timeoutId);
+    try {
+      const response = await fetch(GROQ_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+        },
+        body: JSON.stringify({
+          model: model,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.1,
+          response_format: { type: 'json_object' },
+          max_tokens: 250
+        }),
+        signal: controller.signal,
+      });
 
-    if (!response.ok) throw new Error(`Groq error: ${response.status}`);
+      clearTimeout(timeoutId);
 
-    const data = await response.json();
-    const content = data.choices[0]?.message?.content;
+      if (response.status === 429) {
+        console.warn(`[Orchestrator] Groq model ${model} rate limited (429). Trying next...`);
+        continue;
+      }
 
-    if (!content) throw new Error('Groq returned empty response');
+      if (!response.ok) throw new Error(`Groq ${model} error: ${response.status}`);
 
-    return JSON.parse(content) as AnalysisResult;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    throw error;
+      const data = await response.json();
+      const content = data.choices[0]?.message?.content;
+
+      if (!content) throw new Error(`Groq ${model} returned empty response`);
+
+      return JSON.parse(content) as AnalysisResult;
+    } catch (error: unknown) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      console.warn(`[Orchestrator] Groq model ${model} failed:`, error instanceof Error ? error.message : error);
+    }
   }
+
+  throw (lastError as Error) || new Error('All Groq models failed');
 }
 
 function validateLanguage(text: string): boolean {
@@ -144,81 +239,48 @@ function validatePrimaryAction(action: string): boolean {
   return true;
 }
 
-type HistoryItem = { input_summary: string; primary_action: string };
+export async function aiOrchestrator(
+  input: string,
+  history?: HistoryItem[],
+  plan: Plan = 'free',
+  customPrompt?: string
+): Promise<AnalysisResult> {
+  const safeHistory = plan === 'free' ? undefined : history;
+  const prompt = customPrompt || buildLayeredPrompt(plan, input, safeHistory);
 
-export async function aiOrchestrator(input: string, history?: HistoryItem[]): Promise<AnalysisResult> {
-  const contextMemory = history?.length
-    ? `\nCONTEXT MEMORY (uso interno — NÃO mencione ao usuário):
-O usuário fez decisões similares recentemente:
-${history.map(h => `* "${h.input_summary}" → ${h.primary_action}`).join('\n')}
-Mantenha consistência com decisões anteriores quando o contexto for similar.
-Se o contexto atual trouxer diferenças relevantes, priorize o contexto atual.`
-    : '';
-
-  const prompt = `Responda exclusivamente em português do Brasil (pt-BR). É proibido usar qualquer palavra em inglês.
-
-Você é um assistente decisivo. Analise o contexto descrito e retorne UMA ação primária e a lista completa priorizada.
-
-COMO INTERPRETAR O CONTEXTO:
-- Extraia urgência implícita: expressões como "daqui a pouco", "logo", "ainda não terminei", "acumulando", "esqueci" indicam pressão real.
-- Identifique o que bloqueia outras coisas — essa tarefa sobe na prioridade.
-- Quando prazo não é explícito, use impacto e dependência para decidir.
-- Interprete linguagem natural e incompleta sem exigir estrutura do usuário.
-
-CRITÉRIOS DE PRIORIZAÇÃO:
-- alta: urgência temporal OU bloqueia outras tarefas OU impacto imediato irreversível
-- média: importante mas sem prazo imediato
-- baixa: pode esperar sem consequência real
-
-REGRAS OBRIGATÓRIAS:
-1. priorities: liste TODAS as tarefas analisadas, ordenadas por nível (alta → média → baixa).
-2. primary_action: derive SEMPRE de priorities[0].task — a tarefa de maior prioridade.
-3. primary_action deve ser uma frase imperativa, direta e concisa com ação clara E razão contextual embutida.
-   - Formato: "[verbo imperativo] [tarefa] [motivo contextual breve]"
-   - Exemplo correto: "Pague a fatura do cartão agora pois vence hoje e evita multa."
-   - Exemplo errado: "Pague a fatura do cartão"
-4. NÃO inclua sequências como "depois", "em seguida" ou vírgulas separando ações em primary_action.
-5. Tom: assertivo e decisivo. Use verbos no imperativo. Proibido: "talvez", "pode ser", "recomendo", "considere", "seria ideal". Nunca hesite.
-6. Seja estritamente objetivo. NÃO invente consequências específicas que não estejam no texto do usuário. Toda justificativa deve derivar apenas do que foi dito.
-
-FORMATO DE SAÍDA (JSON ESTRITO):
-{
-"primary_action": "string",
-"reason": "string",
-"priorities": [
-  {
-    "task": "string",
-    "level": "alta | média | baixa",
-    "reason": "string"
-  }
-]
-}
-
-ENTRADA DO USUÁRIO:
-${input}${contextMemory}`;
-
-  for (const model of LOCAL_MODELS) {
-    try {
-      const result = await tryOllama(model, prompt);
-
-      const contentString = JSON.stringify(result);
-      if (!validateLanguage(contentString)) continue;
-      if (result.primary_action && !validatePrimaryAction(result.primary_action)) continue;
-      if (!result.priorities || result.priorities.length < 2) continue;
-
+  // 1. Tentativa Local (Ollama) - Timeout 6s
+  const primaryModel = LOCAL_MODELS[0]; 
+  try {
+    const result = await tryOllama(primaryModel, prompt);
+    const contentString = JSON.stringify(result);
+    if (validateLanguage(contentString) && 
+        (!result.primary_action || validatePrimaryAction(result.primary_action)) &&
+        (result.priorities && result.priorities.length >= 2)) {
       return result;
-    } catch {
-      // Model unavailable, try next
     }
+  } catch (_error) {
+    console.warn(`[Orchestrator] Ollama ${primaryModel} failed. Falling back to Cloud.`);
   }
 
+  // 2. Fallback Principal Cloud (OpenRouter)
+  try {
+    return await tryOpenRouter(prompt);
+  } catch (_error) {
+    console.warn(`[Orchestrator] OpenRouter failed. Falling back to Groq:`, _error);
+  }
+
+  // 3. Fallback de Segurança (Groq)
   try {
     return await tryGroq(prompt);
   } catch (error: unknown) {
-    console.error(`[Orchestrator] All providers failed:`, error instanceof Error ? error.message : error);
-    throw new Error('Não foi possível processar a análise no momento.');
+    console.error(`[Orchestrator] All providers failed. Activating Degraded Mode:`, error instanceof Error ? error.message : error);
+    // ÚLTIMO RECURSO: Modo Degradado (Heurística Local)
+    return getDegradedResponse(input);
   }
 }
+
+
+
 
 // Model Warm-up
 if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'test') {

@@ -1,0 +1,9 @@
+node_modules
+.next
+out
+public
+scratch
+scripts
+data
+*.config.js
+next.config.js

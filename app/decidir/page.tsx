@@ -1,12 +1,17 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
-import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, setOnboardingDone } from '@/services/storage/storage';
+import { useRouter } from 'next/navigation';
+import { useSession, signIn, signOut } from 'next-auth/react';
+import { getUserId, getDecisions, getUsageCount, isLimitReached, getRemainingUsage, clearData, setOnboardingDone, getOrCreateFingerprint } from '@/services/storage/storage';
 import { Decision, Priority, Task } from '@/types';
 import { logEvent } from '@/services/analytics/metrics';
 import '@/services/analytics/insights';
 import { useDecision } from '@/features/decision/useDecision';
+import ProfileMenu from '@/components/ProfileMenu';
+import ValueHint from '@/components/decision/ValueHint';
 
 const EXAMPLES = [
   'Preciso pagar a fatura do cartão que vence hoje, estudar para a prova de amanhã e responder os e-mails do trabalho.',
@@ -20,16 +25,27 @@ const EXAMPLES = [
 ];
 
 export default function Home() {
+  const router = useRouter();
+  const { data: session, update } = useSession();
+  const isPro = session?.user?.plan === 'pro' || session?.user?.plan === 'enterprise';
   const [userId] = useState<string>(() => typeof window !== 'undefined' ? getUserId() : '');
   const [input, setInput] = useState('');
-  const { analyze, loading, result, setResult, error, setError } = useDecision(userId);
+  const { analyze, loading, result, setResult, error, setError, limitReached, setLimitReached, conversionTrigger, setConversionTrigger } = useDecision(userId);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [usageCount, setUsageCount] = useState<number>(() => typeof window !== 'undefined' ? getUsageCount() : 0);
-  const [history, setHistory] = useState<Decision[]>(() => typeof window !== 'undefined' ? getDecisions() : []);
+  const [history, setHistory] = useState<Decision[]>([]);
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
   const [shareCopied, setShareCopied] = useState(false);
   const [shareLoading, setShareLoading] = useState(false);
+  const [headerHint, setHeaderHint] = useState("");
+
+  const HEADER_HINTS = [
+    "Com continuidade, isso pode evoluir 🔒",
+    "Essa decisão é para agora 🔒",
+    "Com contexto, isso pode melhorar 🔒",
+  ];
 
   const [mounted, setMounted] = useState(false);
   const [exampleIndex, setExampleIndex] = useState(-1);
@@ -42,15 +58,66 @@ export default function Home() {
   const [lastMovedTask, setLastMovedTask] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const analyzeBtnRef = useRef<HTMLButtonElement>(null);
-  const contextMenuRef = useRef<HTMLDivElement>(null);
-  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const hamburgerRef = useRef<HTMLDivElement>(null);
   const [hamburgerOpen, setHamburgerOpen] = useState(false);
   const [activeContext, setActiveContext] = useState<string>(() =>
     typeof window !== 'undefined' ? (localStorage.getItem('decido_context') || 'Você') : 'Você'
   );
+  const [serverRemainingUsage, setServerRemainingUsage] = useState<number | null>(null);
+  const [loadingStep, setLoadingStep] = useState(0);
+
+  const LOADING_MESSAGES = [
+    "Entendendo o contexto...",
+    "Analisando urgências...",
+    "Priorizando impactos...",
+    "Gerando sua próxima ação...",
+  ];
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (loading) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep(prev => (prev + 1) % LOADING_MESSAGES.length);
+      }, 2000);
+    }
+    return () => clearInterval(interval);
+  }, [loading, LOADING_MESSAGES.length]);
+
+  useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const fp = getOrCreateFingerprint();
+        const res = await fetch('/api/usage', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fingerprint: fp }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setServerRemainingUsage(data.remaining);
+        }
+
+        if (session?.user?.email) {
+          const histRes = await fetch('/api/history');
+          if (histRes.ok) {
+            const histData = await histRes.json();
+            setHistory(histData);
+          }
+        } else {
+          // Unauthenticated users (guests) do not have history as per Phase 2 constraints
+          setHistory([]);
+        }
+      } catch (_e) {
+        console.warn('Failed to fetch data from server');
+      }
+    };
+    if (mounted) fetchUsage();
+  }, [mounted, result, userId, session?.user?.email]); // Atualiza no mount e após cada análise
+
   const isDecisionFocus = !!result && !isViewingHistory;
-  const reachedLimit = mounted && isLimitReached();
+  const reachedLimit = mounted && !isPro && (serverRemainingUsage !== null ? serverRemainingUsage === 0 : isLimitReached());
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
@@ -95,6 +162,7 @@ export default function Home() {
       let url = shareUrl;
       if (!url) {
         const res = await fetch('/api/share', {
+
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(result),
@@ -132,9 +200,16 @@ export default function Home() {
     }
   }, [tourStep]);
 
-  const handleClearData = () => {
+  const handleClearData = async () => {
     if (window.confirm('Tem certeza que deseja apagar todo o histórico de decisões?')) {
       clearData();
+      if (session?.user) {
+        try {
+          await fetch('/api/history', { method: 'DELETE' });
+        } catch (e) {
+          console.error('Failed to delete history on server', e);
+        }
+      }
       setHistory([]);
       setResult(null);
       setInput('');
@@ -147,6 +222,20 @@ export default function Home() {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
+    const syncUsage = async () => {
+      try {
+        const fp = getOrCreateFingerprint();
+        const res = await fetch(`/api/usage/sync?fingerprint=${fp}`);
+        const data = await res.json();
+        setUsageCount(data.count);
+        localStorage.setItem('decido_usage_count', String(data.count));
+      } catch (_e) {
+        // silent fail, fallback to LS
+      }
+    };
+
+    update();
+    syncUsage();
     logEvent('page_view', userId, { usage: usageCount });
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -158,18 +247,8 @@ export default function Home() {
     setUserAdjustedIds(new Set());
     setShareUrl(null);
     setShareCopied(false);
+    setExpandedTask(null);
   }, [result]);
-
-  useEffect(() => {
-    if (!contextMenuOpen) return;
-    const handleClick = (e: MouseEvent) => {
-      if (contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
-        setContextMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
-  }, [contextMenuOpen]);
 
   useEffect(() => {
     if (!hamburgerOpen) return;
@@ -183,7 +262,8 @@ export default function Home() {
   }, [hamburgerOpen]);
 
   const handleAnalyze = () => {
-    analyze(input, isRefinementMode, () => {
+    analyze(input, isRefinementMode, isPro, () => {
+      setHeaderHint(HEADER_HINTS[Math.floor(Math.random() * HEADER_HINTS.length)]);
       setHistory(getDecisions());
       setUsageCount(getUsageCount());
       setIsViewingHistory(true);
@@ -307,10 +387,12 @@ export default function Home() {
     <main>
       <header style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', padding: '1.5rem 2rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Link href="/" className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', transition: 'opacity 0.2s' }}>
-            <img 
+            <Image 
               src="/images/app-icon.png" 
               alt="Decido Logo" 
-              style={{ width: '52px', height: '52px', borderRadius: '12px', objectFit: 'cover' }} 
+              width={52}
+              height={52}
+              style={{ borderRadius: '12px', objectFit: 'cover' }} 
             />
           </Link>
           
@@ -319,49 +401,17 @@ export default function Home() {
 
               {/* Desktop: icon buttons */}
               <div className="quick-actions-desktop">
-                <div className="context-switcher" ref={contextMenuRef}
-                  onMouseEnter={() => setContextMenuOpen(true)}
-                  onMouseLeave={() => setContextMenuOpen(false)}
-                >
-                  <button
-                    className="quick-action-btn"
-                    title="Contexto"
-                    onClick={() => setContextMenuOpen(o => !o)}
-                  >
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                  </button>
-                  {contextMenuOpen && (
-                    <div className="context-switcher-menu">
-                      {([
-                        { label: 'Você > pessoal', main: 'Você', sub: 'pessoal' },
-                        { label: 'Time > workspace', main: 'Time', sub: 'workspace' },
-                      ]).map(({ label, main, sub }) => (
-                        <button
-                          key={label}
-                          className={`context-switcher-item${activeContext === label ? ' context-switcher-item--active' : ''}`}
-                          onClick={() => {
-                            setActiveContext(label);
-                            localStorage.setItem('decido_context', label);
-                            setContextMenuOpen(false);
-                          }}
-                        >
-                          {main} <span style={{ opacity: 0.45 }}>{`- ${sub}`}</span>
-                        </button>
-                      ))}
-                      <div className="context-switcher-divider" />
-                      <button
-                        className="context-switcher-item context-switcher-item--muted"
-                        onClick={() => setContextMenuOpen(false)}
-                      >
-                        + Criar workspace
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <ProfileMenu
+                  activeContext={activeContext}
+                  onContextChange={(label) => {
+                    setActiveContext(label);
+                    localStorage.setItem('decido_context', label);
+                  }}
+                />
                 <Link href="/" className="quick-action-btn" title="Ir para Home" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                 </Link>
-                {history.length > 0 && (
+                {(history.length > 0 || result) && (
                   <button
                     className="quick-action-btn"
                     title="Nova Análise"
@@ -415,7 +465,7 @@ export default function Home() {
                     >
                       Ir para Home
                     </Link>
-                    {history.length > 0 && (
+                    {(history.length > 0 || result) && (
                       <button
                         className="context-switcher-item"
                         onClick={() => {
@@ -429,6 +479,32 @@ export default function Home() {
                         }}
                       >
                         Nova análise
+                      </button>
+                    )}
+                    <div className="context-switcher-divider" />
+                    {session ? (
+                      <>
+                        <Link
+                          href="/minha-conta"
+                          className="context-switcher-item"
+                          style={{ display: 'block', textDecoration: 'none' }}
+                          onClick={() => setHamburgerOpen(false)}
+                        >
+                          Minha conta
+                        </Link>
+                        <button
+                          className="context-switcher-item context-switcher-item--muted"
+                          onClick={() => { signOut(); setHamburgerOpen(false); }}
+                        >
+                          Sair
+                        </button>
+                      </>
+                    ) : (
+                      <button
+                        className="context-switcher-item"
+                        onClick={() => { signIn('google'); setHamburgerOpen(false); }}
+                      >
+                        Entrar
                       </button>
                     )}
                   </div>
@@ -464,7 +540,7 @@ export default function Home() {
                     id="try-example-btn"
                     className="example-btn"
                     onClick={handleExample}
-                    disabled={loading || reachedLimit}
+                    disabled={loading}
                   >
                     {exampleIndex === -1 ? '✨ Tentar com um exemplo' : '✨ Tentar outro exemplo'}
                   </button>
@@ -480,17 +556,13 @@ export default function Home() {
                   id="analyze-btn"
                   className={tourStep === 2 ? 'tour-highlight' : ''}
                   onClick={handleAnalyze}
-                  disabled={loading || !input || input.trim().length === 0 || reachedLimit}
+                  disabled={loading || !input || input.trim().length === 0}
                 >
                   {loading ? (
-                    <>
-                      <span>Analisando</span>
-                      <span className="loading-dots">
-                        <span>.</span>
-                        <span>.</span>
-                        <span>.</span>
-                      </span>
-                    </>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem' }}>
+                      <div className="spinner-tiny" style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }}></div>
+                      <span style={{ minWidth: '180px', textAlign: 'left' }}>{LOADING_MESSAGES[loadingStep]}</span>
+                    </div>
                   ) : (result ? 'Rever decisão' : 'Analisar')}
                 </button>
                 {tourStep === 2 && renderTourPopover(2)}
@@ -499,15 +571,33 @@ export default function Home() {
 
             {reachedLimit && (
               <div className="error-message">
-                Você atingiu o limite diário de análises. Tente novamente amanhã ou{' '}
-                <Link href="/limite" style={{ color: 'inherit', textDecoration: 'underline' }}>obtenha um plano</Link>.
+                {session ? 'Suas decisões de hoje chegaram ao limite.' : 'Limite de convidado atingido.'}{' '}
+                <button
+                  className="limit-link"
+                  onClick={() => {
+                    setLimitReached({
+                      title: session ? "Sua clareza diária está pausada." : "Você atingiu o limite de convidado.",
+                      description: session 
+                        ? "Você chegou ao limite de análises gratuitas. No PRO, o Decido já sabe — e te diz o que fazer sem repetir o esforço."
+                        : "Para continuar decidindo hoje e salvar seu histórico com segurança, crie sua conta gratuita.",
+                      cta: session ? "Continuar agora com PRO" : "Criar conta gratuita",
+                      link: session ? "/limite" : "/auth/signup",
+                      secondary_cta: session ? null : "Ver planos PRO",
+                      secondary_link: session ? null : "/limite"
+                    });
+                    setShowUpgradeModal(true);
+                  }}
+                >
+                  {session ? 'Continuar com contexto' : 'Salvar histórico'}
+                </button>
               </div>
             )}
+
             {error && !reachedLimit && <div className="error-message">{error}</div>}
 
             {mounted && tourStep > 0 && <div className="tour-overlay" />}
 
-            {mounted && history.length > 0 && !result && !loading && (
+            {mounted && isPro && history.length > 0 && !result && !loading && (
               <section id="history-container" className={`history-section ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
                 <div className={tourStep === 3 ? 'tour-highlight' : ''}>
                   <div className="history-header">
@@ -544,7 +634,32 @@ export default function Home() {
               </section>
             )}
 
-            {mounted && history.length === 0 && !result && !loading && !isLimitReached() && (
+            {mounted && !isPro && !result && !loading && (
+              <section className="history-section history-locked">
+                <div className="locked-history-card" onClick={() => {
+                  setLimitReached({
+                    title: "O Decido continua de onde você parou.",
+                    description: `
+No plano gratuito, cada decisão começa do zero.
+
+No PRO, o Decido conecta tudo ao longo do tempo para você não precisar recomeçar.
+                    `,
+                    cta: "Continuar de onde parei"
+                  });
+                  setShowUpgradeModal(true);
+                }}>
+                  <div className="locked-history-content">
+                    <span className="locked-icon">🔒</span>
+                    <span className="pro-badge-tiny">Recurso PRO</span>
+                    <h3>Histórico de decisões</h3>
+                    <p>Suas decisões são tratadas individualmente no plano gratuito. No PRO, o Decido conecta tudo ao longo do tempo para você não precisar recomeçar.</p>
+                    <span className="locked-cta">Continuar de onde parei</span>
+                  </div>
+                </div>
+              </section>
+            )}
+
+            {mounted && isPro && history.length === 0 && !result && !loading && !isLimitReached() && (
               <div id="history-container" className={`empty-history-card ${tourStep === 3 ? 'tour-highlight-container' : ''}`} style={{ position: 'relative' }}>
                 <div className={tourStep === 3 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                   <span className="empty-history-icon">📝</span>
@@ -563,6 +678,8 @@ export default function Home() {
                   <div className="recommended-card-header">
                     <div className="recommended-badge-container">
                       <span className="recommended-badge">O que fazer agora</span>
+                      {!isPro && <span className="pro-feature-tag">{headerHint || "Essa é a melhor decisão para agora 🔒"}</span>}
+                      {isPro && <span className="pro-feature-tag pro-feature-tag--active">Análise PRO Ativa</span>}
                     </div>
                     <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                     <button
@@ -595,8 +712,7 @@ export default function Home() {
                     </p>
                     <div className="context-disclaimer">
                       <p>
-                        Baseado no seu contexto, esta é a melhor próxima ação. A prioridade pode variar se houver <span className="context-emphasis">prazo ou urgência específica</span>.
-                        {' '}
+                        Baseado neste momento. No PRO, o Decido considera seu <strong>histórico completo</strong> para maior precisão.{' '}
                         <button
                           className="refine-link"
                           onClick={() => {
@@ -610,6 +726,27 @@ export default function Home() {
                       </p>
                     </div>
                   </div>
+                  
+                  {mounted && !isPro && !isViewingHistory && result && (
+                    <ValueHint 
+                      onUpgradeClick={() => {
+                        setLimitReached({
+                          title: "Sua clareza diária está pausada.",
+                          description: `
+Você chegou ao limite de análises gratuitas por hoje.
+
+Algumas dessas decisões ainda podem evoluir com continuidade.
+
+No plano gratuito, cada decisão começa do zero.
+No PRO, o Decido continua com você.
+                          `,
+                          cta: "Continuar com contexto",
+                          secondaryCta: "Voltar depois"
+                        });
+                        setShowUpgradeModal(true);
+                      }} 
+                    />
+                  )}
                 </div>
 
                 {result.priorities ? (
@@ -782,8 +919,36 @@ export default function Home() {
 
             <footer id="app-footer" className={(tourStep === 4) ? 'tour-highlight-container' : ''} style={{ textAlign: 'center', opacity: (tourStep === 4) ? 1 : 0.5, fontSize: '0.9rem', marginTop: 'auto', marginBottom: '20px', padding: '2rem', display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'center', borderRadius: '1rem', position: 'relative' }}>
               <div className={tourStep === 4 ? 'tour-highlight' : ''} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem', width: '100%' }}>
-                {mounted && (
-                  <span>Plano Gratuito: {getRemainingUsage()} {getRemainingUsage() === 1 ? 'análise restante' : 'análises restantes'}</span>
+                {mounted && !isPro && (
+                  <div className="free-limit-indicator" onClick={() => {
+                    setLimitReached({
+                      title: session ? "Sua clareza diária está pausada." : "Você atingiu o limite de convidado.",
+                      description: session 
+                        ? "Você chegou ao limite de análises gratuitas. No PRO, o Decido já sabe — e te diz o que fazer sem repetir o esforço."
+                        : "Para continuar decidindo hoje e salvar seu histórico com segurança, crie sua conta gratuita.",
+                      cta: session ? "Continuar agora com PRO" : "Criar conta gratuita",
+                      link: session ? "/limite" : "/auth/signup",
+                      secondary_cta: session ? null : "Ver planos PRO",
+                      secondary_link: session ? null : "/limite"
+                    });
+                    setShowUpgradeModal(true);
+                  }}>
+                    <span>
+                      {serverRemainingUsage !== null 
+                        ? (serverRemainingUsage === 0 ? 'Suas decisões de hoje chegaram ao limite' : (serverRemainingUsage === 1 ? 'Você ainda pode decidir 1 vez hoje' : `Você ainda pode decidir ${serverRemainingUsage} vezes hoje`))
+                        : (getRemainingUsage() === 0 ? 'Suas decisões de hoje chegaram ao limite' : (getRemainingUsage() === 1 ? 'Você ainda pode decidir 1 vez hoje' : `Você ainda pode decidir ${getRemainingUsage()} vezes hoje`))
+                      }
+                    </span>
+
+                    <span className="pro-upgrade-link">Ver planos</span>
+                  </div>
+                )}
+                {mounted && isPro && (
+                  <div className="pro-limit-indicator">
+                    <span style={{ color: '#fbbf24', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                      <span style={{ fontSize: '1.1rem' }}>✨</span> Plano PRO — Análises Ilimitadas
+                    </span>
+                  </div>
                 )}
                 {mounted && history.length > 0 && (
                   <button
@@ -796,8 +961,96 @@ export default function Home() {
               </div>
               {tourStep === 4 && renderTourPopover(4)}
             </footer>
+
         </>
 
+
+      {(limitReached || showUpgradeModal) && limitReached && (
+        <div className="limit-modal-overlay">
+          <div className="limit-modal">
+            <span className="limit-modal-icon">🔒</span>
+            <h2>{limitReached.title}</h2>
+            <p>{limitReached.description}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+              <button
+                className="limit-modal-cta"
+                onClick={() => {
+                  const target = limitReached.link || '/limite';
+                  setLimitReached(null);
+                  setShowUpgradeModal(false);
+                  router.push(target);
+                }}
+              >
+                {limitReached.cta}
+              </button>
+              {limitReached.secondary_cta && (
+                <button
+                  className="limit-modal-secondary"
+                  style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'transparent' }}
+                  onClick={() => {
+                    const target = limitReached.secondary_link || '/limite';
+                    setLimitReached(null);
+                    setShowUpgradeModal(false);
+                    router.push(target);
+                  }}
+                >
+                  {limitReached.secondary_cta}
+                </button>
+              )}
+              <button
+                className="limit-modal-secondary"
+                onClick={() => {
+                  setLimitReached(null);
+                  setShowUpgradeModal(false);
+                }}
+              >
+                Voltar depois
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {conversionTrigger && (
+        <div className="limit-modal-overlay">
+          <div className="limit-modal">
+            <span className="limit-modal-icon">🎁</span>
+            <h2>{conversionTrigger.title}</h2>
+            <p>{conversionTrigger.description}</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+              <button
+                className="limit-modal-cta"
+                onClick={() => {
+                  setConversionTrigger(null);
+                  router.push(conversionTrigger.link || '/auth/signup');
+                }}
+              >
+                {conversionTrigger.cta}
+              </button>
+              {conversionTrigger.secondary_cta && (
+                <button
+                  className="limit-modal-secondary"
+                  style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'transparent' }}
+                  onClick={() => {
+                    setConversionTrigger(null);
+                    router.push(conversionTrigger.secondary_link || '/limite');
+                  }}
+                >
+                  {conversionTrigger.secondary_cta}
+                </button>
+              )}
+              <button
+                className="limit-modal-secondary"
+                style={{ opacity: 0.6, fontSize: '0.85rem' }}
+                onClick={() => setConversionTrigger(null)}
+              >
+                Quero continuar Free
+              </button>
+
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </main>
   );

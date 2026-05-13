@@ -1,3 +1,16 @@
+export type Plan = 'guest' | 'free' | 'pro' | 'enterprise';
+
+export type SubscriptionStatus = 
+  | 'active' 
+  | 'past_due' 
+  | 'canceled' 
+  | 'incomplete' 
+  | 'incomplete_expired' 
+  | 'trialing' 
+  | 'unpaid';
+
+export type UserRole = 'guest' | 'free' | 'pro' | 'admin';
+
 
 export interface Task {
   name: string;
@@ -25,4 +38,13 @@ export interface Decision {
   input: string;
   output: AnalysisResult;
   timestamp: number;
+}
+
+export interface LimitReachedMessage {
+  title: string;
+  description: string;
+  cta: string;
+  link: string;
+  secondary_cta: string | null;
+  secondary_link: string | null;
 }

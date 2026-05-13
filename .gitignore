@@ -46,3 +46,9 @@ next-env.d.ts
 *.sqlite
 *.sqlite3
 /data/
+
+# dev-only artifacts (Zero Docs Policy — never commit to main)
+/docs/
+/scratch/
+/test-results/
+scripts/lint-docs.js

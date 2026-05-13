@@ -33,7 +33,9 @@ Define: por que importa e se pode ser feito agora.
 
 ## STEP 3 — PRIMARY ACTION (MANDATORY)
 Executa a lógica de PRIMARY ACTION.
-Define: o que fazer exatamente agora (pode diferir do selected_high_id se houver ganho de momentum).
+Define: o que fazer exatamente agora.
+REGRA ABSOLUTA: primary_action SEMPRE nasce do selected_high_id.
+Eles NUNCA podem diferir. Impacto domina facilidade.
 
 ## STEP 4 — PLAN BRANCHING
 ### FREE: Pula Context e Validation. Segue para RENDER (FREE).
@@ -45,8 +47,8 @@ Define: o que fazer exatamente agora (pode diferir do selected_high_id se houver
 * NUNCA use templates ou frases prontas.
 * SEMPRE derive a linguagem dos sinais das camadas anteriores.
 * Justificativa deve obedecer rigorosamente à hierarquia de decisão.
-* Se task == selected_high_id → Justificativa "PESADA" (IMPACTO): focada em riscos, prazos e consequências reais.
-* Se task == primary_action_task_id (mas não High) → Justificativa "LEVE" (EXECUÇÃO): focada em rapidez, facilidade e momentum. PROIBIDO usar palavras como "urgente" ou "fundamental".
+* selected_high_id == primary_action_task_id — SEMPRE. Eles são a mesma tarefa.
+* Se task == selected_high_id (= primary_action) → Justificativa "PESADA" (IMPACTO): focada em riscos, prazos e consequências reais.
 * Para as demais → Justificativa de ADIAMENTO: explicar por que o impacto é baixo ou o prazo é flexível.
 
 ---

@@ -4,7 +4,7 @@ import { aiOrchestrator } from '@/services/ai/orchestrator';
 import { checkIpLimit, incrementIpCount } from '@/services/security/rate-limiter';
 import { auth } from '@/auth';
 import { getUserPlan, hasUsedProTasting, markProTastingUsed } from '@/lib/users-db';
-import { saveUserDecision } from '@/lib/history-db';
+import { saveUserDecision, getUserDecisions } from '@/lib/history-db';
 import crypto from 'crypto';
 import { getDailyUsage, incrementDailyUsage } from '@/lib/usage-db';
 import { sanitizeTasks, recoverCoverage } from '@/services/ai/sanitize';
@@ -14,8 +14,8 @@ import type { Priority } from '@/types';
 import { getPlanLimits } from '@/lib/plans';
 import { logger } from '@/lib/logger';
 import { analytics } from '@/lib/analytics';
-
-// analytics and logger imported above
+import { getUserByEmail as getUserFullRecord } from '@/lib/users-db';
+import { buildLayeredPrompt } from '@/services/ai/prompts/builder';
 
 function enforceImperative(text: string): string {
   return text
@@ -30,8 +30,6 @@ function enforceImperative(text: string): string {
     .replace(/^(tentar)\b/i, '')
     .trim()
 }
-
-
 
 function makeMoreDecisive(text: string): string {
   return enforceImperative(
@@ -131,41 +129,6 @@ function deduplicatePriorities(priorities: Priority[]): Priority[] {
   return result
 }
 
-const IMPACT_LEVEL_3 = [
-  'remédio', 'medicamento', 'medicina', 'saúde', 'médico', 'médica', 'hospital', 
-  'dor', 'febre', 'injeção', 'comprimido', 'dose', 'tratamento', 'vacina', 
-  'cirurgia', 'emergência', 'consulta', 'exame', 'agendar', 'dentista', 'psicólogo', 
-  'terapia', 'sintoma', 'lesão', 'segurança', 'escola', 'veterinário', 'morrer', 'socorro'
-]
-const IMPACT_LEVEL_2 = ['fatura', 'conta', 'pagamento', 'vence', 'boleto', 'débito', 'cobrança', 'multa', 'cliente', 'prazo', 'entrega', 'reunião', 'atrasado', 'projeto', 'relatório', 'apresentação', 'trabalho', 'faculdade', 'prova', 'estudar']
-
-const DEPENDENT_KEYWORDS = ['filho', 'filha', 'criança', 'pet', 'cachorro', 'gato', 'idoso', 'bebê']
-const SAFETY_CONTEXT = ['médico', 'escola', 'veterinário', 'dor', 'febre', 'segurança', 'sozinho', 'emergência', 'estranho', 'doente']
-
-function getImpactLevel(task: string): 3 | 2 | 1 {
-  const norm = normalizeForMatch(task)
-  const matchWord = (k: string) => new RegExp(`\\b${normalizeForMatch(k)}\\b`).test(norm)
-  
-  // 1. HEALTH & EXPLICIT SAFETY (Highest Priority)
-  if (IMPACT_LEVEL_3.some(matchWord)) {
-    const minimized = ['rotina', 'check-up', 'não urgente', 'não é urgente', 'pode esperar', 'depois'].some(k => norm.includes(k))
-    if (minimized) return 1
-    return 3
-  }
-  
-  // 2. DEPENDENT SAFETY SPLIT
-  const isDependent = DEPENDENT_KEYWORDS.some(matchWord)
-  const hasSafetyContext = SAFETY_CONTEXT.some(matchWord)
-  if (isDependent && hasSafetyContext) {
-    return 3
-  }
-  
-  // 3. FINANCIAL/LEGAL/PROFESSIONAL
-  if (IMPACT_LEVEL_2.some(matchWord)) return 2
-  
-  return 1
-}
-
 function extractTasksFromVerbs(input: string): string[] {
   const stripped = stripFillers(input.toLowerCase())
   const words = stripped.split(/\s+/).filter(Boolean)
@@ -197,48 +160,6 @@ function splitMergedTasks(priorities: Priority[]): Priority[] {
       reason: i === 0 ? p.reason : '',
     }))
   })
-}
-
-// RENDER ENGINE: Justification quality is now handled by the AI via render.md layer.
-// Template-based enforceReasonQuality() has been removed.
-// The AI generates signal-driven, contextual justifications per task.
-
-function reorderByImpact(priorities: Priority[]): Priority[] {
-  const level3 = priorities.filter(p => getImpactLevel(p.task) === 3)
-  const level2 = priorities.filter(p => getImpactLevel(p.task) === 2)
-  const level1 = priorities.filter(p => getImpactLevel(p.task) === 1)
-  if (level3.length === 0 && level2.length === 0) return priorities
-  return [...level3, ...level2, ...level1]
-}
-
-function enforceDistributionRules(priorities: Priority[]): Priority[] {
-  const all = priorities
-  const count = all.length
-
-  const assign = (item: Priority, level: Priority['level']) => ({ ...item, level })
-
-  if (count === 0) return []
-  if (count === 1) return [assign(all[0], 'alta')]
-  if (count === 2) {
-    // Escolher o de maior impacto léxico para Alta
-    const i0 = getImpactLevel(all[0].task)
-    const i1 = getImpactLevel(all[1].task)
-    if (i1 > i0) return [assign(all[0], 'média'), assign(all[1], 'alta')]
-    return [assign(all[0], 'alta'), assign(all[1], 'média')]
-  }
-  
-  // Para 3 ou mais: Forçar 1 Alta, 1 Média, 1 Baixa no topo
-  const result = [...all]
-  result[0] = assign(result[0], 'alta')
-  result[1] = assign(result[1], 'média')
-  result[2] = assign(result[2], 'baixa')
-  
-  // Distribuir o resto
-  for (let i = 3; i < count; i++) {
-    result[i] = assign(result[i], 'baixa')
-  }
-  
-  return result
 }
 
 function enforceCoverage(input: string, priorities: Priority[]): Priority[] {
@@ -277,20 +198,35 @@ function enforceCoverage(input: string, priorities: Priority[]): Priority[] {
   ]
 }
 
-// PRO/ENTERPRISE: preserve AI-generated primary_action richness.
-// Only enforces "agora." termination without rebuilding from task title.
 function enforceProAction(primaryAction: string, priorities: Priority[]): string {
   const topPriority = priorities.find(p => p.level === 'alta')
   if (!topPriority) return primaryAction
 
   let action = primaryAction.trim()
-  // Ensure the action ends with "agora."
   if (!/(agora)/i.test(action)) {
     action = action.replace(/[.!?]+$/, '') + ' agora.'
   } else if (!action.endsWith('.')) {
     action = action.replace(/[.!?]+$/, '') + '.'
   }
   return action
+}
+
+function enforcePrimaryFromHigh(primaryAction: string, priorities: Priority[]): string {
+  const highTask = priorities.find(p => p.level === 'alta')
+  if (!highTask) return primaryAction
+
+  const primaryNorm = normalizeForMatch(primaryAction.replace(/\s+agora\.?$/i, '').replace(/[.!?]+$/, ''))
+  const highNorm = normalizeForMatch(stripFillers(highTask.task))
+  
+  if (sharedKeywords(primaryNorm, highNorm) >= 2 || primaryNorm.includes(highNorm) || highNorm.includes(primaryNorm)) {
+    return primaryAction
+  }
+
+  console.warn('[Governance] PRIMARY diverged from HIGH bucket. Forcing derivation.', {
+    aiPrimary: primaryAction,
+    highTask: highTask.task
+  })
+  return humanizeTask(highTask.task)
 }
 
 function enforceSingleHighPriority(priorities: Priority[]): Priority[] {
@@ -305,7 +241,6 @@ function enforceSingleHighPriority(priorities: Priority[]): Priority[] {
     ...rest,
   ]
 }
-
 
 function getTodayDate(): string {
   return new Date().toISOString().slice(0, 10);
@@ -333,48 +268,38 @@ function buildLimitResponse(isAuthenticated: boolean) {
   };
 }
 
-
-
 export async function POST(req: NextRequest) {
-  let userEmail: string | undefined | null = null;
+  const today = getTodayDate();
+  let userEmail: string | undefined;
+
   try {
     const session = await auth();
     userEmail = session?.user?.email;
     const userPlan = userEmail ? getUserPlan(userEmail) : 'guest';
-    const limits = getPlanLimits(userPlan);
+    const userRecord = userEmail ? getUserFullRecord(userEmail) : undefined;
+    const limits = getPlanLimits(userPlan, userRecord?.stripe_subscription_status);
     const isPro = userPlan === 'pro' || userPlan === 'enterprise';
 
     logger.info('Analysis request received', { user: userEmail ?? 'anonymous', plan: userPlan, isPro });
 
-    const { input, history, fingerprint } = await req.json();
-    
-    // --- 8. DEV / TEST MODE ---
+    const { input, history, fingerprint, skipLimit: clientSkipLimit } = await req.json();
+
     const DEV_USERS = ["thiago.rojas@dngx.com.br"];
-    let skipLimit = process.env.DISABLE_LIMIT === "true" || req.headers.get("x-dev-mode") === "true";
+    let skipLimit = process.env.DISABLE_LIMIT === "true" || req.headers.get("x-dev-mode") === "true" || clientSkipLimit;
     if (userEmail && DEV_USERS.includes(userEmail)) skipLimit = true;
 
     if (!input || typeof input !== 'string' || input.trim() === '') {
-      return NextResponse.json(
-        { error: 'Input is required and must be a string.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Input is required.' }, { status: 400 });
     }
 
-    // --- 3. SERVER IDENTIFIER RESOLUTION ---
     const ip = getClientIp(req);
-
-    // --- 3.1 TECHNICAL RATE LIMITING (Burst Protection) ---
     const rateLimit = checkIpLimit(ip);
     if (!rateLimit.allowed) {
       return NextResponse.json({ error: rateLimit.message }, { status: 429 });
     }
     incrementIpCount(ip);
 
-    // Para convidados, usamos IP como âncora principal se o fingerprint falhar ou for resetado
     const identifier = userEmail || (fingerprint ? `fp:${fingerprint}` : `ip:${ip}`);
-    const today = getTodayDate();
-
-    // 1. Verificação de Limite (DB-side)
     const count = getDailyUsage(identifier, today);
 
     if (!isPro && !skipLimit && count >= limits.dailyAnalyses) {
@@ -382,69 +307,53 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(buildLimitResponse(!!userEmail), { status: 429 });
     }
 
-
-    // PRO Tasting: Free user na última análise (3ª), APENAS se nunca usou antes
     const isProTasting = userEmail && userPlan === 'free' && count === (limits.dailyAnalyses - 1) && !hasUsedProTasting(userEmail);
-    const plan = isProTasting ? 'pro' : userPlan;
-    
-    if (isProTasting) logger.info('PRO Tasting activated', { user: userEmail });
-    
-    const result = await aiOrchestrator(input, history, plan);
+    const effectivePlan = isProTasting ? 'pro' : userPlan;
 
-    // DEFENSIVE: Normalize AI output to expected contract
-    // The model may return alternative structures or malformed properties
-    if (!Array.isArray(result.priorities)) {
-      console.warn('[Pipeline] priorities is not an array, received:', typeof result.priorities);
-      const altTasks = (result as unknown as Record<string, unknown>).ordered_tasks ?? (result as unknown as Record<string, unknown>).tasks;
-      if (Array.isArray(altTasks)) {
-        result.priorities = (altTasks as Array<Record<string, unknown>>).map((t: Record<string, unknown>, i) => ({
-          task: String(t.label ?? t.name ?? t.task ?? t),
-          level: (i === 0 ? 'alta' : i === 1 ? 'média' : 'baixa') as Priority['level'],
-          reason: String(t.reason ?? ''),
-        }));
-      } else {
-        result.priorities = [];
-      }
-    }
+    if (isProTasting) logger.info('Activating PRO tasting', { user: userEmail });
 
-    // Clean up malformed entries in priorities
+    const userHistory = userEmail ? getUserDecisions(userEmail) : [];
+    const prompt = buildLayeredPrompt(effectivePlan, input, userHistory);
+
+    const result = await aiOrchestrator(input, userHistory, effectivePlan, prompt);
+
+    // Clean up malformed entries
     result.priorities = result.priorities.filter(p => p && typeof p === 'object' && p.task);
 
     if (!result.primary_action || typeof result.primary_action !== 'string') {
-      logger.warn('AI returned malformed primary_action, attempting recovery', { user: userEmail });
-      const alt = (result as unknown as Record<string, unknown>);
-      result.primary_action = (alt.recommended_action as string)
-        ?? (result.priorities[0]?.task ? humanizeTask(result.priorities[0].task) : '')
-        ?? '';
+      result.primary_action = (result.priorities[0]?.task ? humanizeTask(result.priorities[0].task) : '');
     }
 
     if (isOverloadInput(input)) {
       result.priorities = result.priorities.map(p => ({ ...p, task: normalizeTitle(p.task) }));
     } else {
-      // --- SHARED DECISION PIPELINE (CORE + HEURISTICS) ---
-      const preSanitized = enforceCoverage(input, reorderByImpact(splitMergedTasks(deduplicatePriorities(result.priorities))));
+      // PHASE 2: Pipeline should not reinterpret ranking or alter structural priority
+      const preSanitized = enforceCoverage(input, splitMergedTasks(deduplicatePriorities(result.priorities)));
+      
       const sanitized = sanitizeTasks(preSanitized);
       const recovered = recoverCoverage(input, sanitized);
       const pipeline = deduplicatePriorities(recovered);
 
-      result.priorities = enforceDistributionRules(enforceSingleHighPriority(pipeline))
+      result.priorities = enforceSingleHighPriority(pipeline)
         .map(p => ({ ...p, task: normalizeTitle(p.task) }));
 
       if (!result.priorities.some(p => p.level === 'alta') && result.primary_action) {
-        const fallback: Priority = {
-          task: normalizeTitle(result.primary_action.replace(/\s+agora\.?$/i, '').replace(/[.!?]+$/, '')),
-          level: 'alta',
-          reason: 'Prioridade imediata identificada pelo motor de decisão.'
-        };
-        result.priorities = [fallback, ...result.priorities];
+        const alreadyExists = result.priorities.some(p => normalizeTitle(p.task) === normalizeTitle(result.primary_action.replace(/\s+agora\.?$/i, '').replace(/[.!?]+$/, '')));
+        if (!alreadyExists) {
+          result.priorities = [{
+            task: normalizeTitle(result.primary_action.replace(/\s+agora\.?$/i, '').replace(/[.!?]+$/, '')),
+            level: 'alta',
+            reason: 'Prioridade imediata identificada pelo motor de decisão.'
+          }, ...result.priorities];
+        }
       }
 
-      result.primary_action = ensureCapitalization(
-        makeMoreDecisive(enforceProAction(result.primary_action, result.priorities))
+      result.primary_action = enforcePrimaryFromHigh(
+        ensureCapitalization(makeMoreDecisive(enforceProAction(result.primary_action, result.priorities))),
+        result.priorities
       );
     }
 
-    // FINAL HARDENING & DEDUPLICATION (Global)
     const uniqueTasks = new Set<string>();
     result.priorities = result.priorities.filter(p => {
       const norm = normalizeTitle(p.task);
@@ -453,20 +362,22 @@ export async function POST(req: NextRequest) {
       return true;
     });
 
-    // Ensure at least one priority exists
-    if (result.priorities.length === 0 && result.primary_action) {
-      result.priorities = [{ task: normalizeTitle(result.primary_action), level: 'alta', reason: 'Ação prioritária identificada.' }];
+    if (result.priorities.length >= 3) {
+      const levels = new Set(result.priorities.map(p => p.level));
+      if (levels.size === 1) {
+        logger.warn('Distribution collapse detected', { user: userEmail, bucket: result.priorities[0]?.level });
+      }
     }
 
-    // Atualizar contadores (apenas para não-PRO)
+    if (result.priorities.length === 0 && result.primary_action) {
+      result.priorities = [{ task: normalizeTitle(result.primary_action), level: 'alta', reason: 'Ação prioritária.' }];
+    }
+
     if (!isPro && !skipLimit) {
       incrementDailyUsage(identifier, today);
     }
 
     const newCount = count + 1;
-    const isGuestUser = !userEmail;
-
-    // Save history for ALL authenticated users (FREE and PRO)
     if (userEmail) {
       try {
         saveUserDecision(userEmail, {
@@ -476,44 +387,32 @@ export async function POST(req: NextRequest) {
           timestamp: Date.now()
         });
       } catch (dbErr) {
-        logger.error('Failed to save decision history', dbErr, { user: userEmail });
+        logger.error('Failed to save history', dbErr);
       }
     }
 
-    // Gatilho de conversão: convidado após a 2ª análise (ainda tem 1 restante)
-    if (isGuestUser && !skipLimit && newCount === 2) {
+    if (!userEmail && !skipLimit && newCount === 2) {
       return NextResponse.json({
         ...result,
         conversion_trigger: {
-          title: "Gostou? Sua próxima análise pode ser no modo PRO.",
-          description: "Cadastre-se agora e experimente o Decido PRO gratuitamente na sua última análise — com contexto estratégico e insights avançados.",
-          cta: "Cadastrar e experimentar o PRO",
-          link: "/auth/signup",
-          secondary_cta: "Entrar com Google",
-          secondary_link: "/auth/signin"
+          title: "Gostou?",
+          description: "Sua última análise gratuita pode ser PRO.",
+          cta: "Cadastrar agora",
+          link: "/auth/signup"
         }
       });
     }
 
-    // Marcar degustação PRO como utilizada (nunca mais repete)
     if (isProTasting && userEmail) {
       markProTastingUsed(userEmail);
-      return NextResponse.json({
-        ...result,
-        pro_tasting: true
-      });
+      return NextResponse.json({ ...result, pro_tasting: true });
     }
 
     analytics.trackDecisionCreated(userEmail || `anon:${identifier}`, userPlan);
-
     return NextResponse.json(result);
 
   } catch (error: unknown) {
-    logger.error('API Analyze internal error', error, { user: userEmail });
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Não foi possível processar a análise no momento.' },
-      { status: 500 }
-    );
+    logger.error('API Analyze internal error', error);
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal error' }, { status: 500 });
   }
 }
-

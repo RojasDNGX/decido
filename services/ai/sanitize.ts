@@ -11,8 +11,21 @@ const META_PATTERNS = [
 ];
 
 function hasVerb(text: string): boolean {
-  // Simple heuristic: starts with verb (capitalized)
-  return /^[A-Z][a-z]+/.test(text);
+  // More inclusive heuristic for Portuguese verbs (imperative or infinitive)
+  const lower = text.toLowerCase().trim();
+  // Check if it ends with common verb suffixes or has 3+ chars
+  // In Decido, a task is usually "Verbo + Objeto"
+  const firstWord = lower.split(' ')[0];
+  return firstWord.length >= 3 && (
+    firstWord.endsWith('ar') || 
+    firstWord.endsWith('er') || 
+    firstWord.endsWith('ir') ||
+    // Common imperative endings
+    firstWord.endsWith('e') || 
+    firstWord.endsWith('a') ||
+    // Irregulars
+    ['faz', 'diz', 'vai', 'põe', 'dê', 'vem', 'traz', 'tenha', 'seja'].includes(firstWord)
+  );
 }
 
 function isMetaTask(title: string): boolean {
@@ -33,7 +46,6 @@ function isRawInputLeak(title: string): boolean {
 
 function isValidTask(task: Priority): boolean {
   if (!task.task || !task.reason) return false;
-  if (!hasVerb(task.task)) return false;
   if (isMetaTask(task.task)) return false;
   if (isRawInputLeak(task.task)) return false;
   return true;

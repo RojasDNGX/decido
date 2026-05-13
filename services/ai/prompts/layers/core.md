@@ -91,13 +91,59 @@ Any task involving **Health, Physical Safety, or Dependent Safety** is automatic
 
 ---
 
-## PRIORITY RANKING (MANDATORY ORDER)
+## PRIORITY RANKING (ABSOLUTE HIERARCHY)
 
-1. **Safety/Health/Dependent Safety** (unless minimized).
-2. **Hard Deadlines** (Hoje, Vence hoje, Atrasado).
-3. **High-Impact Blocks** (Blocking other people/work).
-4. **Concrete Executable Tasks / Dependent Maintenance**.
-5. **Low-Impact/Flexible Tasks**.
+1. **Health & Safety** (Medical appointments, medications, dependent safety, pet health emergencies). **NOTHING beats this.**
+2. **Hard Deadlines** (Bills due today, items expiring today, scheduled meetings).
+3. **High-Impact Blocks** (Tasks blocking others' work, critical professional delivery).
+4. **Routine/Operational** (House chores, emails, non-urgent admin, maintenance).
+5. **Flexible/Optional** (Learning, organizing, future planning).
+
+### THE "ANTI-EASE" PRINCIPLE
+* **IMPACT > EASE**: Never promote a task just because it is "easy" or "fast" (e.g., responder WhatsApp).
+* **CONSEQUENCE > CONVENIENCE**: A hard task with high consequences (renovar passaporte) MUST be higher than a trivial task with low consequences, even if the trivial one is "urgent" in a social sense.
+
+### LEVEL SEMANTICS
+* **alta**: The task with the HIGHEST consequence if ignored. (ONLY ONE allowed).
+* **média**: Tasks that are important/necessary but have lower relative impact or longer deadlines.
+* **baixa**: Optional, routine, or purely organizational tasks.
+
+---
+
+## DISTRIBUTION GOVERNANCE (MANDATORY)
+
+When the user provides MULTIPLE tasks (3 or more), the output MUST reflect meaningful differentiation between them:
+
+### RULE 1: Natural Granularity
+* NOT all tasks carry the same weight. Differentiate them.
+* If 3+ tasks exist, using ONLY ONE level (e.g., all "alta") is almost always WRONG.
+* A healthy distribution typically has: 1 alta, 1+ média, 1+ baixa.
+
+### RULE 2: Level Semantics
+* **alta**: ONE task — the most impactful, urgent, or consequential. PRIMARY derives from this.
+* **média**: Tasks that matter but are not the #1 priority. Operational tasks, important but not urgent, secondary deadlines.
+* **baixa**: Tasks that can genuinely wait without real consequence. Routine, optional, flexible timing.
+
+### RULE 3: Relative Impact
+* Priority levels express RELATIVE difference between tasks in THIS specific set.
+* A task is "média" because it is LESS urgent/impactful than the "alta" task, not because it is unimportant.
+* A task is "baixa" because it can wait compared to the others, not because it is worthless.
+
+### RULE 4: Anti-Collapse
+* If you find yourself assigning the same level to all tasks, STOP and re-evaluate.
+* Ask: "Are these tasks TRULY equal in urgency, impact, and consequence?" — almost never.
+* Forced homogeneity is a classification failure.
+
+### CONCRETE EXAMPLE
+Input: "revisar imposto, responder e-mails, organizar mesa"
+* alta: revisar imposto — consequência fiscal real se ignorado
+* média: responder e-mails — operacional, pode acumular atraso
+* baixa: organizar mesa — flexível, sem consequência imediata
+
+### HARD CONSTRAINT
+* Distribution guidance MUST NEVER override the PRIMARY derivation rule.
+* The HIGH task remains the source of truth for primary_action.
+* This section governs MEDIUM and LOW classification, not HIGH.
 
 ---
 

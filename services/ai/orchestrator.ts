@@ -242,10 +242,11 @@ function validatePrimaryAction(action: string): boolean {
 export async function aiOrchestrator(
   input: string,
   history?: HistoryItem[],
-  plan: Plan = 'free'
+  plan: Plan = 'free',
+  customPrompt?: string
 ): Promise<AnalysisResult> {
   const safeHistory = plan === 'free' ? undefined : history;
-  const prompt = buildLayeredPrompt(plan, input, safeHistory);
+  const prompt = customPrompt || buildLayeredPrompt(plan, input, safeHistory);
 
   // 1. Tentativa Local (Ollama) - Timeout 6s
   const primaryModel = LOCAL_MODELS[0]; 

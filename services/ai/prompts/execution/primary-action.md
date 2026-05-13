@@ -1,70 +1,52 @@
-# PRIMARY ACTION LOGIC — DECIDO
+# PRIMARY ACTION DERIVATION — DECIDO (GOVERNANCE RULE)
 
 ## OBJECTIVE
 
-Select the best immediate action to execute now.
-
-This is NOT necessarily the highest priority task.
+Derive the primary_action from the HIGHEST PRIORITY task.
 
 ---
 
-## INPUT (CONCEPTUAL — fed by CORE + HEURISTICS)
+## ABSOLUTE RULE
 
-Primary action selection uses the ordered tasks, the highest priority task,
-and the reasoning signals produced by earlier layers.
+primary_action MUST ALWAYS be derived from the task classified as HIGH ("alta") priority.
 
----
-
-## GOAL
-
-Determine ONE task to act on immediately.
-This becomes the "primary_action" field in the final output.
+This is NON-NEGOTIABLE. There are NO exceptions.
 
 ---
 
-## SELECTION PRINCIPLE
+## DERIVATION LOGIC
 
-Primary action is selected based on:
-
-1. LOW execution_cost
-2. LOW execution_time
-3. LOW friction
-4. HIGH quick_win
-
-Subject to:
-
-* MUST NOT contradict system logic
-* MUST NOT delay critical blocking tasks unnecessarily
+1. Identify the task with level "alta" in the priority buckets.
+2. Convert that task into imperative form in Portuguese.
+3. That becomes the primary_action.
 
 ---
 
-## DECISION RULE
+## FORBIDDEN
 
-Evaluate all tasks:
-
-Score =
-(quick_win)
-
-* (execution_cost)
-* (friction)
-
-### POLICY BIAS (OVERRIDE)
-
-* **HEALTH DEFAULT OVERRIDE**: If a health/life task exists and is not explicitly minimized, it MUST be selected as the `primary_action_task_id`, overriding cost or friction.
-* If a task is HIGH impact AND blocking → it can override cost
-* If a task is LOW cost + fast → prefer it as immediate action
+* primary_action MUST NEVER come from a "média" or "baixa" task.
+* primary_action MUST NEVER be selected based on execution ease, speed, or low friction.
+* "Quick wins", "momentum", or "low effort" MUST NEVER override the HIGH priority task.
+* The system MUST NEVER prefer a fast/easy task over an important/impactful task.
 
 ---
 
-## IMPORTANT DISTINCTION
+## IF MULTIPLE HIGH TASKS EXIST
 
-selected_high_id:
-→ defines what matters most
+Select the one with the HIGHEST IMPACT:
 
-primary_action_task_id:
-→ defines what to do now
+1. Health/Safety/Dependents → always wins
+2. Hard deadline (vence hoje, atrasado) → second priority
+3. Financial/legal/professional consequence → third
+4. NEVER select the "easiest" or "fastest" among HIGH tasks
 
-They MAY differ.
+---
+
+## RELATIONSHIP
+
+selected_high_id = primary_action_task_id
+
+They are ALWAYS the same task. They MUST NEVER differ.
 
 ---
 
@@ -73,10 +55,12 @@ They MAY differ.
 * NEVER select multiple actions
 * NEVER chain actions
 * NEVER introduce tasks not present in CORE
+* NEVER diverge from the HIGH priority bucket
 
 ---
 
 ## PRINCIPLE
 
-Do first what moves you forward with the least resistance,
-without ignoring what matters most.
+Do first what matters most.
+Impact determines action.
+Ease is irrelevant for primary selection.

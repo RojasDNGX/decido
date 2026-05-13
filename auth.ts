@@ -1,4 +1,5 @@
-import NextAuth from 'next-auth';
+import NextAuth, { type Session, type User } from 'next-auth';
+import { type JWT } from 'next-auth/jwt';
 import Google from 'next-auth/providers/google';
 import Credentials from 'next-auth/providers/credentials';
 import { getOrCreateUser, getUserByEmail } from '@/lib/users-db';
@@ -31,7 +32,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           name: user.name,
           plan: user.plan,
           role: user.role
-        };
+        } as any;
       }
     })
   ],
@@ -45,15 +46,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signIn: '/auth/signin',
   },
   callbacks: {
-    async jwt({ token, user }: { token: Record<string, unknown>; user: Record<string, unknown> | null }) {
+    async jwt({ token, user }: { token: JWT; user?: User | any }) {
       if (user) {
         token.id = user.id;
         token.plan = (user.plan as string) || 'free';
         token.role = user.role;
       }
       
+      // HOTFIX B: ALWAYS refresh plan from DB on every JWT callback.
+      // This ensures Stripe webhook changes (free→pro) are immediately reflected
+      // without requiring a re-login or waiting for the 30-day token expiry.
       const email = token.email as string | undefined;
-      if (email && !token.plan) {
+      if (email) {
         const userRow = getOrCreateUser(
           email, 
           token.name as string || undefined, 
@@ -65,12 +69,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       return token;
     },
-    async session({ session, token }: { session: Record<string, unknown>; token: Record<string, unknown> }) {
-      const user = session.user as Record<string, unknown> | undefined;
-      if (user) {
-        user.id = token.id;
-        user.plan = token.plan;
-        user.role = token.role;
+    async session({ session, token }: { session: Session; token: JWT }) {
+      if (session.user) {
+        (session.user as any).id = token.id;
+        (session.user as any).plan = token.plan;
+        (session.user as any).role = token.role;
       }
       return session;
     },

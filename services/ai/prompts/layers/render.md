@@ -16,36 +16,33 @@ This layer:
 
 For each task in the output, identify its role based on the decision system:
 
-### ROLE: IMPACT (Priority Focus)
-* **Trigger**: task_id == selected_high_id (Highest Priority "alta")
-* **Goal**: Explain why this is the most important thing.
-* **Semantic focus**: Consequences, risks, deadlines, blocking factors.
-
-### ROLE: EXECUTION (Action Focus)
-* **Trigger**: task_id == primary_action_task_id
-* **Goal**: Explain why this is the smartest thing to start NOW.
-* **Semantic focus**: Speed, low effort, quick win, momentum.
+### ROLE: PRIMARY (Highest Priority = Primary Action)
+* **Trigger**: task_id == selected_high_id == primary_action_task_id (they are ALWAYS the same)
+* **Goal**: Explain why this is the most important thing to do RIGHT NOW.
+* **Semantic focus**: Consequences, risks, deadlines, blocking factors, impact.
+* **NOTE**: selected_high_id and primary_action_task_id MUST NEVER differ.
 
 ### ROLE: DEFERRED
-* **Trigger**: Neither of the above.
+* **Trigger**: Any task that is NOT the PRIMARY.
 * **Goal**: Explain why this can wait.
-* **Semantic focus**: Lack of urgency, flexibility.
+* **Semantic focus**: Lack of urgency, flexibility, lower impact.
 
 ---
 
 ## SEMANTIC INTEGRITY RULES (CRITICAL)
 
 ### THE "LEAKAGE" RULE
-If a task has ROLE: EXECUTION but is NOT ROLE: IMPACT (i.e., it is "média" or "baixa" priority):
-* **❌ FORBIDDEN**: Using words like "urgente", "crítico", "prioridade máxima", "vital", "perigoso", "risco", "fundamental", "não pode ser adiada", "questão de saúde", "importante", "essencial", "necessário".
-* **✅ REQUIRED**: Using language that emphasizes "rapidez", "facilidade", "baixo esforço", "resolução imediata", "limpeza de pendência", "sem fricção", "momentum".
+DEFERRED tasks (média/baixa) MUST NEVER sound more important than the PRIMARY task:
+* **❌ FORBIDDEN**: Using words like "urgente", "crítico", "prioridade máxima", "vital", "perigoso", "risco", "fundamental", "não pode ser adiada", "questão de saúde", "importante", "essencial", "necessário" for DEFERRED tasks.
+* **✅ REQUIRED**: DEFERRED justifications should emphasize flexibility, low urgency, or that they can wait.
 
 ### CONFLICT RESOLUTION: PRIORITY HIERARCHY
-The justification for the HIGH priority task MUST ALWAYS sound more important than any other. 
+The justification for the PRIMARY task MUST ALWAYS sound more important than any DEFERRED task.
+The PRIMARY task IS the HIGH priority task IS the primary_action. They are ONE thing.
 
 #### SAFETY & HEALTH VS URGENCY POLICY
 If a safety (health/dependents) task exists alongside a task with strong explicit urgency:
-1. The safety task remains HIGH (precautionary).
+1. The safety task remains HIGH and is the PRIMARY action.
 2. **FREE**: Use a direct justification (e.g., "Segurança e saúde merecem prioridade.").
 3. **PRO**: Use **PRECAUTIONARY LANGUAGE** (e.g., "Questões de segurança ou saúde recebem prioridade até que a urgência seja melhor definida") and frame the relationship between tasks.
 4. **REFINEMENT HOOK (PRO ONLY)**: Subtly mention that if it's only routine, the order could change.
@@ -90,22 +87,6 @@ Example directions:
 
 ---
 
-### ROLE: EXECUTION (Primary Action — if NOT High)
-
-**⚠️ STRICT RULE**: Ignore all impact/urgency/health signals. Focus EXCLUSIVELY on:
-* execution_cost (low effort)
-* execution_time (fast)
-* quick_win (mental relief)
-
-Generate reasoning about:
-* **The "Easy Win"**: Why doing it now is efficient.
-
-Example directions:
-* "É um agendamento rápido que você resolve em minutos."
-* "Ação de baixo esforço para garantir progresso imediato."
-
----
-
 ### ROLE: DEFERRED
 
 Generate reasoning about:
@@ -129,16 +110,16 @@ Example directions:
 
 Before returning the final response, verify:
 
-1. **Hierarchy Check**: Is the HIGH task justification clearly the "heaviest" in terms of stakes?
-2. **Action Check**: Does the PRIMARY ACTION justification sound "light" and "efficient" (if it's not the High task)?
+1. **Derivation Check**: Is the PRIMARY ACTION derived from the HIGH priority task? If not → REGENERATE.
+2. **Hierarchy Check**: Is the PRIMARY/HIGH task justification clearly the "heaviest" in terms of stakes?
 3. **Template Check**: Are the phrases unique and grounded in the specific task name?
 
 ---
 
 ## PRINCIPLE
 
-Execution is about EASE.
-Impact is about IMPORTANCE.
+PRIMARY ACTION = HIGH PRIORITY TASK. Always.
+Impact determines what to do first.
 Every justification must respect the assigned priority level.
-If it's Medium, justify it as a "Quick Win", not a "Mission Critical" task.
+DEFERRED tasks explain why they can wait, not why they should be done.
 

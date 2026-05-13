@@ -39,6 +39,13 @@ JUSTIFICATIVA (curta, direta, obrigatória):
 - média: descreva o que pode atrasar se não for feito em breve
 - baixa: "Não afeta o momento atual."
 
+DISTRIBUIÇÃO DE PRIORIDADES (OBRIGATÓRIA):
+- Quando existirem 3+ tarefas, use TODOS os três níveis (alta, média, baixa).
+- Nem toda tarefa relevante precisa ser alta. Tarefas operacionais podem ser média. Tarefas opcionais podem ser baixa.
+- Uma distribuição saudável: 1 alta, 1+ média, 0+ baixa.
+- Colocar todas as tarefas no mesmo nível é resposta incorreta.
+- Exemplo: "revisar imposto, responder e-mails, organizar mesa" → alta: imposto | média: e-mails | baixa: mesa
+
 REGRAS OBRIGATÓRIAS:
 1. priorities: liste TODAS as tarefas do input, ordenadas por nível (alta → média → baixa).
 2. primary_action: derive SEMPRE da tarefa de maior prioridade (priorities[0].task).

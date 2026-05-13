@@ -23,7 +23,14 @@ export const OUTPUT_FORMAT = `FORMATO DE SAÍDA (JSON ESTRITO):
     "reason": "string"
   }
 ]
-}`;
+}
+
+REGRA DE DISTRIBUIÇÃO:
+- EXATAMENTE UMA tarefa deve ser "alta" (a mais impactante/urgente).
+- primary_action DEVE derivar da tarefa "alta".
+- Quando existirem 3+ tarefas, use os três níveis (alta, média, baixa) para refletir diferença real de impacto.
+- Nem toda tarefa relevante precisa ser "alta". Tarefas operacionais podem ser "média". Tarefas opcionais podem ser "baixa".
+- Colapsar todas as tarefas no mesmo nível é resposta incorreta.`;
 
 export const HEALTH_POLICY = `POLÍTICA GLOBAL DE SEGURANÇA E SAÚDE (ESTRITA):
 1. DIVISÃO DE DEPENDENTES:

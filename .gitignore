@@ -46,3 +46,7 @@ next-env.d.ts
 *.sqlite
 *.sqlite3
 /data/
+
+# local dev artifacts
+/scratch/
+/test-results/
